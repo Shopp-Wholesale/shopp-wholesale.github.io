@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wholesale Store</title>
+  <title>Shopp Wholesale</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+  <!-- Firebase v8 (REQUIRED for firebase.firestore()) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Config -->
   <script>
@@ -24,6 +24,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
+
 </head>
 
 <body>
@@ -45,14 +46,13 @@
     <input id="search" class="search-box" placeholder="Search grocery items..." />
   </section>
 
-  <!-- Items -->
+  <!-- Products List -->
   <section id="products" class="product-grid"></section>
 
-  <!-- Floating Cart Footer (Style C feature) -->
+  <!-- Floating Cart Footer -->
   <div class="cart-footer" id="cart-footer">
     <div class="cart-footer-left">
-      <span id="footer-item-count">0 Items</span> • 
-      ₹<span id="footer-total">0</span>
+      <span id="footer-item-count">0 Items</span> • ₹<span id="footer-total">0</span>
     </div>
     <button class="footer-checkout-btn" id="open-cart-btn-2">Checkout</button>
   </div>
@@ -60,8 +60,8 @@
   <!-- Cart Modal -->
   <div id="cart-modal" class="cart-modal hidden">
     <div class="cart-content">
-      <h2>Your Cart</h2>
 
+      <h2>Your Cart</h2>
       <div id="cart-items"></div>
 
       <div class="cart-totals">
@@ -85,10 +85,11 @@
         <button id="close-cart">Close</button>
         <button id="send-whatsapp" class="primary">Send Order on WhatsApp</button>
       </div>
+
     </div>
   </div>
 
-  <!-- Main Script -->
+  <!-- Main Logic -->
   <script src="script.js"></script>
 
 </body>
