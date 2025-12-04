@@ -43,16 +43,25 @@ async function loadItems() {
   }
 }
 
-// ---------------- RENDER ITEMS ----------------  
+// ---------------- RENDER ITEMS (UPDATED IMAGE FIX) ----------------  
 function renderItems(list) {
   const container = document.getElementById('products');
   container.innerHTML = '';
 
   list.forEach(it => {
+    const safeImage = it.image && it.image.trim() !== "" 
+      ? it.image 
+      : "images/placeholder.png";
+
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
-      <img src="${it.image}" alt="${it.name}" onerror="this.src='images/placeholder.png'">
+      <img 
+        src="${safeImage}" 
+        alt="${it.name}" 
+        loading="lazy"
+        onerror="this.src='images/placeholder.png'"
+      >
 
       <div class="item-name">${it.name}</div>
 
