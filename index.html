@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wholesale Store — Placeholder</title>
+  <title>Wholesale Store</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- ✅ Firebase SDK -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
 
-  <!-- ✅ Firebase Config + Firestore Init -->
+  <!-- Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
@@ -21,37 +21,47 @@
       appId: "1:811103669232:web:825724b3738658192b6b35"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-
-    // Initialize Firestore
     const db = firebase.firestore();
   </script>
-
 </head>
+
 <body>
+
+  <!-- Header -->
   <header class="site-header">
     <div class="brand">
-      <h1 class="brand-name">WholesalePlaceholder</h1>
+      <h1 class="brand-name">Shopp Wholesale</h1>
       <p class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</p>
     </div>
-    <div class="cart-summary">
-      <button id="open-cart-btn">Cart (<span id="cart-count">0</span>)</button>
-    </div>
+
+    <button class="cart-button" id="open-cart-btn">
+      🛒 <span id="cart-count">0</span>
+    </button>
   </header>
 
-  <main>
-    <section class="controls">
-      <input id="search" placeholder="Search items..." />
-    </section>
+  <!-- Search -->
+  <section class="controls">
+    <input id="search" class="search-box" placeholder="Search grocery items..." />
+  </section>
 
-    <section id="products" class="product-grid"></section>
-  </main>
+  <!-- Items -->
+  <section id="products" class="product-grid"></section>
 
-  <!-- Cart modal -->
+  <!-- Floating Cart Footer (Style C feature) -->
+  <div class="cart-footer" id="cart-footer">
+    <div class="cart-footer-left">
+      <span id="footer-item-count">0 Items</span> • 
+      ₹<span id="footer-total">0</span>
+    </div>
+    <button class="footer-checkout-btn" id="open-cart-btn-2">Checkout</button>
+  </div>
+
+  <!-- Cart Modal -->
   <div id="cart-modal" class="cart-modal hidden">
     <div class="cart-content">
-      <h2>Order Cart</h2>
+      <h2>Your Cart</h2>
+
       <div id="cart-items"></div>
 
       <div class="cart-totals">
@@ -59,10 +69,12 @@
         <div>Total Amount: ₹<span id="total-amount">0</span></div>
       </div>
 
+      <h3>Customer Details</h3>
       <div class="customer-form">
         <input id="customer-name" placeholder="Customer Name" />
         <input id="customer-phone" placeholder="Phone (optional)" />
         <textarea id="customer-address" placeholder="Delivery address"></textarea>
+
         <select id="payment-mode">
           <option value="Cash">Cash on Delivery</option>
           <option value="UPI">UPI</option>
@@ -76,7 +88,7 @@
     </div>
   </div>
 
-  <!-- ✅ Your main script (must load AFTER Firebase) -->
+  <!-- Main Script -->
   <script src="script.js"></script>
 
 </body>
