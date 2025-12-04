@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wholesale Store — Placeholder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <h1 class="brand-name">WholesalePlaceholder</h1>
+      <p class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</p>
+    </div>
+    <div class="cart-summary">
+      <button id="open-cart-btn">Cart (<span id="cart-count">0</span>)</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="controls">
+      <input id="search" placeholder="Search items..." />
+    </section>
+
+    <section id="products" class="product-grid"></section>
+  </main>
+
+  <!-- Cart modal -->
+  <div id="cart-modal" class="cart-modal hidden">
+    <div class="cart-content">
+      <h2>Order Cart</h2>
+      <div id="cart-items"></div>
+      <div class="cart-totals">
+        <div>Total Items: <span id="total-items">0</span></div>
+        <div>Total Amount: ₹<span id="total-amount">0</span></div>
+      </div>
+
+      <div class="customer-form">
+        <input id="customer-name" placeholder="Customer Name" />
+        <input id="customer-phone" placeholder="Phone (optional)" />
+        <textarea id="customer-address" placeholder="Delivery address"></textarea>
+        <select id="payment-mode">
+          <option value="Cash">Cash on Delivery</option>
+          <option value="UPI">UPI</option>
+        </select>
+      </div>
+
+      <div class="cart-actions">
+        <button id="close-cart">Close</button>
+        <button id="send-whatsapp" class="primary">Send Order on WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
