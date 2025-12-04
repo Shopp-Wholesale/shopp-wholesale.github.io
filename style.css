@@ -1,34 +1,234 @@
-:root{
-  --accent:#0d6efd;
-  --bg:#f6f7fb;
-  --card:#fff;
-  --muted:#777;
+:root {
+  --accent: #19a74a;            /* Green grocery theme */
+  --accent-dark: #12853a;
+  --bg: #f4f9f4;
+  --card: #ffffff;
+  --muted: #6f6f6f;
+  --danger: #d9534f;
 }
-*{box-sizing:border-box}
-body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#111}
-.site-header{display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:var(--card); box-shadow:0 1px 4px rgba(0,0,0,.06); position:sticky; top:0; z-index:10}
-.brand-name{margin:0;font-size:18px}
-.tagline{margin:2px 0 0 0; color:var(--muted); font-size:12px}
-.controls{padding:12px 20px}
-#search{width:100%; padding:10px;border-radius:8px;border:1px solid #ddd}
-.product-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; padding:16px 20px}
-.card{background:var(--card); border-radius:10px; padding:10px; box-shadow:0 1px 4px rgba(0,0,0,.05); display:flex; flex-direction:column; min-height:220px}
-.card img{width:100%; height:120px; object-fit:contain; background:#fff; border-radius:6px}
-.item-name{font-weight:600; margin:8px 0 6px 0; font-size:14px}
-.price-row{display:flex; align-items:center; justify-content:space-between; gap:8px}
-.mrp{font-size:11px; color:var(--muted)}
-.sale{font-weight:700; font-size:16px}
-.qty-controls{display:flex; gap:6px; align-items:center; margin-top:10px}
-.qty-controls button{padding:6px 8px; border-radius:6px; border:1px solid #ddd; background:#fff}
-.qty-display{min-width:26px; text-align:center}
-.add-btn{margin-top:auto; padding:8px; border-radius:8px; border:none; background:var(--accent); color:#fff; width:100%}
 
-.cart-modal{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.35)}
-.cart-content{background:#fff; width:95%; max-width:560px; border-radius:10px; padding:16px; max-height:90vh; overflow:auto}
-.hidden{display:none}
-.customer-form input, .customer-form textarea, .customer-form select{width:100%; padding:8px; margin-top:8px; border:1px solid #ddd; border-radius:6px}
-.cart-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
-.primary{background:var(--accent); color:white; border:none; padding:8px 12px; border-radius:8px}
+* { box-sizing: border-box; }
 
-/* small mrp text (user chose style C) */
-.small-mrp{font-size:11px; color:#5a5a5a; opacity:.8}
+body {
+  font-family: Inter, system-ui, -apple-system, Roboto, Arial;
+  margin: 0;
+  background: var(--bg);
+  color: #111;
+}
+
+/* -------- HEADER -------- */
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: var(--card);
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tagline {
+  margin: 0;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cart-button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* -------- SEARCH -------- */
+.controls {
+  padding: 12px 20px;
+}
+
+#search {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d3d3d3;
+  font-size: 14px;
+}
+
+/* -------- PRODUCT GRID -------- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  padding: 16px 20px;
+}
+
+/* -------- PRODUCT CARD -------- */
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  transition: 0.2s;
+}
+
+.card:hover {
+  transform: scale(1.02);
+}
+
+.card img {
+  width: 100%;
+  height: 130px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.item-name {
+  font-weight: 600;
+  margin: 10px 0 6px 0;
+  font-size: 15px;
+}
+
+/* Price row */
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.small-mrp {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.sale {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+/* Quantity controls */
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.qty-controls button {
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.qty-display {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Add button */
+.add-btn {
+  margin-top: auto;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* -------- CART MODAL -------- */
+.cart-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.25);
+  z-index: 20;
+}
+
+.cart-content {
+  background: #fff;
+  width: 95%;
+  max-width: 520px;
+  border-radius: 14px;
+  padding: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.hidden { display: none; }
+
+.customer-form input,
+.customer-form textarea,
+.customer-form select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+/* Cart action buttons */
+.cart-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cart-actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+}
+
+.primary {
+  background: var(--accent);
+  color: white;
+}
+
+/* -------- FLOATING CART FOOTER (STYLE C SPECIAL) -------- */
+.cart-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  box-shadow: 0 -2px 6px rgba(0,0,0,.08);
+  z-index: 15;
+}
+
+.footer-checkout-btn {
+  background: var(--accent);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+}
