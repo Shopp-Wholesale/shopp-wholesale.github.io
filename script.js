@@ -1,3 +1,48 @@
+// ---------------- CONFIG ----------------  
+const WHATSAPP_NUMBER = "919000810084";
+const DELIVERY_RADIUS_TEXT = "3 km";
+const DELIVERY_PROMISE_TEXT = "Within 24 hrs";
+
+let items = [];
+let cart = {};
+
+const money = v => Number(v).toFixed(0);
+
+// ---------------- LOAD ALL ITEMS FROM FIREBASE ----------------  
+async function loadItems() {
+  try {
+    const snap = await db.collection("items").get();
+
+    if (snap.empty) {
+      document.getElementById('products').innerHTML =
+        "<p style='padding:20px'>No items found in Firestore</p>";
+      return;
+    }
+
+    items = [];
+
+    snap.forEach((doc, index) => {
+      const d = doc.data();
+      items.push({
+        id: index + 1,
+        docId: doc.id,
+        name: d.name,
+        mrp: d.mrp,
+        salePrice: d.price,
+        stock: d.stock,
+        image: d.image
+      });
+    });
+
+    renderItems(items);
+
+  } catch (e) {
+    console.error("Firestore error:", e);
+    document.getElementById('products').innerHTML =
+      "<p style='padding:20px'>Failed to load items</p>";
+  }
+}
+
 // ---------------- RENDER ITEMS ----------------  
 function renderItems(list) {
   const container = document.getElementById('products');
@@ -27,19 +72,18 @@ function renderItems(list) {
     container.appendChild(card);
   });
 
-  document.querySelectorAll('.inc').forEach(btn =>
-    btn.onclick = () => changeQty(btn.dataset.id, 1)
+  document.querySelectorAll('.inc').forEach(b =>
+    b.onclick = () => changeQty(b.dataset.id, 1)
   );
 
-  document.querySelectorAll('.dec').forEach(btn =>
-    btn.onclick = () => changeQty(btn.dataset.id, -1)
+  document.querySelectorAll('.dec').forEach(b =>
+    b.onclick = () => changeQty(b.dataset.id, -1)
   );
 
-  document.querySelectorAll('.add-btn').forEach(btn =>
-    btn.onclick = () => changeQty(btn.dataset.id, 1)
+  document.querySelectorAll('.add-btn').forEach(b =>
+    b.onclick = () => changeQty(b.dataset.id, 1)
   );
 }
-
 
 // ---------------- CART FUNCTIONS ----------------  
 function changeQty(id, delta) {
@@ -49,7 +93,6 @@ function changeQty(id, delta) {
   document.getElementById(`qty-${id}`).innerText = cart[id];
   updateCartCount();
 }
-
 
 function updateCartCount() {
   const count = Object.values(cart).reduce((s, n) => s + (n || 0), 0);
@@ -64,7 +107,6 @@ function updateCartCount() {
   renderCartItems();
 }
 
-
 function calculateTotal() {
   let total = 0;
   for (let id in cart) {
@@ -75,8 +117,6 @@ function calculateTotal() {
   return total;
 }
 
-
-// ---------------- RENDER CART ITEMS ----------------  
 function renderCartItems() {
   const container = document.getElementById('cart-items');
   container.innerHTML = '';
@@ -93,15 +133,22 @@ function renderCartItems() {
 
     row.innerHTML = `
       <div>${it.name} x ${qty}</div>
-      <div>₹${money(qty * it.salePrice)}</div>
-    `;
-
+      <div>₹${money(qty * it.salePrice)}</div>`;
     container.appendChild(row);
   }
 }
 
+// ---------------- MODAL CONTROLS ----------------  
+document.getElementById('open-cart-btn').onclick =
+document.getElementById('open-cart-btn-2').onclick = () => {
+  document.getElementById('cart-modal').classList.remove('hidden');
+};
 
-// ---------------- WHATSAPP SEND ----------------  
+document.getElementById('close-cart').onclick = () => {
+  document.getElementById('cart-modal').classList.add('hidden');
+};
+
+// ---------------- SEND WHATSAPP ----------------  
 document.getElementById('send-whatsapp').onclick = () => {
   const name = document.getElementById('customer-name').value;
   const phone = document.getElementById('customer-phone').value;
@@ -124,18 +171,6 @@ document.getElementById('send-whatsapp').onclick = () => {
     "_blank"
   );
 };
-
-
-// ---------------- MODAL OPEN/CLOSE ----------------  
-document.getElementById('open-cart-btn').onclick =  
-document.getElementById('open-cart-btn-2').onclick = () => {
-  document.getElementById('cart-modal').classList.remove('hidden');
-};
-
-document.getElementById('close-cart').onclick = () => {
-  document.getElementById('cart-modal').classList.add('hidden');
-};
-
 
 // ---------------- INIT ----------------  
 loadItems();
