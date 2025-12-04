@@ -5,6 +5,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wholesale Store — Placeholder</title>
   <link rel="stylesheet" href="style.css">
+
+  <!-- ✅ Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+
+  <!-- ✅ Firebase Config + Firestore Init -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
+      authDomain: "shopp-wholesale.firebaseapp.com",
+      projectId: "shopp-wholesale",
+      storageBucket: "shopp-wholesale.firebasestorage.app",
+      messagingSenderId: "811103669232",
+      appId: "1:811103669232:web:825724b3738658192b6b35"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firestore
+    const db = firebase.firestore();
+  </script>
+
 </head>
 <body>
   <header class="site-header">
@@ -30,6 +53,7 @@
     <div class="cart-content">
       <h2>Order Cart</h2>
       <div id="cart-items"></div>
+
       <div class="cart-totals">
         <div>Total Items: <span id="total-items">0</span></div>
         <div>Total Amount: ₹<span id="total-amount">0</span></div>
@@ -52,6 +76,8 @@
     </div>
   </div>
 
+  <!-- ✅ Your main script (must load AFTER Firebase) -->
   <script src="script.js"></script>
+
 </body>
 </html>
