@@ -1,80 +1,125 @@
-// Config
-const WHATSAPP_NUMBER = "919000810084"; // international format (91 + 9000810084)
+// ---------------- CONFIG ----------------
+const WHATSAPP_NUMBER = "919000810084"; 
 const DELIVERY_RADIUS_TEXT = "3 km";
 const DELIVERY_PROMISE_TEXT = "Within 24 hrs";
 
-// App state
 let items = [];
 let cart = {};
 
-// Helpers
 const money = v => Number(v).toFixed(0);
 
-// Load items.json dynamically
-async function loadItems(){
+
+// ---------------- FIREBASE INIT ----------------
+import { initializeApp } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import { getFirestore, collection, getDocs } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
+  authDomain: "shopp-wholesale.firebaseapp.com",
+  projectId: "shopp-wholesale",
+  storageBucket: "shopp-wholesale.firebasestorage.app",
+  messagingSenderId: "811103669232",
+  appId: "1:811103669232:web:825724b3738658192b6b35"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+// ---------------- LOAD ITEMS FROM FIRESTORE ----------------
+async function loadItems() {
+  items = [];
+
   try {
-    const res = await fetch('items.json');
-    items = await res.json();
+    const snap = await getDocs(collection(db, "items"));
+    snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+
     renderItems(items);
+
   } catch (e) {
-    console.error("Failed to load items.json", e);
-    document.getElementById('products').innerHTML = "<p style='padding:20px'>Failed to load items.json</p>";
+    console.error("Firestore load error:", e);
+    document.getElementById('products').innerHTML =
+      "<p style='padding:20px'>Failed to load Firestore items</p>";
   }
 }
 
+
+// ---------------- RENDER ITEMS ----------------
 function renderItems(list){
   const container = document.getElementById('products');
   container.innerHTML = '';
+
   list.forEach(it => {
     const card = document.createElement('div');
     card.className = 'card';
+
     card.innerHTML = `
-      <img src="${it.image}" alt="${it.name}" onerror="this.onerror=null;this.src='images/placeholder.png'">
+      <img src="${it.image}" alt="${it.name}" 
+           onerror="this.onerror=null;this.src='images/placeholder.png'">
       <div class="item-name">${it.name}</div>
+
       <div class="price-row">
         <div class="small-mrp">MRP ₹${money(it.mrp)}</div>
-        <div class="sale">₹${money(it.salePrice)}</div>
+        <div class="sale">₹${money(it.price)}</div>
       </div>
+
       <div class="qty-controls">
         <button class="dec" data-id="${it.id}">-</button>
         <div class="qty-display" id="qty-${it.id}">0</div>
         <button class="inc" data-id="${it.id}">+</button>
       </div>
+
       <button class="add-btn" data-id="${it.id}">Add to cart</button>
     `;
+
     container.appendChild(card);
   });
 
-  // Attach listeners
-  document.querySelectorAll('.inc').forEach(b => b.onclick = () => changeQty(b.dataset.id, 1));
-  document.querySelectorAll('.dec').forEach(b => b.onclick = () => changeQty(b.dataset.id, -1));
-  document.querySelectorAll('.add-btn').forEach(b => b.onclick = () => changeQty(b.dataset.id, 1));
+  document.querySelectorAll('.inc').forEach(b =>
+    b.onclick = () => changeQty(b.dataset.id, 1)
+  );
+  document.querySelectorAll('.dec').forEach(b =>
+    b.onclick = () => changeQty(b.dataset.id, -1)
+  );
+  document.querySelectorAll('.add-btn').forEach(b =>
+    b.onclick = () => changeQty(b.dataset.id, 1)
+  );
 }
 
+
+// ---------------- CART FUNCTIONS ----------------
 function changeQty(id, delta){
-  id = Number(id);
   cart[id] = cart[id] || 0;
   cart[id] = Math.max(0, cart[id] + delta);
+
   document.getElementById(`qty-${id}`).innerText = cart[id];
   updateCartCount();
 }
 
 function updateCartCount(){
   const count = Object.values(cart).reduce((s,n)=>s+(n||0),0);
+
   document.getElementById('cart-count').innerText = count;
   document.getElementById('total-items').innerText = count;
+
   const total = calculateTotal();
   document.getElementById('total-amount').innerText = money(total);
+
   renderCartItems();
 }
 
 function calculateTotal(){
   let total = 0;
-  for(let id in cart){
+
+  for (let id in cart){
     const qty = cart[id];
     if(!qty) continue;
-    const it = items.find(x=>x.id===Number(id));
-    if(it) total += qty * Number(it.salePrice);
+
+    const it = items.find(x => x.id === id);
+    if(it) total += qty * Number(it.price);
   }
   return total;
 }
@@ -82,68 +127,84 @@ function calculateTotal(){
 function renderCartItems(){
   const container = document.getElementById('cart-items');
   container.innerHTML = '';
-  for(let id in cart){
+
+  for (let id in cart){
     const qty = cart[id];
     if(!qty) continue;
-    const it = items.find(x=>x.id===Number(id));
+
+    const it = items.find(x => x.id === id);
     const row = document.createElement('div');
-    row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='6px 0';
-    row.innerHTML = `<div>${it.name} x ${qty}</div><div>₹${money(qty * it.salePrice)}</div>`;
+
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '6px 0';
+
+    row.innerHTML = `
+      <div>${it.name} x ${qty}</div>
+      <div>₹${money(qty * it.price)}</div>
+    `;
+
     container.appendChild(row);
   }
-  if(container.innerHTML === '') container.innerHTML = '<p>No items in cart</p>';
+
+  if(container.innerHTML === '')
+    container.innerHTML = '<p>No items in cart</p>';
 }
 
-// Cart modal controls
-document.getElementById('open-cart-btn').onclick = ()=> {
-  document.getElementById('cart-modal').classList.remove('hidden');
-};
-document.getElementById('close-cart').onclick = ()=> {
-  document.getElementById('cart-modal').classList.add('hidden');
-};
 
-// Send WhatsApp message
-document.getElementById('send-whatsapp').onclick = ()=> {
+// ---------------- CART MODAL ----------------
+document.getElementById('open-cart-btn').onclick = () =>
+  document.getElementById('cart-modal').classList.remove('hidden');
+
+document.getElementById('close-cart').onclick = () =>
+  document.getElementById('cart-modal').classList.add('hidden');
+
+
+// ---------------- SEND WHATSAPP ----------------
+document.getElementById('send-whatsapp').onclick = () => {
   const name = document.getElementById('customer-name').value.trim();
   const phone = document.getElementById('customer-phone').value.trim();
   const address = document.getElementById('customer-address').value.trim();
   const payment = document.getElementById('payment-mode').value;
 
   const itemsList = [];
-  for(let id in cart){
+
+  for (let id in cart){
     const qty = cart[id];
     if(!qty) continue;
-    const it = items.find(x=>x.id===Number(id));
-    itemsList.push(`${it.name} - Qty ${qty} - ₹${money(qty * it.salePrice)}`);
+
+    const it = items.find(x => x.id === id);
+    itemsList.push(`${it.name} - Qty ${qty} - ₹${money(qty * it.price)}`);
   }
+
   if(itemsList.length === 0){
-    alert('Cart is empty');
+    alert("Cart is empty");
     return;
   }
 
-  let message = `New Order - WholesalePlaceholder\n\n`;
-  message += itemsList.map((l,i)=>`${i+1}. ${l}`).join('\n');
-  message += `\n\nTotal Items: ${document.getElementById('total-items').innerText}`;
-  message += `\nTotal Amount: ₹${document.getElementById('total-amount').innerText}`;
-  message += `\n\nCustomer Name: ${name || '---'}`;
-  if(phone) message += `\nPhone: ${phone}`;
-  message += `\nAddress: ${address || '---'}`;
-  message += `\nPayment Mode: ${payment}`;
-  message += `\n\nDelivery Radius: ${DELIVERY_RADIUS_TEXT}`;
-  message += `\nDelivery Promise: ${DELIVERY_PROMISE_TEXT}`;
+  let msg = `New Order - Wholesale Store\n\n`;
+  msg += itemsList.map((l,i)=>`${i+1}. ${l}`).join('\n');
+  msg += `\n\nTotal Items: ${document.getElementById('total-items').innerText}`;
+  msg += `\nTotal Amount: ₹${document.getElementById('total-amount').innerText}`;
+  msg += `\n\nCustomer Name: ${name || "---"}`;
+  if(phone) msg += `\nPhone: ${phone}`;
+  msg += `\nAddress: ${address || "---"}`;
+  msg += `\nPayment Mode: ${payment}`;
+  msg += `\n\nDelivery Radius: ${DELIVERY_RADIUS_TEXT}`;
+  msg += `\nDelivery Promise: ${DELIVERY_PROMISE_TEXT}`;
 
-  // Encode and open wa.me link
-  const encoded = encodeURIComponent(message);
-  const link = `https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`;
-  window.open(link, '_blank');
+  const link = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+  window.open(link, "_blank");
 };
 
-// Search
-document.getElementById('search').addEventListener('input', (e) => {
-  const q = e.target.value.trim().toLowerCase();
+
+// ---------------- SEARCH ----------------
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
   const filtered = items.filter(it => it.name.toLowerCase().includes(q));
   renderItems(filtered);
 });
 
-// Initialize
-loadItems().then(()=> updateCartCount());
+
+// ---------------- INIT ----------------
+loadItems().then(() => updateCartCount());
