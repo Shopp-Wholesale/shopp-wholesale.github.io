@@ -43,24 +43,27 @@ async function loadItems() {
   }
 }
 
-// ---------------- RENDER ITEMS (UPDATED IMAGE FIX) ----------------  
+// ---------------- RENDER ITEMS (FINAL NO-BLINK VERSION) ----------------  
 function renderItems(list) {
   const container = document.getElementById('products');
   container.innerHTML = '';
 
   list.forEach(it => {
-    const safeImage = it.image && it.image.trim() !== "" 
-      ? it.image 
+    const safeImage = (it.image && it.image.trim() !== "")
+      ? it.image
       : "images/placeholder.png";
 
     const card = document.createElement('div');
     card.className = 'card';
+
     card.innerHTML = `
       <img 
         src="${safeImage}" 
         alt="${it.name}" 
         loading="lazy"
-        onerror="this.src='images/placeholder.png'"
+        style="opacity:0; transition:opacity 0.25s;"
+        onload="this.style.opacity=1"
+        onerror="this.src='images/placeholder.png'; this.style.opacity=1;"
       >
 
       <div class="item-name">${it.name}</div>
@@ -78,9 +81,11 @@ function renderItems(list) {
 
       <button class="add-btn" data-id="${it.id}">Add to cart</button>
     `;
+
     container.appendChild(card);
   });
 
+  // Attach listeners
   document.querySelectorAll('.inc').forEach(b =>
     b.onclick = () => changeQty(b.dataset.id, 1)
   );
@@ -133,6 +138,7 @@ function renderCartItems() {
   for (let id in cart) {
     const qty = cart[id];
     if (!qty) continue;
+
     const it = items.find(x => x.id == id);
 
     const row = document.createElement('div');
@@ -142,7 +148,9 @@ function renderCartItems() {
 
     row.innerHTML = `
       <div>${it.name} x ${qty}</div>
-      <div>₹${money(qty * it.salePrice)}</div>`;
+      <div>₹${money(qty * it.salePrice)}</div>
+    `;
+
     container.appendChild(row);
   }
 }
@@ -169,6 +177,7 @@ document.getElementById('send-whatsapp').onclick = () => {
   items.forEach(it => {
     const qty = cart[it.id];
     if (!qty) return;
+
     msg += `${it.name} x ${qty} = ₹${qty * it.salePrice}\n`;
   });
 
