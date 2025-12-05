@@ -43,7 +43,7 @@ async function loadItems() {
   }
 }
 
-// ---------------- RENDER ITEMS (FINAL NO-BLINK VERSION) ----------------  
+// ---------------- RENDER ITEMS ----------------  
 function renderItems(list) {
   const container = document.getElementById('products');
   container.innerHTML = '';
@@ -81,11 +81,9 @@ function renderItems(list) {
 
       <button class="add-btn" data-id="${it.id}">Add to cart</button>
     `;
-
     container.appendChild(card);
   });
 
-  // Attach listeners
   document.querySelectorAll('.inc').forEach(b =>
     b.onclick = () => changeQty(b.dataset.id, 1)
   );
@@ -155,31 +153,75 @@ function renderCartItems() {
   }
 }
 
-// ---------------- MODAL CONTROLS ----------------  
-document.getElementById('open-cart-btn').onclick =
-document.getElementById('open-cart-btn-2').onclick = () => {
-  document.getElementById('cart-modal').classList.remove('hidden');
-};
+// ---------------- FIRESTORE TRANSACTION: ORDER + STOCK UPDATE ----------------
+async function saveOrderAndReduceStock(orderItems, customer) {
+  try {
+    await db.runTransaction(async (tx) => {
+      for (const o of orderItems) {
+        const ref = db.collection("items").doc(o.docId);
+        const snap = await tx.get(ref);
 
-document.getElementById('close-cart').onclick = () => {
-  document.getElementById('cart-modal').classList.add('hidden');
-};
+        if (!snap.exists) throw `${o.name} not found`;
 
-// ---------------- SEND WHATSAPP ----------------  
-document.getElementById('send-whatsapp').onclick = () => {
+        const current = snap.data().stock || 0;
+        if (o.qty > current) throw `${o.name} only ${current} left`;
+
+        tx.update(ref, { stock: current - o.qty });
+      }
+
+      const orderRef = db.collection("orders").doc();
+      tx.set(orderRef, {
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        ...customer,
+        items: orderItems,
+        status: "pending"
+      });
+    });
+
+    return { ok: true };
+
+  } catch (err) {
+    return { ok: false, error: err };
+  }
+}
+
+// ---------------- SEND WHATSAPP (UPDATED WITH FIRESTORE ORDER + STOCK REDUCE) ----------------  
+document.getElementById('send-whatsapp').onclick = async () => {
   const name = document.getElementById('customer-name').value;
   const phone = document.getElementById('customer-phone').value;
   const address = document.getElementById('customer-address').value;
   const payment = document.getElementById('payment-mode').value;
 
-  let msg = `New Order\n\n`;
+  const orderItems = [];
 
   items.forEach(it => {
     const qty = cart[it.id];
-    if (!qty) return;
-
-    msg += `${it.name} x ${qty} = ₹${qty * it.salePrice}\n`;
+    if (qty) {
+      orderItems.push({
+        docId: it.docId,
+        name: it.name,
+        qty,
+        price: it.salePrice
+      });
+    }
   });
+
+  if (orderItems.length === 0) {
+    alert("Cart empty");
+    return;
+  }
+
+  const customer = { name, phone, address, payment };
+
+  const result = await saveOrderAndReduceStock(orderItems, customer);
+
+  if (!result.ok) {
+    alert(result.error);
+    return;
+  }
+
+  let msg = `New Order\n\n`;
+  orderItems.forEach(it => msg += `${it.name} x ${it.qty} = ₹${it.qty * it.price}\n`);
 
   msg += `\nTotal: ₹${document.getElementById('total-amount').innerText}`;
   msg += `\nName: ${name}\nPhone: ${phone}\nAddress: ${address}\nPayment: ${payment}`;
@@ -188,6 +230,10 @@ document.getElementById('send-whatsapp').onclick = () => {
     `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`,
     "_blank"
   );
+
+  cart = {};
+  updateCartCount();
+  loadItems(); // refresh stock UI
 };
 
 // ---------------- INIT ----------------  
