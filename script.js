@@ -27,8 +27,8 @@ async function loadItems() {
         id: index + 1,
         docId: doc.id,
         name: d.name,
-        mrp: d.mrp,
-        salePrice: d.price,
+        mrp: Number(d.mrp),
+        salePrice: Number(d.price),   // FIXED: STRING → NUMBER
         stock: d.stock,
         image: d.image
       });
@@ -43,7 +43,7 @@ async function loadItems() {
   }
 }
 
-// ---------------- RENDER ITEMS ----------------  
+// ---------------- RENDER ITEMS (NO BLINK VERSION) ----------------  
 function renderItems(list) {
   const container = document.getElementById('products');
   container.innerHTML = '';
@@ -58,10 +58,10 @@ function renderItems(list) {
 
     card.innerHTML = `
       <img 
-        src="${safeImage}" 
-        alt="${it.name}" 
+        src="${safeImage}"
+        alt="${it.name}"
         loading="lazy"
-        style="opacity:0; transition:opacity 0.25s;"
+        style="opacity:0; transition:opacity 0.3s;"
         onload="this.style.opacity=1"
         onerror="this.src='images/placeholder.png'; this.style.opacity=1;"
       >
@@ -81,6 +81,7 @@ function renderItems(list) {
 
       <button class="add-btn" data-id="${it.id}">Add to cart</button>
     `;
+
     container.appendChild(card);
   });
 
@@ -153,75 +154,31 @@ function renderCartItems() {
   }
 }
 
-// ---------------- FIRESTORE TRANSACTION: ORDER + STOCK UPDATE ----------------
-async function saveOrderAndReduceStock(orderItems, customer) {
-  try {
-    await db.runTransaction(async (tx) => {
-      for (const o of orderItems) {
-        const ref = db.collection("items").doc(o.docId);
-        const snap = await tx.get(ref);
+// ---------------- MODAL CONTROLS ----------------  
+document.getElementById('open-cart-btn').onclick =
+document.getElementById('open-cart-btn-2').onclick = () => {
+  document.getElementById('cart-modal').classList.remove('hidden');
+};
 
-        if (!snap.exists) throw `${o.name} not found`;
+document.getElementById('close-cart').onclick = () => {
+  document.getElementById('cart-modal').classList.add('hidden');
+};
 
-        const current = snap.data().stock || 0;
-        if (o.qty > current) throw `${o.name} only ${current} left`;
-
-        tx.update(ref, { stock: current - o.qty });
-      }
-
-      const orderRef = db.collection("orders").doc();
-      tx.set(orderRef, {
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        ...customer,
-        items: orderItems,
-        status: "pending"
-      });
-    });
-
-    return { ok: true };
-
-  } catch (err) {
-    return { ok: false, error: err };
-  }
-}
-
-// ---------------- SEND WHATSAPP (UPDATED WITH FIRESTORE ORDER + STOCK REDUCE) ----------------  
-document.getElementById('send-whatsapp').onclick = async () => {
+// ---------------- SEND WHATSAPP ----------------  
+document.getElementById('send-whatsapp').onclick = () => {
   const name = document.getElementById('customer-name').value;
   const phone = document.getElementById('customer-phone').value;
   const address = document.getElementById('customer-address').value;
   const payment = document.getElementById('payment-mode').value;
 
-  const orderItems = [];
+  let msg = `New Order\n\n`;
 
   items.forEach(it => {
     const qty = cart[it.id];
-    if (qty) {
-      orderItems.push({
-        docId: it.docId,
-        name: it.name,
-        qty,
-        price: it.salePrice
-      });
-    }
+    if (!qty) return;
+
+    msg += `${it.name} x ${qty} = ₹${qty * it.salePrice}\n`;
   });
-
-  if (orderItems.length === 0) {
-    alert("Cart empty");
-    return;
-  }
-
-  const customer = { name, phone, address, payment };
-
-  const result = await saveOrderAndReduceStock(orderItems, customer);
-
-  if (!result.ok) {
-    alert(result.error);
-    return;
-  }
-
-  let msg = `New Order\n\n`;
-  orderItems.forEach(it => msg += `${it.name} x ${it.qty} = ₹${it.qty * it.price}\n`);
 
   msg += `\nTotal: ₹${document.getElementById('total-amount').innerText}`;
   msg += `\nName: ${name}\nPhone: ${phone}\nAddress: ${address}\nPayment: ${payment}`;
@@ -230,10 +187,6 @@ document.getElementById('send-whatsapp').onclick = async () => {
     `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`,
     "_blank"
   );
-
-  cart = {};
-  updateCartCount();
-  loadItems(); // refresh stock UI
 };
 
 // ---------------- INIT ----------------  
