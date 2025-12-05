@@ -295,4 +295,4 @@ if (isAdmin()) {
   setAdminState(true);
   loadAllItems();
   loadOrders();
-     }
+}
