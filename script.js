@@ -1,4 +1,4 @@
-// script.js — FINAL VERSION (Atomic Stock Reduce + WhatsApp Checkout)
+// script.js — FINAL VERSION (Atomic Stock Reduce + Fixed Customer Prefill)
 // Requirements: Firebase v8 loaded in index.html, and db = firebase.firestore()
 
 /* ---------------- CONFIG ---------------- */
@@ -9,34 +9,32 @@ const CART_LS_KEY = "shopp_cart_v1";
 const CUST_LS_KEY = "shopp_customer_v1";
 
 /* ---------------- STATE ---------------- */
-let items = [];       // list of items from Firestore
-let cart = {};        // { "<id>": qty }
-let categories = [];  // discovered categories
+let items = [];
+let cart = {};
+let categories = [];
 
 /* ---------------- HELPERS ---------------- */
 const money = v => Number(v || 0).toFixed(0);
 const el = id => document.getElementById(id);
 
-/* Safe image with fallback + fade */
+/* Image fallback */
 function createSafeImage(src, alt) {
   const img = document.createElement("img");
   img.loading = "lazy";
   img.alt = alt || "";
   img.style.opacity = "0";
   img.style.transition = "opacity .3s";
-  img.src = src && src.trim() !== "" ? src : "images/placeholder.png";
-
+  img.src = src && src.trim() ? src : "images/placeholder.png";
   img.onload = () => (img.style.opacity = "1");
   img.onerror = () => {
     img.onerror = null;
     img.src = "images/placeholder.png";
     img.style.opacity = "1";
   };
-
   return img;
 }
 
-/* Debounce */
+/* debounce */
 function debounce(fn, ms = 180) {
   let t;
   return (...a) => {
@@ -47,34 +45,25 @@ function debounce(fn, ms = 180) {
 
 /* ---------------- localStorage ---------------- */
 function loadCartFromStorage() {
-  try {
-    const raw = localStorage.getItem(CART_LS_KEY);
-    cart = raw ? JSON.parse(raw) : {};
-  } catch {
-    cart = {};
-  }
+  try { cart = JSON.parse(localStorage.getItem(CART_LS_KEY)) || {}; }
+  catch { cart = {}; }
 }
 function saveCartToStorage() {
   localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
 }
 
 function loadCustomerFromStorage() {
-  try {
-    const raw = localStorage.getItem(CUST_LS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(CUST_LS_KEY)) || {}; }
+  catch { return {}; }
 }
 function saveCustomerToStorage(obj) {
   localStorage.setItem(CUST_LS_KEY, JSON.stringify(obj));
 }
 
-/* ---------------- FIREBASE: LOAD ITEMS ---------------- */
+/* ---------------- FIREBASE LOAD ITEMS ---------------- */
 async function loadItems() {
   try {
     const snap = await db.collection("items").get();
-
     if (snap.empty) {
       el("products").innerHTML = "<p style='padding:20px'>No items found.</p>";
       return;
@@ -84,11 +73,11 @@ async function loadItems() {
     categories = [];
 
     snap.forEach((doc, index) => {
-      const d = doc.data() || {};
+      const d = doc.data();
       const item = {
-        id: index + 1,             // local ID
-        docId: doc.id,             // Firestore document ID
-        name: d.name || "Untitled",
+        id: index + 1,
+        docId: doc.id,
+        name: d.name,
         mrp: Number(d.mrp || 0),
         salePrice: Number(d.price || d.salePrice || 0),
         stock: Number(d.stock || 0),
@@ -97,10 +86,8 @@ async function loadItems() {
         description: d.description || ""
       };
       items.push(item);
-
-      if (item.category && !categories.includes(item.category)) {
+      if (item.category && !categories.includes(item.category))
         categories.push(item.category);
-      }
     });
 
     renderCategoryFilter();
@@ -108,26 +95,24 @@ async function loadItems() {
     updateCartCount();
   } catch (e) {
     console.error(e);
-    el("products").innerHTML = "<p style='padding:20px'>Failed to load items.</p>";
+    el("products").innerHTML = "<p style='padding:20px'>Failed to load.</p>";
   }
 }
 
 /* ---------------- CATEGORY FILTER ---------------- */
 function renderCategoryFilter() {
-  if (categories.length <= 1) return;
+  const cf = el("category-filter");
+  if (!cf || categories.length <= 1) return;
 
-  const existing = el("category-filter");
-  if (existing) {
-    existing.style.display = "block";
-    existing.innerHTML =
-      `<option value="">All categories</option>` +
-      categories.map(c => `<option value="${c}">${c}</option>`).join("");
-    existing.onchange = () => applyFilters();
-    return;
-  }
+  cf.style.display = "block";
+  cf.innerHTML =
+    `<option value="">All categories</option>` +
+    categories.map(c => `<option value="${c}">${c}</option>`).join("");
+
+  cf.onchange = applyFilters;
 }
 
-/* ---------------- ITEMS UI ---------------- */
+/* ---------------- RENDER ITEMS ---------------- */
 function renderItems(list) {
   const container = el("products");
   container.innerHTML = "";
@@ -141,10 +126,10 @@ function renderItems(list) {
     const card = document.createElement("div");
     card.className = "card";
 
-    const imgWrap = document.createElement("div");
-    imgWrap.style.minHeight = "120px";
-    imgWrap.appendChild(createSafeImage(it.image, it.name));
-    card.appendChild(imgWrap);
+    const imgHolder = document.createElement("div");
+    imgHolder.style.minHeight = "120px";
+    imgHolder.appendChild(createSafeImage(it.image, it.name));
+    card.appendChild(imgHolder);
 
     const nm = document.createElement("div");
     nm.className = "item-name";
@@ -155,99 +140,92 @@ function renderItems(list) {
     priceRow.className = "price-row";
     priceRow.innerHTML = `
       <div class="small-mrp">MRP ₹${money(it.mrp)}</div>
-      <div class="sale">₹${money(it.salePrice)}</div>
-    `;
+      <div class="sale">₹${money(it.salePrice)}</div>`;
     card.appendChild(priceRow);
 
     if (it.stock <= 0) {
       const badge = document.createElement("div");
       badge.style.color = "#c00";
-      badge.style.fontSize = "13px";
       badge.textContent = "Out of stock";
       card.appendChild(badge);
     }
 
-    const controls = document.createElement("div");
-    controls.className = "qty-controls";
-    controls.innerHTML = `
+    card.innerHTML += `
+      <div class="qty-controls">
         <button class="dec" data-id="${it.id}">-</button>
         <div class="qty-display" id="qty-${it.id}">${cart[it.id] || 0}</div>
         <button class="inc" data-id="${it.id}">+</button>
+      </div>
     `;
-    card.appendChild(controls);
 
     const addBtn = document.createElement("button");
     addBtn.className = "add-btn";
     addBtn.dataset.id = it.id;
-    addBtn.disabled = it.stock <= 0;
     addBtn.textContent = it.stock <= 0 ? "Unavailable" : "Add to cart";
+    addBtn.disabled = it.stock <= 0;
     card.appendChild(addBtn);
 
     container.appendChild(card);
   });
 
   document.querySelectorAll(".inc").forEach(b =>
-    b.addEventListener("click", e => changeQty(e.target.dataset.id, +1))
+    b.onclick = e => changeQty(e.target.dataset.id, +1)
   );
   document.querySelectorAll(".dec").forEach(b =>
-    b.addEventListener("click", e => changeQty(e.target.dataset.id, -1))
+    b.onclick = e => changeQty(e.target.dataset.id, -1)
   );
   document.querySelectorAll(".add-btn").forEach(b =>
-    b.addEventListener("click", e => changeQty(e.target.dataset.id, +1))
+    b.onclick = e => changeQty(e.target.dataset.id, +1)
   );
 }
 
-/* ---------------- CART FUNCTIONS ---------------- */
+/* ---------------- CART ---------------- */
 function changeQty(id, delta) {
   id = String(id);
   const it = items.find(x => String(x.id) === id);
   if (!it) return;
 
-  cart[id] = cart[id] || 0;
-  cart[id] = Math.max(0, Math.min(it.stock, cart[id] + delta));
-
+  cart[id] = Math.max(0, Math.min(it.stock, (cart[id] || 0) + delta));
   el(`qty-${id}`).innerText = cart[id];
+
   saveCartToStorage();
   updateCartCount();
 }
 
 function calculateTotal() {
-  let total = 0;
-  for (const id in cart) {
-    const qty = Number(cart[id]);
-    if (!qty) continue;
+  return Object.keys(cart).reduce((s, id) => {
+    const qty = cart[id];
     const it = items.find(x => String(x.id) === id);
-    if (it) total += qty * it.salePrice;
-  }
-  return total;
+    return it ? s + qty * it.salePrice : s;
+  }, 0);
 }
 
 function renderCartItems() {
-  const container = el("cart-items");
-  container.innerHTML = "";
+  const box = el("cart-items");
+  box.innerHTML = "";
 
-  let has = false;
+  let any = false;
+
   for (const id in cart) {
-    const qty = Number(cart[id]);
+    const qty = cart[id];
     if (!qty) continue;
-    has = true;
 
+    any = true;
     const it = items.find(x => String(x.id) === id);
     if (!it) continue;
 
     const row = document.createElement("div");
     row.style.display = "flex";
     row.style.justifyContent = "space-between";
-    row.style.padding = "6px 0";
     row.innerHTML = `${it.name} x ${qty} <div>₹${money(qty * it.salePrice)}</div>`;
-    container.appendChild(row);
+    box.appendChild(row);
   }
 
-  if (!has) container.innerHTML = "<p>No items in cart</p>";
+  if (!any) box.innerHTML = "<p>No items in cart</p>";
 }
 
 function updateCartCount() {
-  const count = Object.values(cart).reduce((s, n) => s + Number(n || 0), 0);
+  const count = Object.values(cart).reduce((s, n) => s + n, 0);
   const total = calculateTotal();
 
   el("cart-count").innerText = count;
@@ -259,35 +237,42 @@ function updateCartCount() {
   renderCartItems();
 }
 
-/* ---------------- FILTER ---------------- */
+/* ---------------- FILTERS ---------------- */
 function applyFilters() {
-  const q = (el("search")?.value || "").toLowerCase();
-  const cat = el("category-filter")?.value || "";
+  const q = el("search").value.toLowerCase();
+  const cat = el("category-filter").value;
 
-  let filtered = [...items];
+  let result = [...items];
 
-  if (cat) filtered = filtered.filter(i => i.category === cat);
-  if (q) filtered = filtered.filter(i =>
-    i.name.toLowerCase().includes(q) ||
-    (i.description || "").toLowerCase().includes(q)
+  if (cat) result = result.filter(i => i.category === cat);
+  if (q) result = result.filter(
+    i => i.name.toLowerCase().includes(q) || (i.description || "").toLowerCase().includes(q)
   );
 
-  renderItems(filtered);
+  renderItems(result);
 }
-document.getElementById("search").addEventListener(
-  "input",
-  debounce(applyFilters, 180)
-);
+
+el("search").addEventListener("input", debounce(applyFilters, 180));
 
 /* ---------------- CUSTOMER PREFILL ---------------- */
 function loadCustomerDetails() {
   const obj = loadCustomerFromStorage();
-  if (!obj) return;
 
-  if (el("customer-name")) el("customer-name").value = obj.name || "";
-  if (el("customer-phone")) el("customer-phone").value = obj.phone || "";
-  if (el("customer-address")) el("customer-address").value = obj.address || "";
-  if (el("payment-mode")) el("payment-mode").value = obj.payment || "Cash";
+  if (el("customer-name"))
+    el("customer-name").value =
+      obj.name && obj.name !== "---" ? obj.name : "";
+
+  if (el("customer-phone"))
+    el("customer-phone").value =
+      obj.phone && obj.phone !== "---" ? obj.phone : "";
+
+  if (el("customer-address"))
+    el("customer-address").value =
+      obj.address && obj.address !== "---" ? obj.address : "";
+
+  if (el("payment-mode"))
+    el("payment-mode").value =
+      obj.payment && obj.payment !== "---" ? obj.payment : "Cash";
 }
 
 /* ---------------- FIRESTORE TRANSACTION ---------------- */
@@ -297,17 +282,15 @@ async function createOrderAndReduceStock(orderItems, customer) {
       for (const o of orderItems) {
         const ref = db.collection("items").doc(o.docId);
         const snap = await tx.get(ref);
-        if (!snap.exists) throw new Error(`${o.name} not found`);
+        if (!snap.exists) throw new Error(o.name + " not found");
 
-        const current = Number(snap.data().stock || 0);
-        if (o.qty > current)
-          throw new Error(`${o.name} — only ${current} left`);
+        const current = snap.data().stock;
+        if (o.qty > current) throw new Error(`${o.name} — only ${current} left`);
 
         tx.update(ref, { stock: current - o.qty });
       }
 
-      const orderRef = db.collection("orders").doc();
-      tx.set(orderRef, {
+      tx.set(db.collection("orders").doc(), {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         customerName: customer.name,
         customerPhone: customer.phone,
@@ -325,7 +308,7 @@ async function createOrderAndReduceStock(orderItems, customer) {
   }
 }
 
-/* ---------------- WHATSAPP MESSAGE ---------------- */
+/* ---------------- WHATSAPP BUILDER ---------------- */
 function buildWhatsAppMessage(orderItems, customer) {
   let msg = `New Order — Shopp Wholesale\n\n`;
 
@@ -345,30 +328,21 @@ function buildWhatsAppMessage(orderItems, customer) {
   return msg;
 }
 
-/* ---------------- CHECKOUT ---------------- */
-document.getElementById("send-whatsapp").addEventListener("click", async () => {
+/* ---------------- CHECKOUT LOGIC ---------------- */
+document.getElementById("send-whatsapp").onclick = async () => {
   updateCartCount();
 
-  const orderItems = [];
-  for (const id in cart) {
-    const qty = Number(cart[id]);
-    if (!qty) continue;
-
+  const orderItems = Object.keys(cart).map(id => {
     const it = items.find(x => String(x.id) === id);
-    if (!it) continue;
-
-    orderItems.push({
+    return {
       docId: it.docId,
       name: it.name,
-      qty,
+      qty: cart[id],
       price: it.salePrice
-    });
-  }
+    };
+  }).filter(o => o.qty > 0);
 
-  if (!orderItems.length) {
-    alert("Cart is empty!");
-    return;
-  }
+  if (!orderItems.length) return alert("Cart is empty!");
 
   const customer = {
     name: el("customer-name").value.trim() || "---",
@@ -385,12 +359,11 @@ document.getElementById("send-whatsapp").addEventListener("click", async () => {
   btn.innerText = "Processing...";
 
   const res = await createOrderAndReduceStock(orderItems, customer);
-
   if (!res.ok) {
     alert(res.error);
     btn.disabled = false;
     btn.innerText = old;
-    await loadItems();
+    loadItems();
     return;
   }
 
@@ -398,12 +371,27 @@ document.getElementById("send-whatsapp").addEventListener("click", async () => {
   saveCartToStorage();
   updateCartCount();
 
-  const waMsg = buildWhatsAppMessage(orderItems, customer);
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waMsg)}`);
+  window.open(
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildWhatsAppMessage(orderItems, customer))}`
+  );
 
   btn.disabled = false;
   btn.innerText = old;
-});
+};
+
+/* ---------------- MODAL CONTROLS ---------------- */
+function showModal() {
+  loadCustomerDetails();   // IMPORTANT FIX
+  el("cart-modal").classList.remove("hidden");
+}
+
+function hideModal() {
+  el("cart-modal").classList.add("hidden");
+}
+
+el("open-cart-btn").onclick = showModal;
+el("open-cart-btn-2").onclick = showModal;
+el("close-cart").onclick = hideModal;
 
 /* ---------------- INIT ---------------- */
 function init() {
