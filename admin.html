@@ -9,6 +9,7 @@
   <!-- Firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
   <style>
     /* small admin-specific tweaks (you can move to style.css) */
@@ -33,7 +34,7 @@
   </style>
 
   <script>
-    // Replace with your firebase config (same as public site)
+    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
       authDomain: "shopp-wholesale.firebaseapp.com",
@@ -46,6 +47,7 @@
     const db = firebase.firestore();
   </script>
 </head>
+
 <body>
 
   <div class="admin-wrap">
@@ -64,6 +66,7 @@
 
       <form id="item-form">
         <input type="hidden" id="item-docid" value="">
+
         <div class="row">
           <div class="col">
             <label>Name</label>
@@ -90,9 +93,23 @@
           </div>
         </div>
 
+        <!-- ⭐ UPDATED IMAGE UPLOAD SECTION -->
         <label>Image URL</label>
-        <input id="item-image" type="text" placeholder="https://.../image.jpg (or images/<filename>)">
 
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <input id="item-image" type="text" class="input" placeholder="https://...image.jpg" style="flex:1;">
+          <button type="button" onclick="pickImage()" class="btn" 
+                  style="padding:6px 10px;background:#4CAF50;color:#fff;border-radius:5px;">
+              Select Image
+          </button>
+        </div>
+
+        <input type="file" id="imagePicker" accept="image/*" capture="environment" style="display:none;">
+
+        <img id="imagePreview" 
+             style="width:60px;height:60px;border-radius:6px;object-fit:cover;display:none;margin-bottom:8px;">
+
+        <!-- Description -->
         <label>Description (optional)</label>
         <textarea id="item-desc" rows="2"></textarea>
 
