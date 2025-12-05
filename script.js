@@ -464,36 +464,64 @@ const debouncedApply = debounce(applyFilters, 180);
   if (modal) modal.addEventListener('click', (ev) => { if (ev.target === modal) hide(); });
 })();
 
-/* ---------------- FIRESTORE TRANSACTION (atomic stock reduce + order create) ---------------- */
+/* ---------------- FIXED TRANSACTION (ALL READS FIRST → THEN WRITES) ---------------- */
 async function createOrderAndReduceStock(orderItems, customer) {
   try {
     await db.runTransaction(async (tx) => {
+      const docsToUpdate = [];
+
+      // 1️⃣ READ PHASE — all reads FIRST
       for (const o of orderItems) {
         const ref = db.collection('items').doc(o.docId);
-        const snap = await tx.get(ref);
+        const snap = await tx.get(ref);   // READ ONLY here
+
         if (!snap.exists) throw new Error(`${o.name} — item not found`);
-        const data = snap.data();
-        const current = Number(data.stock || 0);
-        if (o.qty > current) throw new Error(`${o.name} — only ${current} left`);
-        tx.update(ref, { stock: current - o.qty });
+
+        docsToUpdate.push({
+          ref,
+          name: o.name,
+          qty: o.qty,
+          currentStock: Number(snap.data().stock || 0)
+        });
       }
 
+      // 2️⃣ VALIDATION — check stock after all reads are complete
+      for (const d of docsToUpdate) {
+        if (d.qty > d.currentStock) {
+          throw new Error(`${d.name} — only ${d.currentStock} left`);
+        }
+      }
+
+      // 3️⃣ WRITE PHASE — now update all stock
+      for (const d of docsToUpdate) {
+        tx.update(d.ref, { stock: d.currentStock - d.qty });
+      }
+
+      // 4️⃣ CREATE ORDER DOCUMENT — last step in transaction
       const orderRef = db.collection('orders').doc();
-      const orderData = {
+      const totalAmount = orderItems.reduce((s, o) => s + o.qty * o.price, 0);
+
+      tx.set(orderRef, {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         customerName: customer.name || '---',
         customerPhone: customer.phone || '---',
         customerAddress: customer.address || '---',
         paymentMode: customer.payment || '---',
-        items: orderItems.map(o => ({ docId: o.docId, name: o.name, qty: o.qty, price: o.price })),
-        total: orderItems.reduce((s, o) => s + o.qty * o.price, 0),
+        items: orderItems.map(o => ({
+          docId: o.docId,
+          name: o.name,
+          qty: o.qty,
+          price: o.price
+        })),
+        total: totalAmount,
         status: 'pending'
-      };
-      tx.set(orderRef, orderData);
+      });
     });
+
     return { ok: true };
+
   } catch (err) {
-    return { ok: false, error: (err && err.message) ? err.message : String(err) };
+    return { ok: false, error: err.message || String(err) };
   }
 }
 
