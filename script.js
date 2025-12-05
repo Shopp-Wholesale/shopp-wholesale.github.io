@@ -1,4 +1,4 @@
-// FINAL script.js — Shopp Wholesale (Option A: atomic stock reduce on checkout)
+// script.js — FINAL MERGED (Option A: atomic stock reduce)
 // Prereq: Firebase v8 loaded in index.html and `const db = firebase.firestore();`
 
 /* ---------------- CONFIG ---------------- */
@@ -9,7 +9,7 @@ const CART_LS_KEY = "shopp_cart_v1";
 const CUST_LS_KEY = "shopp_customer_v1";
 
 /* ---------------- STATE ---------------- */
-let items = [];       // loaded items
+let items = [];       // loaded items (with docId, id, stock, etc.)
 let cart = {};        // { "<id>": qty }
 let categories = [];  // discovered categories
 
@@ -36,7 +36,7 @@ function debounce(fn, ms = 180) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-/* ---------------- localStorage ---------------- */
+/* ---------------- localStorage helpers ---------------- */
 function loadCartFromStorage() {
   try { const raw = localStorage.getItem(CART_LS_KEY); if (raw) cart = JSON.parse(raw) || {}; } catch(e){ cart = {}; }
 }
@@ -58,6 +58,7 @@ async function loadItems() {
   try {
     const snap = await db.collection("items").get();
     if (snap.empty) { el('products').innerHTML = "<p style='padding:20px'>No items found in Firestore</p>"; return; }
+
     items = []; categories = [];
     snap.forEach((doc, index) => {
       const d = doc.data() || {};
@@ -75,9 +76,10 @@ async function loadItems() {
       items.push(item);
       if (item.category && !categories.includes(item.category)) categories.push(item.category);
     });
+
     renderCategoryFilter();
     renderItems(items);
-    updateCartCount();
+    updateCartCount(); // reflect persisted cart
   } catch (err) {
     console.error("Failed to load items:", err);
     el('products').innerHTML = "<p style='padding:20px'>Failed to load items</p>";
@@ -86,24 +88,36 @@ async function loadItems() {
 
 /* ---------------- UI: category filter ---------------- */
 function renderCategoryFilter(){
-  if (!categories.length) return;
-  if (!el('category-filter')) {
+  // show only if multiple categories exist
+  if (!categories.length || categories.length <= 1) {
+    const cf = el('category-filter'); if (cf) cf.style.display = 'none';
+    return;
+  }
+
+  // ensure placeholder exists (index.html includes hidden select, script will show)
+  const sel = el('category-filter');
+  if (!sel) {
     const controls = document.querySelector('.controls') || document.body;
     const wrap = document.createElement('div');
     wrap.style.margin = '8px 20px 0 20px';
     wrap.innerHTML = `<select id="category-filter"><option value="">All categories</option></select>`;
     controls.appendChild(wrap);
   }
-  const sel = el('category-filter');
-  sel.innerHTML = `<option value="">All categories</option>` + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-  sel.onchange = () => applyFilters();
+  const selectEl = el('category-filter');
+  selectEl.style.display = 'block';
+  selectEl.innerHTML = `<option value="">All categories</option>` + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  selectEl.onchange = () => applyFilters();
 }
 
 /* ---------------- UI: render items ---------------- */
 function renderItems(list) {
   const container = el('products');
   container.innerHTML = '';
-  if (!list || list.length === 0) { container.innerHTML = `<p style='padding:20px'>No items match your search/filters.</p>`; return; }
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `<p style='padding:20px'>No items match your search/filters.</p>`;
+    return;
+  }
 
   list.forEach(it => {
     const card = document.createElement('div');
@@ -140,7 +154,7 @@ function renderItems(list) {
     container.appendChild(card);
   });
 
-  // attach handlers
+  // attach handlers safely
   document.querySelectorAll('.inc').forEach(b => { b.removeEventListener('click', incHandler); b.addEventListener('click', incHandler); });
   document.querySelectorAll('.dec').forEach(b => { b.removeEventListener('click', decHandler); b.addEventListener('click', decHandler); });
   document.querySelectorAll('.add-btn').forEach(b => { b.removeEventListener('click', addToCartHandler); b.addEventListener('click', addToCartHandler); });
@@ -156,12 +170,13 @@ function changeQty(id, delta){
   id = String(id);
   const it = items.find(x => String(x.id) === id);
   if (!it) return;
+
   cart[id] = cart[id] || 0;
   const newQty = Math.max(0, cart[id] + delta);
 
+  // silent clamp to stock (no alert)
   if (newQty > it.stock) {
-    cart[id] = it.stock; // clamp
-    alert(`${it.name} — only ${it.stock} left in stock`);
+    cart[id] = it.stock;
   } else {
     cart[id] = newQty;
   }
@@ -320,9 +335,8 @@ function buildWhatsAppMessage(orderItems, customer) {
   btn.addEventListener('click', async (ev) => {
     ev.preventDefault(); ev.stopPropagation();
 
-    // ensure latest totals and load customer
+    // ensure latest totals
     updateCartCount();
-    loadCustomerDetailsFromLS();
 
     // build order items from cart
     const orderItems = [];
