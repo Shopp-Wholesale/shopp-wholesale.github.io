@@ -1,6 +1,6 @@
 // -----------------------------------------------------
 // Shopp Wholesale — Admin Panel (FINAL WORKING VERSION)
-// Uses adminKey inside Firestore payload (allowed by rules)
+// + IMAGE UPLOAD + COMPRESSION INTEGRATED
 // -----------------------------------------------------
 
 const PASSCODE_ADMIN = "letmein123";  
@@ -68,8 +68,85 @@ function clearForm() {
   el("item-stock").value = 0;
   el("item-image").value = "";
   el("item-desc").value = "";
+
+  // Hide preview image
+  const preview = el("imagePreview");
+  preview.style.display = "none";
+  preview.src = "";
+
   el("btn-delete").classList.add("hidden");
 }
+
+/* ===============================================================
+   ⭐ IMAGE PICKER + PREVIEW + COMPRESSION + FIREBASE UPLOAD
+================================================================*/
+
+// Opens file picker
+function pickImage() {
+  el("imagePicker").click();
+}
+
+// When user selects an image
+el("imagePicker").addEventListener("change", async function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  // Preview
+  const preview = el("imagePreview");
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+
+  // Compress before upload
+  const compressedFile = await compressImage(file, 0.6); // 60% quality
+
+  // Upload
+  const fileName = "product_" + Date.now() + ".jpg";
+  const storageRef = firebase.storage().ref("products/" + fileName);
+
+  const uploadTask = storageRef.put(compressedFile);
+
+  uploadTask.on("state_changed",
+    null,
+    (error) => alert("Upload failed: " + error),
+    () => {
+      uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+        el("item-image").value = url;   // Auto-fill URL
+      });
+    }
+  );
+});
+
+// Image compression function
+async function compressImage(file, quality = 0.7) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const MAX_WIDTH = 800;
+        const scale = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scale;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 
 /* ----------------------------------------------
    CREATE / UPDATE ITEM
@@ -81,7 +158,7 @@ el("item-form").addEventListener("submit", async (ev) => {
   const docId = el("item-docid").value;
 
   const data = {
-    adminKey: PASSCODE_ADMIN,     // REQUIRED by Firestore rules
+    adminKey: PASSCODE_ADMIN,
     name: el("item-name").value.trim(),
     category: el("item-category").value.trim(),
     mrp: Number(el("item-mrp").value || 0),
@@ -183,11 +260,20 @@ async function loadAllItems() {
         el("item-image").value = d.image || "";
         el("item-desc").value = d.description || "";
 
+        // Show image preview while editing
+        const preview = el("imagePreview");
+        if (d.image) {
+          preview.src = d.image;
+          preview.style.display = "block";
+        } else {
+          preview.style.display = "none";
+        }
+
         el("btn-delete").classList.remove("hidden");
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
 
-      // Update stock only
+      // Update stock
       card.querySelector(".stock-btn").addEventListener("click", async ev => {
         const itemId = ev.target.dataset.id;
         const oldStock = Number(ev.target.dataset.stock);
@@ -295,4 +381,4 @@ if (isAdmin()) {
   setAdminState(true);
   loadAllItems();
   loadOrders();
-}
+                  }
