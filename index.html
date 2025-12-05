@@ -1,23 +1,12 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shopp Wholesale</title>
-
-  <!-- Favicon (optional but professional) -->
-  <link rel="icon" href="images/logo.png" />
-
-  <!-- Preload + Main CSS -->
-  <link rel="preload" href="style.css" as="style">
   <link rel="stylesheet" href="style.css">
 
-  <!-- Mobile App Theme -->
+  <!-- Mobile theming -->
   <meta name="theme-color" content="#ffffff">
 
   <!-- Firebase v8 -->
@@ -38,47 +27,48 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
+
 </head>
 
 <body>
 
-  <!-- HEADER -->
+  <!-- Header -->
   <header class="site-header">
     <div class="brand">
       <h1 class="brand-name">Shopp Wholesale</h1>
       <p class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</p>
     </div>
 
-    <button class="cart-button" id="open-cart-btn" type="button">
-      🛒 <span id="cart-count">0</span>
-    </button>
+    <div style="display:flex; gap:8px; align-items:center">
+      <!-- Admin open button -->
+      <button id="open-admin-btn" class="admin-button" type="button" title="Admin">Admin</button>
+
+      <button class="cart-button" id="open-cart-btn" type="button">
+        🛒 <span id="cart-count">0</span>
+      </button>
+    </div>
   </header>
 
-  <!-- SEARCH + CATEGORY -->
+  <!-- Controls (Search + Category Dropdown) -->
   <section class="controls">
     <input id="search" class="search-box" placeholder="Search grocery items..." />
-
-    <!-- Category filter — shown only when categories exist -->
-    <select id="category-filter" style="margin-top: 8px; display: none;"></select>
+    <select id="category-filter" style="margin-top: 8px; display:none;"></select>
   </section>
 
-  <!-- PRODUCT LIST -->
+  <!-- Products Grid -->
   <section id="products" class="product-grid"></section>
 
-  <!-- FLOATING CART FOOTER -->
+  <!-- Floating Cart Footer -->
   <div class="cart-footer" id="cart-footer">
     <div class="cart-footer-left">
       <span id="footer-item-count">0 Items</span> • ₹<span id="footer-total">0</span>
     </div>
-    <button class="footer-checkout-btn" id="open-cart-btn-2" type="button">
-      Checkout
-    </button>
+    <button class="footer-checkout-btn" id="open-cart-btn-2" type="button">Checkout</button>
   </div>
 
-  <!-- CART MODAL -->
+  <!-- Cart Modal -->
   <div id="cart-modal" class="cart-modal hidden">
     <div class="cart-content">
-
       <h2>Your Cart</h2>
       <div id="cart-items"></div>
 
@@ -105,11 +95,42 @@
           Send Order on WhatsApp
         </button>
       </div>
-
     </div>
   </div>
 
-  <!-- MAIN LOGIC -->
+  <!-- Admin Modal -->
+  <div id="admin-modal" class="cart-modal hidden">
+    <div class="cart-content">
+      <h2>Admin Panel</h2>
+
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+        <button id="refresh-items-btn" type="button">Refresh Items</button>
+        <button id="view-orders-btn" type="button">View Orders</button>
+        <button id="close-admin" type="button" style="margin-left:auto">Close</button>
+      </div>
+
+      <!-- Items editor -->
+      <div id="admin-items-list" style="max-height:50vh;overflow:auto"></div>
+
+      <div style="margin-top:12px;color:#666;font-size:13px">
+        Tip: Click Update to save changes to Firestore. Only fields changed will be updated.
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders Modal (admin only) -->
+  <div id="orders-modal" class="cart-modal hidden">
+    <div class="cart-content">
+      <h2>Orders</h2>
+      <div id="orders-list" style="max-height:60vh; overflow:auto"></div>
+
+      <div style="margin-top:12px">
+        <button id="close-orders" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Logic -->
   <script src="script.js" defer></script>
 
 </body>
