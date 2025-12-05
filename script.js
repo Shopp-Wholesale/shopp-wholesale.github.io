@@ -569,4 +569,23 @@ function buildWhatsAppMessage(orderItems, customer) {
     updateCartCount();
 
     const waMsg = buildWhatsAppMessage(orderItems, customer);
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${enco
+    const encoded = encodeURIComponent(waMsg);
+
+    // open WhatsApp
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, "_blank");
+
+    btn.disabled = false;
+    btn.innerText = oldLabel;
+
+    alert("Order placed successfully!");
+
+    // close modal if open
+    const modal = el('cart-modal');
+    if (modal) modal.classList.add('hidden');
+  });
+})();
+ 
+/* ---------------- INIT ---------------- */
+loadCartFromStorage();
+loadItems();
+updateCartCount();
