@@ -1,5 +1,5 @@
-// script.js — FINAL MERGED (Option A: atomic stock reduce)
-// Prereq: Firebase v8 loaded in index.html and `const db = firebase.firestore();`
+// script.js — FINAL VERSION (Atomic Stock Reduce + WhatsApp Checkout)
+// Requirements: Firebase v8 loaded in index.html, and db = firebase.firestore()
 
 /* ---------------- CONFIG ---------------- */
 const WHATSAPP_NUMBER = "919000810084";
@@ -9,7 +9,7 @@ const CART_LS_KEY = "shopp_cart_v1";
 const CUST_LS_KEY = "shopp_customer_v1";
 
 /* ---------------- STATE ---------------- */
-let items = [];       // loaded items (with docId, id, stock, etc.)
+let items = [];       // list of items from Firestore
 let cart = {};        // { "<id>": qty }
 let categories = [];  // discovered categories
 
@@ -17,387 +17,398 @@ let categories = [];  // discovered categories
 const money = v => Number(v || 0).toFixed(0);
 const el = id => document.getElementById(id);
 
-/* Safe image element with fade-in and fallback */
+/* Safe image with fallback + fade */
 function createSafeImage(src, alt) {
-  const img = document.createElement('img');
-  img.loading = 'lazy';
-  img.alt = alt || '';
-  img.style.opacity = '0';
-  img.style.transition = 'opacity .28s';
-  img.src = (src && src.trim()) ? src : 'images/placeholder.png';
-  img.onload = () => img.style.opacity = '1';
-  img.onerror = () => { img.onerror = null; img.src = 'images/placeholder.png'; img.style.opacity = '1'; };
+  const img = document.createElement("img");
+  img.loading = "lazy";
+  img.alt = alt || "";
+  img.style.opacity = "0";
+  img.style.transition = "opacity .3s";
+  img.src = src && src.trim() !== "" ? src : "images/placeholder.png";
+
+  img.onload = () => (img.style.opacity = "1");
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = "images/placeholder.png";
+    img.style.opacity = "1";
+  };
+
   return img;
 }
 
 /* Debounce */
 function debounce(fn, ms = 180) {
   let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  return (...a) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...a), ms);
+  };
 }
 
-/* ---------------- localStorage helpers ---------------- */
+/* ---------------- localStorage ---------------- */
 function loadCartFromStorage() {
-  try { const raw = localStorage.getItem(CART_LS_KEY); if (raw) cart = JSON.parse(raw) || {}; } catch(e){ cart = {}; }
+  try {
+    const raw = localStorage.getItem(CART_LS_KEY);
+    cart = raw ? JSON.parse(raw) : {};
+  } catch {
+    cart = {};
+  }
 }
-function saveCartToStorage(){ try{ localStorage.setItem(CART_LS_KEY, JSON.stringify(cart)); }catch(e){} }
+function saveCartToStorage() {
+  localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
+}
 
-function saveCustomerToStorage(obj) {
-  try { localStorage.setItem(CUST_LS_KEY, JSON.stringify(obj)); } catch(e) {}
-}
 function loadCustomerFromStorage() {
   try {
     const raw = localStorage.getItem(CUST_LS_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw);
-  } catch(e) { return {}; }
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+function saveCustomerToStorage(obj) {
+  localStorage.setItem(CUST_LS_KEY, JSON.stringify(obj));
 }
 
-/* ---------------- FIRESTORE: load items ---------------- */
+/* ---------------- FIREBASE: LOAD ITEMS ---------------- */
 async function loadItems() {
   try {
     const snap = await db.collection("items").get();
-    if (snap.empty) { el('products').innerHTML = "<p style='padding:20px'>No items found in Firestore</p>"; return; }
 
-    items = []; categories = [];
+    if (snap.empty) {
+      el("products").innerHTML = "<p style='padding:20px'>No items found.</p>";
+      return;
+    }
+
+    items = [];
+    categories = [];
+
     snap.forEach((doc, index) => {
       const d = doc.data() || {};
       const item = {
-        id: index + 1,               // local numeric id used in UI
-        docId: doc.id,              // firestore doc id (unique)
-        name: d.name || 'Untitled',
+        id: index + 1,             // local ID
+        docId: doc.id,             // Firestore document ID
+        name: d.name || "Untitled",
         mrp: Number(d.mrp || 0),
         salePrice: Number(d.price || d.salePrice || 0),
         stock: Number(d.stock || 0),
-        image: d.image || 'images/placeholder.png',
+        image: d.image || "images/placeholder.png",
         category: d.category || null,
-        description: d.description || ''
+        description: d.description || ""
       };
       items.push(item);
-      if (item.category && !categories.includes(item.category)) categories.push(item.category);
+
+      if (item.category && !categories.includes(item.category)) {
+        categories.push(item.category);
+      }
     });
 
     renderCategoryFilter();
     renderItems(items);
-    updateCartCount(); // reflect persisted cart
-  } catch (err) {
-    console.error("Failed to load items:", err);
-    el('products').innerHTML = "<p style='padding:20px'>Failed to load items</p>";
+    updateCartCount();
+  } catch (e) {
+    console.error(e);
+    el("products").innerHTML = "<p style='padding:20px'>Failed to load items.</p>";
   }
 }
 
-/* ---------------- UI: category filter ---------------- */
-function renderCategoryFilter(){
-  // show only if multiple categories exist
-  if (!categories.length || categories.length <= 1) {
-    const cf = el('category-filter'); if (cf) cf.style.display = 'none';
+/* ---------------- CATEGORY FILTER ---------------- */
+function renderCategoryFilter() {
+  if (categories.length <= 1) return;
+
+  const existing = el("category-filter");
+  if (existing) {
+    existing.style.display = "block";
+    existing.innerHTML =
+      `<option value="">All categories</option>` +
+      categories.map(c => `<option value="${c}">${c}</option>`).join("");
+    existing.onchange = () => applyFilters();
     return;
   }
-
-  // ensure placeholder exists (index.html includes hidden select, script will show)
-  const sel = el('category-filter');
-  if (!sel) {
-    const controls = document.querySelector('.controls') || document.body;
-    const wrap = document.createElement('div');
-    wrap.style.margin = '8px 20px 0 20px';
-    wrap.innerHTML = `<select id="category-filter"><option value="">All categories</option></select>`;
-    controls.appendChild(wrap);
-  }
-  const selectEl = el('category-filter');
-  selectEl.style.display = 'block';
-  selectEl.innerHTML = `<option value="">All categories</option>` + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-  selectEl.onchange = () => applyFilters();
 }
 
-/* ---------------- UI: render items ---------------- */
+/* ---------------- ITEMS UI ---------------- */
 function renderItems(list) {
-  const container = el('products');
-  container.innerHTML = '';
+  const container = el("products");
+  container.innerHTML = "";
 
-  if (!list || list.length === 0) {
-    container.innerHTML = `<p style='padding:20px'>No items match your search/filters.</p>`;
+  if (!list.length) {
+    container.innerHTML = "<p style='padding:20px'>No items found.</p>";
     return;
   }
 
   list.forEach(it => {
-    const card = document.createElement('div');
-    card.className = 'card';
+    const card = document.createElement("div");
+    card.className = "card";
 
-    const imgWrap = document.createElement('div');
-    imgWrap.style.minHeight = '120px';
+    const imgWrap = document.createElement("div");
+    imgWrap.style.minHeight = "120px";
     imgWrap.appendChild(createSafeImage(it.image, it.name));
     card.appendChild(imgWrap);
 
-    const nameEl = document.createElement('div'); nameEl.className = 'item-name'; nameEl.textContent = it.name; card.appendChild(nameEl);
+    const nm = document.createElement("div");
+    nm.className = "item-name";
+    nm.textContent = it.name;
+    card.appendChild(nm);
 
-    const priceRow = document.createElement('div'); priceRow.className = 'price-row';
-    const smallMrp = document.createElement('div'); smallMrp.className = 'small-mrp'; smallMrp.textContent = `MRP ₹${money(it.mrp)}`;
-    const sale = document.createElement('div'); sale.className = 'sale'; sale.textContent = `₹${money(it.salePrice)}`;
-    priceRow.appendChild(smallMrp); priceRow.appendChild(sale); card.appendChild(priceRow);
+    const priceRow = document.createElement("div");
+    priceRow.className = "price-row";
+    priceRow.innerHTML = `
+      <div class="small-mrp">MRP ₹${money(it.mrp)}</div>
+      <div class="sale">₹${money(it.salePrice)}</div>
+    `;
+    card.appendChild(priceRow);
 
     if (it.stock <= 0) {
-      const badge = document.createElement('div'); badge.style.color = '#c00'; badge.style.fontSize = '13px'; badge.style.marginTop = '6px'; badge.textContent = 'Out of stock'; card.appendChild(badge);
-    } else if (it.category) {
-      const cat = document.createElement('div'); cat.style.fontSize = '12px'; cat.style.color = '#666'; cat.style.marginTop = '6px'; cat.textContent = it.category; card.appendChild(cat);
+      const badge = document.createElement("div");
+      badge.style.color = "#c00";
+      badge.style.fontSize = "13px";
+      badge.textContent = "Out of stock";
+      card.appendChild(badge);
     }
 
-    const controls = document.createElement('div'); controls.className = 'qty-controls';
-    const dec = document.createElement('button'); dec.className = 'dec'; dec.dataset.id = it.id; dec.textContent = '-';
-    const qtyDisplay = document.createElement('div'); qtyDisplay.className = 'qty-display'; qtyDisplay.id = `qty-${it.id}`; qtyDisplay.textContent = cart[it.id] || 0;
-    const inc = document.createElement('button'); inc.className = 'inc'; inc.dataset.id = it.id; inc.textContent = '+';
-    controls.appendChild(dec); controls.appendChild(qtyDisplay); controls.appendChild(inc); card.appendChild(controls);
+    const controls = document.createElement("div");
+    controls.className = "qty-controls";
+    controls.innerHTML = `
+        <button class="dec" data-id="${it.id}">-</button>
+        <div class="qty-display" id="qty-${it.id}">${cart[it.id] || 0}</div>
+        <button class="inc" data-id="${it.id}">+</button>
+    `;
+    card.appendChild(controls);
 
-    const addBtn = document.createElement('button'); addBtn.className = 'add-btn'; addBtn.dataset.id = it.id; addBtn.textContent = (it.stock <= 0) ? 'Unavailable' : 'Add to cart';
-    if (it.stock <= 0) addBtn.disabled = true;
-
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-btn";
+    addBtn.dataset.id = it.id;
+    addBtn.disabled = it.stock <= 0;
+    addBtn.textContent = it.stock <= 0 ? "Unavailable" : "Add to cart";
     card.appendChild(addBtn);
+
     container.appendChild(card);
   });
 
-  // attach handlers safely
-  document.querySelectorAll('.inc').forEach(b => { b.removeEventListener('click', incHandler); b.addEventListener('click', incHandler); });
-  document.querySelectorAll('.dec').forEach(b => { b.removeEventListener('click', decHandler); b.addEventListener('click', decHandler); });
-  document.querySelectorAll('.add-btn').forEach(b => { b.removeEventListener('click', addToCartHandler); b.addEventListener('click', addToCartHandler); });
+  document.querySelectorAll(".inc").forEach(b =>
+    b.addEventListener("click", e => changeQty(e.target.dataset.id, +1))
+  );
+  document.querySelectorAll(".dec").forEach(b =>
+    b.addEventListener("click", e => changeQty(e.target.dataset.id, -1))
+  );
+  document.querySelectorAll(".add-btn").forEach(b =>
+    b.addEventListener("click", e => changeQty(e.target.dataset.id, +1))
+  );
 }
 
-/* handlers */
-function incHandler(e){ changeQty(e.currentTarget.dataset.id, +1); }
-function decHandler(e){ changeQty(e.currentTarget.dataset.id, -1); }
-function addToCartHandler(e){ changeQty(e.currentTarget.dataset.id, +1); }
-
-/* ---------------- CART LOGIC ---------------- */
-function changeQty(id, delta){
+/* ---------------- CART FUNCTIONS ---------------- */
+function changeQty(id, delta) {
   id = String(id);
   const it = items.find(x => String(x.id) === id);
   if (!it) return;
 
   cart[id] = cart[id] || 0;
-  const newQty = Math.max(0, cart[id] + delta);
+  cart[id] = Math.max(0, Math.min(it.stock, cart[id] + delta));
 
-  // silent clamp to stock (no alert)
-  if (newQty > it.stock) {
-    cart[id] = it.stock;
-  } else {
-    cart[id] = newQty;
-  }
-
-  const qtyEl = el(`qty-${id}`);
-  if (qtyEl) qtyEl.innerText = cart[id];
-  else renderItems(items);
-
-  const addBtn = document.querySelector(`.add-btn[data-id="${id}"]`);
-  if (addBtn) addBtn.disabled = (it.stock <= 0);
-
+  el(`qty-${id}`).innerText = cart[id];
   saveCartToStorage();
   updateCartCount();
 }
 
-function calculateTotal(){
+function calculateTotal() {
   let total = 0;
   for (const id in cart) {
-    const qty = Number(cart[id] || 0);
+    const qty = Number(cart[id]);
     if (!qty) continue;
-    const it = items.find(x => String(x.id) === String(id));
-    if (it) total += qty * Number(it.salePrice || 0);
+    const it = items.find(x => String(x.id) === id);
+    if (it) total += qty * it.salePrice;
   }
   return total;
 }
 
-function renderCartItems(){
-  const container = el('cart-items');
-  container.innerHTML = '';
-  let any = false;
+function renderCartItems() {
+  const container = el("cart-items");
+  container.innerHTML = "";
+
+  let has = false;
   for (const id in cart) {
     const qty = Number(cart[id]);
     if (!qty) continue;
-    any = true;
-    const it = items.find(x => String(x.id) === String(id));
+    has = true;
+
+    const it = items.find(x => String(x.id) === id);
     if (!it) continue;
-    const row = document.createElement('div');
-    row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.padding = '6px 0';
-    row.innerHTML = `<div>${it.name} x ${qty}</div><div>₹${money(qty * it.salePrice)}</div>`;
+
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.padding = "6px 0";
+    row.innerHTML = `${it.name} x ${qty} <div>₹${money(qty * it.salePrice)}</div>`;
     container.appendChild(row);
   }
-  if (!any) container.innerHTML = '<p>No items in cart</p>';
+
+  if (!has) container.innerHTML = "<p>No items in cart</p>";
 }
 
-function updateCartCount(){
-  const count = Object.values(cart).reduce((s, n) => s + (Number(n) || 0), 0);
+function updateCartCount() {
+  const count = Object.values(cart).reduce((s, n) => s + Number(n || 0), 0);
   const total = calculateTotal();
-  if (el('cart-count')) el('cart-count').innerText = count;
-  if (el('footer-item-count')) el('footer-item-count').innerText = `${count} Items`;
-  if (el('footer-total')) el('footer-total').innerText = money(total);
-  if (el('total-items')) el('total-items').innerText = count;
-  if (el('total-amount')) el('total-amount').innerText = money(total);
+
+  el("cart-count").innerText = count;
+  el("footer-item-count").innerText = `${count} Items`;
+  el("footer-total").innerText = money(total);
+  el("total-items").innerText = count;
+  el("total-amount").innerText = money(total);
+
   renderCartItems();
-  saveCartToStorage();
 }
 
-/* ---------------- FILTERS ---------------- */
-function applyFilters(){
-  const q = (el('search') && el('search').value || '').trim().toLowerCase();
-  const cat = (el('category-filter') && el('category-filter').value) || '';
-  let filtered = items.slice();
-  if (cat) filtered = filtered.filter(it => it.category === cat);
-  if (q) filtered = filtered.filter(it => it.name.toLowerCase().includes(q) || (it.description||'').toLowerCase().includes(q));
+/* ---------------- FILTER ---------------- */
+function applyFilters() {
+  const q = (el("search")?.value || "").toLowerCase();
+  const cat = el("category-filter")?.value || "";
+
+  let filtered = [...items];
+
+  if (cat) filtered = filtered.filter(i => i.category === cat);
+  if (q) filtered = filtered.filter(i =>
+    i.name.toLowerCase().includes(q) ||
+    (i.description || "").toLowerCase().includes(q)
+  );
+
   renderItems(filtered);
 }
-const debouncedApply = debounce(applyFilters, 180);
-(function attachSearch(){ const s = el('search'); if (s) s.addEventListener('input', debouncedApply); })();
+document.getElementById("search").addEventListener(
+  "input",
+  debounce(applyFilters, 180)
+);
 
-/* ---------------- MODAL CONTROLS ---------------- */
-(function attachModalControls(){
-  const open1 = el('open-cart-btn'), open2 = el('open-cart-btn-2'), close = el('close-cart');
-  const show = () => el('cart-modal') && el('cart-modal').classList.remove('hidden');
-  const hide = () => el('cart-modal') && el('cart-modal').classList.add('hidden');
-  if (open1) open1.addEventListener('click', (e)=>{ e.preventDefault(); show(); });
-  if (open2) open2.addEventListener('click', (e)=>{ e.preventDefault(); show(); });
-  if (close) close.addEventListener('click', (e)=>{ e.preventDefault(); hide(); });
-  const modal = el('cart-modal');
-  if (modal) modal.addEventListener('click', (ev)=>{ if (ev.target === modal) hide(); });
-})();
-
-/* ---------------- CUSTOMER STORAGE ---------------- */
-function saveCustomerDetailsToLS(){
-  const obj = {
-    name: (el('customer-name') && el('customer-name').value) || '',
-    phone: (el('customer-phone') && el('customer-phone').value) || '',
-    address: (el('customer-address') && el('customer-address').value) || '',
-    payment: (el('payment-mode') && el('payment-mode').value) || ''
-  };
-  saveCustomerToStorage(obj);
-}
-function loadCustomerDetailsFromLS(){
+/* ---------------- CUSTOMER PREFILL ---------------- */
+function loadCustomerDetails() {
   const obj = loadCustomerFromStorage();
   if (!obj) return;
-  if (el('customer-name')) el('customer-name').value = obj.name || '';
-  if (el('customer-phone')) el('customer-phone').value = obj.phone || '';
-  if (el('customer-address')) el('customer-address').value = obj.address || '';
-  if (el('payment-mode')) el('payment-mode').value = obj.payment || 'Cash';
+
+  if (el("customer-name")) el("customer-name").value = obj.name || "";
+  if (el("customer-phone")) el("customer-phone").value = obj.phone || "";
+  if (el("customer-address")) el("customer-address").value = obj.address || "";
+  if (el("payment-mode")) el("payment-mode").value = obj.payment || "Cash";
 }
 
-/* ---------------- FIRESTORE TRANSACTION (atomic stock reduce + order create) ---------------- */
+/* ---------------- FIRESTORE TRANSACTION ---------------- */
 async function createOrderAndReduceStock(orderItems, customer) {
-  // orderItems: [{ docId, name, qty, price }]
-  // customer: { name, phone, address, payment }
   try {
-    await db.runTransaction(async (tx) => {
-      // check and update stock
+    await db.runTransaction(async tx => {
       for (const o of orderItems) {
-        const ref = db.collection('items').doc(o.docId);
+        const ref = db.collection("items").doc(o.docId);
         const snap = await tx.get(ref);
-        if (!snap.exists) throw new Error(`${o.name} — item not found`);
-        const data = snap.data();
-        const current = Number(data.stock || 0);
-        if (o.qty > current) throw new Error(`${o.name} — only ${current} left`);
+        if (!snap.exists) throw new Error(`${o.name} not found`);
+
+        const current = Number(snap.data().stock || 0);
+        if (o.qty > current)
+          throw new Error(`${o.name} — only ${current} left`);
+
         tx.update(ref, { stock: current - o.qty });
       }
-      // create order
-      const orderRef = db.collection('orders').doc();
-      const orderData = {
+
+      const orderRef = db.collection("orders").doc();
+      tx.set(orderRef, {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        customerName: customer.name || '---',
-        customerPhone: customer.phone || '---',
-        customerAddress: customer.address || '---',
-        paymentMode: customer.payment || '---',
-        items: orderItems.map(o => ({ docId: o.docId, name: o.name, qty: o.qty, price: o.price })),
-        total: orderItems.reduce((s,o) => s + o.qty * o.price, 0),
-        status: 'pending'
-      };
-      tx.set(orderRef, orderData);
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerAddress: customer.address,
+        paymentMode: customer.payment,
+        items: orderItems,
+        total: orderItems.reduce((s, x) => s + x.qty * x.price, 0),
+        status: "pending"
+      });
     });
+
     return { ok: true };
-  } catch (err) {
-    return { ok: false, error: (err && err.message) ? err.message : String(err) };
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
 }
 
-/* ---------------- WHATSAPP BUILD + CHECKOUT ---------------- */
+/* ---------------- WHATSAPP MESSAGE ---------------- */
 function buildWhatsAppMessage(orderItems, customer) {
   let msg = `New Order — Shopp Wholesale\n\n`;
+
   orderItems.forEach((o, i) => {
-    msg += `${i+1}. ${o.name} x ${o.qty} = ₹${money(o.qty * o.price)}\n`;
+    msg += `${i + 1}. ${o.name} x ${o.qty} = ₹${money(o.qty * o.price)}\n`;
   });
-  msg += `\nTotal: ₹${money(orderItems.reduce((s,o)=>s+o.qty*o.price,0))}`;
+
+  msg += `\nTotal: ₹${money(orderItems.reduce((t, o) => t + o.qty * o.price, 0))}`;
   msg += `\nDelivery Promise: ${DELIVERY_PROMISE_TEXT} • Radius: ${DELIVERY_RADIUS_TEXT}`;
-  msg += `\nOrder Time: ${new Date().toLocaleString('en-IN')}`;
-  msg += `\n\nName: ${customer.name || '---'}`;
-  msg += `\nPhone: ${customer.phone || '---'}`;
-  msg += `\nAddress: ${customer.address || '---'}`;
-  msg += `\nPayment: ${customer.payment || '---'}`;
+  msg += `\nOrder Time: ${new Date().toLocaleString("en-IN")}`;
+
+  msg += `\n\nName: ${customer.name}`;
+  msg += `\nPhone: ${customer.phone}`;
+  msg += `\nAddress: ${customer.address}`;
+  msg += `\nPayment: ${customer.payment}`;
+
   return msg;
 }
 
-(async function attachWhatsAppCheckout(){
-  const btn = el('send-whatsapp');
-  if (!btn) return;
+/* ---------------- CHECKOUT ---------------- */
+document.getElementById("send-whatsapp").addEventListener("click", async () => {
+  updateCartCount();
 
-  btn.addEventListener('click', async (ev) => {
-    ev.preventDefault(); ev.stopPropagation();
+  const orderItems = [];
+  for (const id in cart) {
+    const qty = Number(cart[id]);
+    if (!qty) continue;
 
-    // ensure latest totals
-    updateCartCount();
+    const it = items.find(x => String(x.id) === id);
+    if (!it) continue;
 
-    // build order items from cart
-    const orderItems = [];
-    for (const id in cart) {
-      const qty = Number(cart[id] || 0);
-      if (!qty) continue;
-      const it = items.find(x => String(x.id) === String(id));
-      if (!it) continue;
-      orderItems.push({ docId: it.docId, name: it.name, qty, price: Number(it.salePrice || 0) });
-    }
-
-    if (!orderItems.length) { alert('Cart is empty — add items before checkout'); return; }
-
-    // build customer object & save locally
-    const customer = {
-      name: (el('customer-name') && el('customer-name').value.trim()) || '---',
-      phone: (el('customer-phone') && el('customer-phone').value.trim()) || '---',
-      address: (el('customer-address') && el('customer-address').value.trim()) || '---',
-      payment: (el('payment-mode') && el('payment-mode').value) || '---'
-    };
-    saveCustomerToStorage(customer);
-
-    // disable button while processing
-    btn.disabled = true;
-    const oldLabel = btn.innerText;
-    btn.innerText = 'Processing...';
-
-    // Transaction: reduce stock atomically and create order
-    const res = await createOrderAndReduceStock(orderItems, customer);
-    if (!res.ok) {
-      alert('Order failed: ' + res.error);
-      btn.disabled = false; btn.innerText = oldLabel;
-      // reload items to show correct stock if needed
-      await loadItems();
-      return;
-    }
-
-    // If transaction ok: update local items stock, clear cart, refresh UI
-    orderItems.forEach(o => {
-      const it = items.find(x => x.docId === o.docId);
-      if (it) it.stock = Math.max(0, it.stock - o.qty);
+    orderItems.push({
+      docId: it.docId,
+      name: it.name,
+      qty,
+      price: it.salePrice
     });
-    // clear cart local
-    cart = {};
-    saveCartToStorage();
-    updateCartCount();
+  }
 
-    // build WA message and open
-    const waMsg = buildWhatsAppMessage(orderItems, customer);
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waMsg)}`, '_blank');
+  if (!orderItems.length) {
+    alert("Cart is empty!");
+    return;
+  }
 
-    // restore button
+  const customer = {
+    name: el("customer-name").value.trim() || "---",
+    phone: el("customer-phone").value.trim() || "---",
+    address: el("customer-address").value.trim() || "---",
+    payment: el("payment-mode").value || "---"
+  };
+
+  saveCustomerToStorage(customer);
+
+  const btn = el("send-whatsapp");
+  btn.disabled = true;
+  const old = btn.innerText;
+  btn.innerText = "Processing...";
+
+  const res = await createOrderAndReduceStock(orderItems, customer);
+
+  if (!res.ok) {
+    alert(res.error);
     btn.disabled = false;
-    btn.innerText = oldLabel;
-  });
-})();
+    btn.innerText = old;
+    await loadItems();
+    return;
+  }
+
+  cart = {};
+  saveCartToStorage();
+  updateCartCount();
+
+  const waMsg = buildWhatsAppMessage(orderItems, customer);
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waMsg)}`);
+
+  btn.disabled = false;
+  btn.innerText = old;
+});
 
 /* ---------------- INIT ---------------- */
-function init(){
+function init() {
   loadCartFromStorage();
-  loadCustomerDetailsFromLS();
+  loadCustomerDetails();
   loadItems();
 }
 init();
