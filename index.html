@@ -6,7 +6,7 @@
   <title>Shopp Wholesale</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase v8 (REQUIRED for firebase.firestore()) -->
+  <!-- Firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -36,7 +36,7 @@
       <p class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</p>
     </div>
 
-    <button class="cart-button" id="open-cart-btn">
+    <button class="cart-button" id="open-cart-btn" type="button">
       🛒 <span id="cart-count">0</span>
     </button>
   </header>
@@ -54,7 +54,7 @@
     <div class="cart-footer-left">
       <span id="footer-item-count">0 Items</span> • ₹<span id="footer-total">0</span>
     </div>
-    <button class="footer-checkout-btn" id="open-cart-btn-2">Checkout</button>
+    <button class="footer-checkout-btn" id="open-cart-btn-2" type="button">Checkout</button>
   </div>
 
   <!-- Cart Modal -->
@@ -82,15 +82,17 @@
       </div>
 
       <div class="cart-actions">
-        <button id="close-cart">Close</button>
-        <button id="send-whatsapp" class="primary">Send Order on WhatsApp</button>
+        <button id="close-cart" type="button">Close</button>
+        <button id="send-whatsapp" class="primary" type="button">
+          Send Order on WhatsApp
+        </button>
       </div>
 
     </div>
   </div>
 
-  <!-- Main Logic -->
-  <script src="script.js"></script>
+  <!-- Main Logic (defer ensures DOM loads first) -->
+  <script src="script.js" defer></script>
 
 </body>
 </html>
