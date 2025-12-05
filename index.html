@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <title>Shopp Wholesale</title>
   <link rel="stylesheet" href="style.css">
+
+  <!-- Mobile theming -->
+  <meta name="theme-color" content="#ffffff">
 
   <!-- Firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -24,7 +28,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
-
 </head>
 
 <body>
@@ -41,12 +44,15 @@
     </button>
   </header>
 
-  <!-- Search -->
+  <!-- Controls (Search + Category Dropdown) -->
   <section class="controls">
     <input id="search" class="search-box" placeholder="Search grocery items..." />
+
+    <!-- Category filter (script fills + shows when categories exist) -->
+    <select id="category-filter" style="margin-top: 8px; display: none;"></select>
   </section>
 
-  <!-- Products List -->
+  <!-- Products Grid -->
   <section id="products" class="product-grid"></section>
 
   <!-- Floating Cart Footer -->
@@ -54,7 +60,9 @@
     <div class="cart-footer-left">
       <span id="footer-item-count">0 Items</span> • ₹<span id="footer-total">0</span>
     </div>
-    <button class="footer-checkout-btn" id="open-cart-btn-2" type="button">Checkout</button>
+    <button class="footer-checkout-btn" id="open-cart-btn-2" type="button">
+      Checkout
+    </button>
   </div>
 
   <!-- Cart Modal -->
@@ -91,7 +99,7 @@
     </div>
   </div>
 
-  <!-- Main Logic (defer ensures DOM loads first) -->
+  <!-- Main Logic -->
   <script src="script.js" defer></script>
 
 </body>
