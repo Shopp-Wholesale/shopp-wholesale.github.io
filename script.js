@@ -20,9 +20,7 @@ function createSafeImage(src, alt) {
   img.loading = 'lazy';
   img.alt = alt || '';
 
-  // ⭐ NEW full-width responsive styling
   img.className = "product-img"; 
-
   img.src = (src && src.trim()) ? src : 'images/placeholder.png';
 
   img.style.opacity = '0';
@@ -43,38 +41,23 @@ function debounce(fn, ms = 180) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-/* ---------------- localStorage ----------------
-   Cart stored as object. We support legacy formats:
-   - OLD: { "1": 2, "2": 1 }  // numeric id -> qty
-   - INTERIM: { "1": { qty:2, name:'X', price:118, mrp:140 } }
-   - NEW: { "<docId>": { qty:2, name:'X', price:118, mrp:140 } }
-*/
+/* ---------------- localStorage ---------------- */
 function loadCartFromStorage() {
   try {
     const raw = localStorage.getItem(CART_LS_KEY);
     if (!raw) { cart = {}; return; }
     const parsed = JSON.parse(raw);
 
-    // If already in new format (docId keys with object values) accept
     const keys = Object.keys(parsed || {});
     if (!keys.length) { cart = {}; return; }
 
-    // Heuristics: legacy numeric-only map (values are numbers)
     const legacyNumeric = keys.every(k => /^[0-9]+$/.test(k) && (typeof parsed[k] === 'number' || typeof parsed[k] === 'string'));
-
-    // interim: keys numeric but values objects with meta
     const legacyWithMeta = keys.every(k => /^[0-9]+$/.test(k) && typeof parsed[k] === 'object');
-
-    // new format: keys look like Firestore doc ids (non-numeric) and values are objects
     const newFormat = keys.every(k => !/^[0-9]+$/.test(k) && typeof parsed[k] === 'object');
 
-    if (newFormat) {
-      cart = parsed;
-      return;
-    }
+    if (newFormat) { cart = parsed; return; }
 
     if (legacyNumeric) {
-      // convert to interim mapping objects (we don't have metadata so set placeholders)
       const conv = {};
       for (const k of keys) {
         const qty = Number(parsed[k] || 0);
@@ -86,12 +69,10 @@ function loadCartFromStorage() {
     }
 
     if (legacyWithMeta) {
-      // values already include meta but keys numeric. keep as-is for migration step.
       cart = parsed;
       return;
     }
 
-    // fallback: accept parsed
     cart = parsed || {};
   } catch (e) {
     console.warn('Cart load failed:', e);
@@ -102,7 +83,7 @@ function loadCartFromStorage() {
 function saveCartToStorage() {
   try {
     localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
-  } catch (e) { /* ignore */ }
+  } catch (e) {}
 }
 
 /* ---------------- FIRESTORE: load items ---------------- */
@@ -119,8 +100,8 @@ async function loadItems() {
     snap.forEach(doc => {
       const d = doc.data() || {};
       items.push({
-        id: idx++,                 // local numeric id (legacy)
-        docId: doc.id,            // Firestore doc id (stable)
+        id: idx++,
+        docId: doc.id,
         name: d.name || 'Untitled',
         mrp: Number(d.mrp || 0),
         salePrice: Number(d.price || d.salePrice || 0),
@@ -131,51 +112,46 @@ async function loadItems() {
       });
     });
 
-    // After items loaded, migrate old cart keys (if any)
     migrateCartIfNeeded();
-
     renderItems(items);
     updateCartCount();
+
   } catch (e) {
     console.error('Failed to load items:', e);
     el('products').innerHTML = "<p style='padding:20px'>Failed to load items</p>";
   }
 }
 
-/* ---------------- CART MIGRATION ----------------
-   Convert legacy numeric keys → Firestore docIds.
-   Strategy:
-   1. If cart key is numeric (legacy), try to find an item using:
-      a) exact name + price + mrp stored in value (if present)
-      b) fallback to items.find(x => x.id === Number(key)) (best-effort)
-   2. If value was a number (qty), enrich new entry with name/price/mrp from matched item
-   3. If no match is found, keep legacy entry as-is (to not accidentally drop) but mark for removal later
-*/
+/* ---------------- CART MIGRATION ---------------- */
 function migrateCartIfNeeded() {
-  // No migration needed if cart already uses docIds (non-numeric keys)
   const keys = Object.keys(cart || {});
   if (!keys.length) return;
 
   const hasNumericKey = keys.some(k => /^[0-9]+$/.test(k));
   if (!hasNumericKey) {
-    // cart already using docIds — but we should ensure each value has meta
-    // add meta for each docId from items array if missing
     for (const key of Object.keys(cart)) {
       const entry = cart[key];
       if (!entry || typeof entry !== 'object') continue;
+
       if (entry.name && entry.price != null && entry.mrp != null) continue;
+
       const item = items.find(i => i.docId === key);
       if (item) {
-        cart[key] = { qty: Number(entry.qty || 0), name: item.name, price: item.salePrice, mrp: item.mrp };
+        cart[key] = {
+          qty: Number(entry.qty || 0),
+          name: item.name,
+          price: item.salePrice,
+          mrp: item.mrp
+        };
       }
     }
     saveCartToStorage();
     return;
   }
 
-  // Build fallback maps: by numeric id, and by stable triple (name+price+mrp)
   const byNumeric = {};
-  const byTriple = {}; // key = `${name}||${price}||${mrp}` -> docId
+  const byTriple = {};
+
   for (const it of items) {
     byNumeric[String(it.id)] = it.docId;
     const t = `${(it.name||'').trim().toLowerCase()}||${Number(it.salePrice||0)}||${Number(it.mrp||0)}`;
@@ -183,15 +159,13 @@ function migrateCartIfNeeded() {
   }
 
   const newCart = {};
-  const orphan = {}; // keep unmatched legacy keys here (won't block user's flow)
+  const orphan = {};
 
-  for (const key of Object.keys(cart)) {
+  for (const key of keys) {
     const value = cart[key];
 
     if (/^[0-9]+$/.test(key)) {
-      // legacy numeric key
-      let qty = 0;
-      let metaName = null, metaPrice = null, metaMrp = null;
+      let qty = 0, metaName = null, metaPrice = null, metaMrp = null;
 
       if (typeof value === 'number' || typeof value === 'string') {
         qty = Number(value || 0);
@@ -202,56 +176,49 @@ function migrateCartIfNeeded() {
         metaMrp = value.mrp != null ? Number(value.mrp) : null;
       }
 
-      if (!qty) {
-        // nothing to migrate
-        continue;
-      }
+      if (!qty) continue;
 
-      // Prefer exact triple match when metadata exists
       let mappedDocId = null;
+
       if (metaName && metaPrice != null && metaMrp != null) {
-        const triple = `${(metaName||'').trim().toLowerCase()}||${Number(metaPrice)}||${Number(metaMrp)}`;
+        const triple = `${metaName.trim().toLowerCase()}||${metaPrice}||${metaMrp}`;
         mappedDocId = byTriple[triple] || null;
       }
 
-      // fallback to numeric positional mapping
       if (!mappedDocId) {
         mappedDocId = byNumeric[key] || null;
       }
 
-      if (!mappedDocId) {
-        // no match found — try fuzzy by name if meta available
-        if (metaName) {
-          const lower = (metaName||'').trim().toLowerCase();
-          const found = items.find(i => i.name.trim().toLowerCase() === lower && Number(i.salePrice) === Number(metaPrice || i.salePrice));
-          mappedDocId = found ? found.docId : null;
-        }
+      if (!mappedDocId && metaName) {
+        const lower = metaName.trim().toLowerCase();
+        const found = items.find(i =>
+          i.name.trim().toLowerCase() === lower &&
+          Number(i.salePrice) === Number(metaPrice || i.salePrice)
+        );
+        mappedDocId = found ? found.docId : null;
       }
 
       if (mappedDocId) {
         const item = items.find(i => i.docId === mappedDocId);
         newCart[mappedDocId] = {
           qty,
-          name: item ? item.name : (metaName || 'Unknown'),
-          price: item ? item.salePrice : (metaPrice || 0),
-          mrp: item ? item.mrp : (metaMrp || 0)
+          name: item ? item.name : metaName,
+          price: item ? item.salePrice : metaPrice,
+          mrp: item ? item.mrp : metaMrp
         };
       } else {
-        // keep orphan (legacy) so user doesn't lose it — we'll show a warning later if needed
         orphan[key] = value;
       }
 
     } else {
-      // key is non-numeric: probably already docId format
       if (typeof value === 'object') {
         newCart[key] = {
           qty: Number(value.qty || 0),
-          name: value.name || null,
-          price: value.price != null ? Number(value.price) : null,
-          mrp: value.mrp != null ? Number(value.mrp) : null
+          name: value.name,
+          price: value.price,
+          mrp: value.mrp
         };
       } else {
-        // value is primitive (qty) — enrich meta if possible from items list
         const it = items.find(x => x.docId === key);
         newCart[key] = {
           qty: Number(value || 0),
@@ -263,26 +230,21 @@ function migrateCartIfNeeded() {
     }
   }
 
-  // Merge newCart with any pre-existing docId entries from parsed cart (avoid duplicates)
   cart = { ...newCart };
 
-  // If there were orphan numeric entries, append them under a special "legacy-orphan" key so user can recover if needed
-  const orphanKeys = Object.keys(orphan);
-  if (orphanKeys.length) {
-    // store as metadata under a single key (won't break everything)
+  if (Object.keys(orphan).length) {
     cart.__legacy_orphan__ = orphan;
   }
 
   saveCartToStorage();
 }
-
 /* ---------------- RENDER / UI ---------------- */
 function renderItems(list) {
   const container = el('products');
   container.innerHTML = '';
 
   if (!list || list.length === 0) {
-    container.innerHTML = `<p style="padding:20px">No items match your search/filters.</p>`;
+    container.innerHTML = `<p style="padding:20px">No items match your search.</p>`;
     return;
   }
 
@@ -290,93 +252,96 @@ function renderItems(list) {
     const card = document.createElement('div');
     card.className = 'card';
 
-    // image
-    // image
-const imgEl = createSafeImage(it.image, it.name);
-imgEl.style.width = "100%";
-imgEl.style.height = "150px";   // matches CSS
-imgEl.style.objectFit = "cover";
-imgEl.style.borderRadius = "10px";
-card.appendChild(imgEl);
+    /* -------- IMAGE (full width) -------- */
+    const imgEl = createSafeImage(it.image, it.name);
+    imgEl.style.width = "100%";
+    imgEl.style.height = "150px";
+    imgEl.style.objectFit = "cover";
+    imgEl.style.borderRadius = "10px";
 
-    // name
+    card.appendChild(imgEl);
+
+    /* -------- NAME -------- */
     const nameEl = document.createElement('div');
     nameEl.className = 'item-name';
     nameEl.textContent = it.name;
     card.appendChild(nameEl);
 
-    // price row
+    /* -------- PRICE ROW -------- */
     const priceRow = document.createElement('div');
     priceRow.className = 'price-row';
-    priceRow.innerHTML = `<div class="small-mrp">MRP ₹${money(it.mrp)}</div><div class="sale">₹${money(it.salePrice)}</div>`;
+    priceRow.innerHTML = `
+      <div class="small-mrp">MRP ₹${money(it.mrp)}</div>
+      <div class="sale">₹${money(it.salePrice)}</div>
+    `;
     card.appendChild(priceRow);
 
-    // stock / category
+    /* -------- CATEGORY / STOCK -------- */
     if (it.stock <= 0) {
       const badge = document.createElement('div');
+      badge.textContent = 'Out of stock';
       badge.style.color = '#c00';
       badge.style.fontSize = '13px';
       badge.style.marginTop = '6px';
-      badge.textContent = 'Out of stock';
       card.appendChild(badge);
     } else if (it.category) {
       const cat = document.createElement('div');
+      cat.textContent = it.category;
       cat.style.fontSize = '12px';
       cat.style.color = '#666';
       cat.style.marginTop = '6px';
-      cat.textContent = it.category;
       card.appendChild(cat);
     }
 
-    // controls: use data-docid for stable referencing
+    /* -------- QTY CONTROLS -------- */
+    const docId = it.docId;
+    const currentQty = cart[docId]?.qty || 0;
+
     const controls = document.createElement('div');
     controls.className = 'qty-controls';
-    const docId = it.docId;
-    const qtyNow = (cart[docId] && cart[docId].qty) ? Number(cart[docId].qty) : 0;
-
     controls.innerHTML = `
       <button class="dec" data-docid="${docId}">-</button>
-      <div class="qty-display" id="qty-${docId}">${qtyNow}</div>
+      <div class="qty-display" id="qty-${docId}">${currentQty}</div>
       <button class="inc" data-docid="${docId}">+</button>
     `;
     card.appendChild(controls);
 
-    // add button
+    /* -------- ADD BUTTON -------- */
     const addBtn = document.createElement('button');
     addBtn.className = 'add-btn';
     addBtn.dataset.docid = docId;
-    addBtn.textContent = (it.stock <= 0) ? 'Unavailable' : 'Add to cart';
+    addBtn.textContent = (it.stock <= 0) ? "Unavailable" : "Add to cart";
     addBtn.disabled = (it.stock <= 0);
-    card.appendChild(addBtn);
 
+    card.appendChild(addBtn);
     container.appendChild(card);
   });
 
-  // Attach event handlers (use dataset.docid)
-  container.querySelectorAll('.inc').forEach(b => {
-    b.onclick = () => changeQtyByDocId(b.dataset.docid, +1);
-  });
-  container.querySelectorAll('.dec').forEach(b => {
-    b.onclick = () => changeQtyByDocId(b.dataset.docid, -1);
-  });
-  container.querySelectorAll('.add-btn').forEach(b => {
-    b.onclick = () => changeQtyByDocId(b.dataset.docid, +1);
-  });
+  /* ----- EVENT ATTACH ----- */
+  container.querySelectorAll('.inc').forEach(btn =>
+    btn.onclick = () => changeQtyByDocId(btn.dataset.docid, +1)
+  );
+
+  container.querySelectorAll('.dec').forEach(btn =>
+    btn.onclick = () => changeQtyByDocId(btn.dataset.docid, -1)
+  );
+
+  container.querySelectorAll('.add-btn').forEach(btn =>
+    btn.onclick = () => changeQtyByDocId(btn.dataset.docid, +1)
+  );
 }
 
-/* ---------------- CART FUNCTIONS (docId-based) ---------------- */
+/* ---------------- CART FUNCTIONS ---------------- */
 function changeQtyByDocId(docId, delta) {
-  if (!docId) return;
   const it = items.find(x => x.docId === docId);
   if (!it) return;
 
-  const cur = cart[docId] ? Number(cart[docId].qty || 0) : 0;
-  let next = Math.max(0, cur + delta);
-  // clamp to stock
+  const current = cart[docId]?.qty || 0;
+  let next = Math.max(0, current + delta);
+
   if (next > it.stock) next = it.stock;
 
   if (next <= 0) {
-    // remove entry
     delete cart[docId];
   } else {
     cart[docId] = {
@@ -387,9 +352,8 @@ function changeQtyByDocId(docId, delta) {
     };
   }
 
-  // update DOM qty display
   const qtyEl = el(`qty-${docId}`);
-  if (qtyEl) qtyEl.innerText = cart[docId] ? cart[docId].qty : 0;
+  if (qtyEl) qtyEl.innerText = cart[docId]?.qty || 0;
 
   saveCartToStorage();
   updateCartCount();
@@ -397,50 +361,52 @@ function changeQtyByDocId(docId, delta) {
 
 function calculateTotal() {
   let total = 0;
-  for (const key of Object.keys(cart)) {
-    if (key === '__legacy_orphan__') continue;
-    const e = cart[key];
-    total += Number(e.qty || 0) * Number(e.price || 0);
+  for (const id of Object.keys(cart)) {
+    if (id === "__legacy_orphan__") continue;
+    const e = cart[id];
+    total += (e.qty || 0) * (e.price || 0);
   }
   return total;
 }
 
 function renderCartItems() {
-  const container = el('cart-items');
-  container.innerHTML = '';
+  const container = el("cart-items");
+  container.innerHTML = "";
 
-  let any = false;
-  for (const key of Object.keys(cart)) {
-    if (key === '__legacy_orphan__') continue;
-    const e = cart[key];
-    if (!e || Number(e.qty || 0) <= 0) continue;
-    any = true;
-    const it = items.find(x => x.docId === key);
-    const name = e.name || (it ? it.name : 'Unknown item');
-    const price = Number(e.price || (it ? it.salePrice : 0));
-    const qty = Number(e.qty || 0);
+  const keys = Object.keys(cart).filter(k => k !== "__legacy_orphan__");
+  if (!keys.length) {
+    container.innerHTML = "<p>No items in cart</p>";
+    return;
+  }
 
-    const row = document.createElement('div');
+  keys.forEach(id => {
+    const e = cart[id];
+    const row = document.createElement("div");
     row.style.display = "flex";
     row.style.justifyContent = "space-between";
     row.style.padding = "6px 0";
-    row.innerHTML = `<div>${name} x ${qty}</div><div>₹${money(qty * price)}</div>`;
-    container.appendChild(row);
-  }
 
-  if (!any) container.innerHTML = '<p>No items in cart</p>';
+    row.innerHTML = `
+      <div>${e.name} x ${e.qty}</div>
+      <div>₹${money(e.qty * e.price)}</div>
+    `;
+
+    container.appendChild(row);
+  });
 }
 
 function updateCartCount() {
-  const count = Object.values(cart).reduce((s, v) => {
-    if (!v || typeof v !== 'object') return s;
-    return s + (Number(v.qty || 0));
-  }, 0);
+  let count = 0;
+  for (const k of Object.keys(cart)) {
+    if (k === "__legacy_orphan__") continue;
+    count += Number(cart[k].qty || 0);
+  }
   const total = calculateTotal();
 
   if (el('cart-count')) el('cart-count').innerText = count;
   if (el('footer-item-count')) el('footer-item-count').innerText = `${count} Items`;
   if (el('footer-total')) el('footer-total').innerText = money(total);
+
   if (el('total-items')) el('total-items').innerText = count;
   if (el('total-amount')) el('total-amount').innerText = money(total);
 
@@ -450,183 +416,160 @@ function updateCartCount() {
 
 /* ---------------- FILTERS ---------------- */
 function applyFilters() {
-  const q = (el('search') && el('search').value || '').trim().toLowerCase();
-  const cat = (el('category-filter') && el('category-filter').value) || '';
+  const q = (el('search').value || '').trim().toLowerCase();
+  const cat = el('category-filter')?.value || '';
 
-  let filtered = items.slice();
-  if (cat) filtered = filtered.filter(it => it.category === cat);
-  if (q) filtered = filtered.filter(it => it.name.toLowerCase().includes(q) || (it.description || '').toLowerCase().includes(q));
+  let out = items.slice();
 
-  renderItems(filtered);
+  if (cat) out = out.filter(i => i.category === cat);
+  if (q) out = out.filter(i =>
+    i.name.toLowerCase().includes(q) ||
+    (i.description || '').toLowerCase().includes(q)
+  );
+
+  renderItems(out);
 }
+
 const debouncedApply = debounce(applyFilters, 180);
-(function attachSearch() {
-  const s = el('search');
-  if (!s) return;
-  s.addEventListener('input', debouncedApply);
+el('search').addEventListener("input", debouncedApply);
+
+/* ---------------- MODALS ---------------- */
+(function setupModal() {
+  const modal = el("cart-modal");
+  const open1 = el("open-cart-btn");
+  const open2 = el("open-cart-btn-2");
+  const close = el("close-cart");
+
+  const show = () => modal.classList.remove("hidden");
+  const hide = () => modal.classList.add("hidden");
+
+  open1.onclick = show;
+  open2.onclick = show;
+  close.onclick = hide;
+
+  modal.addEventListener("click", e => {
+    if (e.target === modal) hide();
+  });
 })();
 
-/* ---------------- MODAL CONTROLS ---------------- */
-(function attachModalControls() {
-  const open1 = el('open-cart-btn'), open2 = el('open-cart-btn-2'), close = el('close-cart');
-  const show = () => el('cart-modal') && el('cart-modal').classList.remove('hidden');
-  const hide = () => el('cart-modal') && el('cart-modal').classList.add('hidden');
-  if (open1) open1.addEventListener('click', (e) => { e.preventDefault(); show(); });
-  if (open2) open2.addEventListener('click', (e) => { e.preventDefault(); show(); });
-  if (close) close.addEventListener('click', (e) => { e.preventDefault(); hide(); });
-  const modal = el('cart-modal');
-  if (modal) modal.addEventListener('click', (ev) => { if (ev.target === modal) hide(); });
-})();
-
-/* ---------------- FIXED TRANSACTION (ALL READS FIRST → THEN WRITES) ---------------- */
+/* ---------------- STOCK TRANSACTION ---------------- */
 async function createOrderAndReduceStock(orderItems, customer) {
   try {
-    await db.runTransaction(async (tx) => {
-      const docsToUpdate = [];
+    await db.runTransaction(async tx => {
+      const refs = [];
 
-      // 1️⃣ READ PHASE — all reads FIRST
+      // Read Phase
       for (const o of orderItems) {
-        const ref = db.collection('items').doc(o.docId);
-        const snap = await tx.get(ref);   // READ ONLY here
+        const ref = db.collection("items").doc(o.docId);
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new Error(o.name + " not found");
 
-        if (!snap.exists) throw new Error(`${o.name} — item not found`);
-
-        docsToUpdate.push({
+        refs.push({
           ref,
           name: o.name,
           qty: o.qty,
-          currentStock: Number(snap.data().stock || 0)
+          stock: snap.data().stock || 0
         });
       }
 
-      // 2️⃣ VALIDATION — check stock after all reads are complete
-      for (const d of docsToUpdate) {
-        if (d.qty > d.currentStock) {
-          throw new Error(`${d.name} — only ${d.currentStock} left`);
+      // Validate Phase
+      for (const r of refs) {
+        if (r.qty > r.stock) {
+          throw new Error(`${r.name} — only ${r.stock} available`);
         }
       }
 
-      // 3️⃣ WRITE PHASE — now update all stock
-      for (const d of docsToUpdate) {
-        tx.update(d.ref, { stock: d.currentStock - d.qty });
+      // Write Stock
+      for (const r of refs) {
+        tx.update(r.ref, { stock: r.stock - r.qty });
       }
 
-      // 4️⃣ CREATE ORDER DOCUMENT — last step in transaction
-      const orderRef = db.collection('orders').doc();
-      const totalAmount = orderItems.reduce((s, o) => s + o.qty * o.price, 0);
-
+      // Create Order
+      const orderRef = db.collection("orders").doc();
       tx.set(orderRef, {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        customerName: customer.name || '---',
-        customerPhone: customer.phone || '---',
-        customerAddress: customer.address || '---',
-        paymentMode: customer.payment || '---',
-        items: orderItems.map(o => ({
-          docId: o.docId,
-          name: o.name,
-          qty: o.qty,
-          price: o.price
-        })),
-        total: totalAmount,
-        status: 'pending'
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerAddress: customer.address,
+        paymentMode: customer.payment,
+        items: orderItems,
+        total: orderItems.reduce((s, o) => s + o.qty * o.price, 0),
+        status: "pending"
       });
     });
 
     return { ok: true };
-
-  } catch (err) {
-    return { ok: false, error: err.message || String(err) };
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
 }
 
-/* ---------------- WHATSAPP BUILD + CHECKOUT ---------------- */
+/* ---------------- WHATSAPP CHECKOUT ---------------- */
 function buildWhatsAppMessage(orderItems, customer) {
   let msg = `New Order — Shopp Wholesale\n\n`;
+
   orderItems.forEach((o, i) => {
     msg += `${i + 1}. ${o.name} x ${o.qty} = ₹${money(o.qty * o.price)}\n`;
   });
+
   msg += `\nTotal: ₹${money(orderItems.reduce((s, o) => s + o.qty * o.price, 0))}`;
-  msg += `\nDelivery Promise: ${DELIVERY_PROMISE_TEXT} • Radius: ${DELIVERY_RADIUS_TEXT}`;
-  msg += `\nOrder Time: ${new Date().toLocaleString('en-IN')}`;
-  msg += `\n\nName: ${customer.name || '---'}`;
-  msg += `\nPhone: ${customer.phone || '---'}`;
-  msg += `\nAddress: ${customer.address || '---'}`;
-  msg += `\nPayment: ${customer.payment || '---'}`;
+  msg += `\nDelivery: ${DELIVERY_PROMISE_TEXT} • ${DELIVERY_RADIUS_TEXT}`;
+  msg += `\nTime: ${new Date().toLocaleString('en-IN')}`;
+
+  msg += `\n\nName: ${customer.name}`;
+  msg += `\nPhone: ${customer.phone}`;
+  msg += `\nAddress: ${customer.address}`;
+  msg += `\nPayment: ${customer.payment}`;
+
   return msg;
 }
 
-(async function attachWhatsAppCheckout() {
-  const btn = el('send-whatsapp');
-  if (!btn) return;
+el('send-whatsapp').onclick = async () => {
+  updateCartCount();
 
-  btn.addEventListener('click', async (ev) => {
-    ev.preventDefault(); ev.stopPropagation();
+  const orderItems = [];
+  for (const id of Object.keys(cart)) {
+    if (id === "__legacy_orphan__") continue;
 
-    updateCartCount();
-
-    // build orderItems from cart (ignore legacy orphan)
-    const orderItems = [];
-    for (const key of Object.keys(cart)) {
-      if (key === '__legacy_orphan__') continue;
-      const e = cart[key];
-      if (!e || Number(e.qty || 0) <= 0) continue;
-      orderItems.push({ docId: key, name: e.name || 'Unknown', qty: Number(e.qty), price: Number(e.price || 0) });
-    }
-
-    if (!orderItems.length) {
-      alert('Cart is empty — add items before checkout');
-      return;
-    }
-
-    // read customer
-    const customer = {
-      name: (el('customer-name') && el('customer-name').value.trim()) || '---',
-      phone: (el('customer-phone') && el('customer-phone').value.trim()) || '---',
-      address: (el('customer-address') && el('customer-address').value.trim()) || '---',
-      payment: (el('payment-mode') && el('payment-mode').value) || '---'
-    };
-
-    // disable while processing
-    btn.disabled = true;
-    const oldLabel = btn.innerText;
-    btn.innerText = 'Processing...';
-
-    // Transaction: reduce stock atomically and create order
-    const res = await createOrderAndReduceStock(orderItems, customer);
-    if (!res.ok) {
-      alert('Order failed: ' + res.error);
-      btn.disabled = false; btn.innerText = oldLabel;
-      await loadItems(); // refresh stock
-      return;
-    }
-
-    // update local items stock and clear cart
-    orderItems.forEach(o => {
-      const it = items.find(x => x.docId === o.docId);
-      if (it) it.stock = Math.max(0, it.stock - o.qty);
+    const e = cart[id];
+    orderItems.push({
+      docId: id,
+      name: e.name,
+      qty: e.qty,
+      price: e.price
     });
+  }
 
-    cart = {};
-    saveCartToStorage();
-    updateCartCount();
+  if (!orderItems.length) {
+    alert("Cart is empty.");
+    return;
+  }
 
-    const waMsg = buildWhatsAppMessage(orderItems, customer);
-    const encoded = encodeURIComponent(waMsg);
+  const customer = {
+    name: el("customer-name").value.trim(),
+    phone: el("customer-phone").value.trim(),
+    address: el("customer-address").value.trim(),
+    payment: el("payment-mode").value
+  };
 
-    // open WhatsApp
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, "_blank");
+  const res = await createOrderAndReduceStock(orderItems, customer);
+  if (!res.ok) {
+    alert("Order failed: " + res.error);
+    await loadItems();
+    return;
+  }
 
-    btn.disabled = false;
-    btn.innerText = oldLabel;
+  cart = {};
+  saveCartToStorage();
+  updateCartCount();
 
-    alert("Order placed successfully!");
+  const msg = encodeURIComponent(buildWhatsAppMessage(orderItems, customer));
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 
-    // close modal if open
-    const modal = el('cart-modal');
-    if (modal) modal.classList.add('hidden');
-  });
-})();
- 
+  el("cart-modal").classList.add("hidden");
+  alert("Order placed successfully!");
+};
+
 /* ---------------- INIT ---------------- */
 loadCartFromStorage();
 loadItems();
