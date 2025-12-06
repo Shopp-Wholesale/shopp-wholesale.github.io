@@ -1,13 +1,15 @@
 :root {
-  --accent: #19a74a;
+  --accent: #19a74a;            /* Green grocery theme */
   --accent-dark: #12853a;
-  --bg: #f4f9f4;
+  --bg: #f4f9f4;                 /* Soft grocery background */
   --card: #ffffff;
   --muted: #6f6f6f;
   --danger: #d9534f;
 }
 
-* { box-sizing: border-box; }
+* { 
+  box-sizing: border-box; 
+}
 
 body {
   font-family: Inter, system-ui, -apple-system, Roboto, Arial;
@@ -23,7 +25,7 @@ body {
   align-items: center;
   padding: 14px 20px;
   background: var(--card);
-  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  box-shadow: 0 1px 6px rgba(0,0,0,.05);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -54,7 +56,7 @@ body {
 
 /* -------- SEARCH -------- */
 .controls {
-  padding: 12px 20px;
+  padding: 12px 16px;
 }
 
 #search {
@@ -68,9 +70,13 @@ body {
 /* -------- PRODUCT GRID -------- */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 14px;
-  padding: 16px 20px;
+  padding: 14px 10px;
+
+  /* ⭐ Key Fix: remove any extra big box layer */
+  background: none;
+  box-shadow: none;
 }
 
 /* -------- PRODUCT CARD -------- */
@@ -78,29 +84,28 @@ body {
   background: var(--card);
   border-radius: 14px;
   padding: 12px;
-  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  box-shadow: none;               /* ⭐ No floating card look */
   display: flex;
   flex-direction: column;
-  min-height: 260px;
-  transition: 0.2s;
+  min-height: 245px;
+  transition: 0.2s ease;
 }
 
 .card:hover {
   transform: scale(1.02);
 }
 
-/* ⭐ UPDATED IMAGE STYLE — FULL WIDTH, NO EMPTY SPACE */
+/* ⭐ Full-width clean product image */
 .card img,
 .product-img {
   width: 100%;
-  height: 170px;          /* Increased height for better display */
-  object-fit: cover;      /* Fills entire area — no white space */
-  border-radius: 12px;
-  background: #f1f1f1;
-  display: block;
+  height: 140px;
+  object-fit: cover;              /* ⭐ Fill entire width */
+  border-radius: 10px;
+  background: #eeeeee;
 }
 
-/* -------- TEXT -------- */
+/* Product name */
 .item-name {
   font-weight: 600;
   margin: 10px 0 6px 0;
@@ -194,26 +199,7 @@ body {
   border-radius: 8px;
 }
 
-/* Cart action buttons */
-.cart-actions {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.cart-actions button {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-}
-
-.primary {
-  background: var(--accent);
-  color: white;
-}
-
-/* -------- FLOATING CART FOOTER -------- */
+/* -------- CART FOOTER -------- */
 .cart-footer {
   position: fixed;
   bottom: 0;
