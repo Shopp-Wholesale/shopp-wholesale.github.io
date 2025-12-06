@@ -1,15 +1,13 @@
 :root {
-  --accent: #19a74a;            /* Green grocery theme */
+  --accent: #19a74a;
   --accent-dark: #12853a;
-  --bg: #f4f9f4;                 /* Soft grocery background */
+  --bg: #f4f9f4;
   --card: #ffffff;
   --muted: #6f6f6f;
   --danger: #d9534f;
 }
 
-* { 
-  box-sizing: border-box; 
-}
+* { box-sizing: border-box; }
 
 body {
   font-family: Inter, system-ui, -apple-system, Roboto, Arial;
@@ -31,18 +29,8 @@ body {
   z-index: 10;
 }
 
-.brand-name {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.tagline {
-  margin: 0;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-}
+.brand-name { margin: 0; font-size: 20px; font-weight: 700; }
+.tagline { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
 
 .cart-button {
   padding: 8px 14px;
@@ -55,9 +43,7 @@ body {
 }
 
 /* -------- SEARCH -------- */
-.controls {
-  padding: 12px 16px;
-}
+.controls { padding: 12px 16px; }
 
 #search {
   width: 100%;
@@ -71,48 +57,45 @@ body {
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-  gap: 14px;
-  padding: 14px 10px;
+  gap: 10px;                         /* ⭐ Reduced — tighter grocery layout */
+  padding: 10px 10px 90px;           /* ⭐ Reduced padding */
 
-  /* ⭐ Key Fix: remove any extra big box layer */
-  background: none;
-  box-shadow: none;
+  background: none !important;
+  box-shadow: none !important;
 }
 
 /* -------- PRODUCT CARD -------- */
 .card {
   background: var(--card);
-  border-radius: 14px;
-  padding: 12px;
-  box-shadow: none;               /* ⭐ No floating card look */
+  border-radius: 12px;
+  padding: 10px;                     /* ⭐ Reduced — removes empty outer space */
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  min-height: 245px;
+  min-height: 220px;                 /* ⭐ Reduced — no more large empty bottom */
   transition: 0.2s ease;
 }
 
-.card:hover {
-  transform: scale(1.02);
-}
+.card:hover { transform: scale(1.02); }
 
-/* ⭐ Full-width clean product image */
+/* -------- PRODUCT IMAGE (full width) -------- */
 .card img,
 .product-img {
   width: 100%;
-  height: 140px;
-  object-fit: cover;              /* ⭐ Fill entire width */
+  height: 150px;                     /* ⭐ Slightly taller for balanced look */
+  object-fit: cover;                 /* ⭐ Fill full width */
   border-radius: 10px;
-  background: #eeeeee;
+  background: #e8e8e8;
 }
 
 /* Product name */
 .item-name {
   font-weight: 600;
-  margin: 10px 0 6px 0;
+  margin: 10px 0 6px;
   font-size: 15px;
 }
 
-/* Price row */
+/* -------- PRICE ROW -------- */
 .price-row {
   display: flex;
   justify-content: space-between;
@@ -131,7 +114,7 @@ body {
   color: var(--accent-dark);
 }
 
-/* Quantity controls */
+/* -------- QTY CONTROLS -------- */
 .qty-controls {
   display: flex;
   align-items: center;
@@ -153,7 +136,7 @@ body {
   font-weight: 600;
 }
 
-/* Add button */
+/* -------- ADD BUTTON -------- */
 .add-btn {
   margin-top: auto;
   padding: 10px;
@@ -161,7 +144,6 @@ body {
   border: none;
   background: var(--accent);
   color: white;
-  width: 100%;
   font-size: 14px;
   font-weight: 600;
 }
