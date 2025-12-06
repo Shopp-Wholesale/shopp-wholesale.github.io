@@ -19,11 +19,22 @@ function createSafeImage(src, alt) {
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.alt = alt || '';
+
+  // ⭐ NEW full-width responsive styling
+  img.className = "product-img"; 
+
+  img.src = (src && src.trim()) ? src : 'images/placeholder.png';
+
   img.style.opacity = '0';
   img.style.transition = 'opacity .28s';
-  img.src = (src && src.trim()) ? src : 'images/placeholder.png';
+
   img.onload = () => img.style.opacity = '1';
-  img.onerror = () => { img.onerror = null; img.src = 'images/placeholder.png'; img.style.opacity = '1'; };
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = 'images/placeholder.png';
+    img.style.opacity = '1';
+  };
+
   return img;
 }
 
