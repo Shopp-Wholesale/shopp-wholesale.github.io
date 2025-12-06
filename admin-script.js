@@ -1,6 +1,6 @@
 // -----------------------------------------------------
 // Shopp Wholesale — Admin Panel (FINAL WORKING VERSION)
-// + IMAGE UPLOAD + COMPRESSION INTEGRATED
+// + imgbb IMAGE UPLOAD + COMPRESSION INTEGRATED
 // -----------------------------------------------------
 
 const PASSCODE_ADMIN = "letmein123";  
@@ -69,7 +69,6 @@ function clearForm() {
   el("item-image").value = "";
   el("item-desc").value = "";
 
-  // Hide preview image
   const preview = el("imagePreview");
   preview.style.display = "none";
   preview.src = "";
@@ -78,45 +77,73 @@ function clearForm() {
 }
 
 /* ===============================================================
-   ⭐ IMAGE PICKER + PREVIEW + COMPRESSION + FIREBASE UPLOAD
+   ⭐ IMAGE PICKER + PREVIEW + COMPRESSION + IMGBB UPLOAD
 ================================================================*/
 
-// Opens file picker
+// API key for imgbb
+const IMGBB_API_KEY = "a70f2274f5053512d046cb5878c63041";
+
+// Open file picker
 function pickImage() {
-  el("imagePicker").click();
+  const picker = el("imagePicker");
+  picker.value = "";
+  picker.click();
 }
 
-// When user selects an image
+// When user selects image
 el("imagePicker").addEventListener("change", async function () {
   const file = this.files[0];
   if (!file) return;
 
-  // Preview
+  // Show preview
   const preview = el("imagePreview");
   preview.src = URL.createObjectURL(file);
   preview.style.display = "block";
 
-  // Compress before upload
-  const compressedFile = await compressImage(file, 0.6); // 60% quality
+  try {
+    // Compress image
+    const compressedFile = await compressImage(file, 0.6);
+    const base64 = await fileToBase64(compressedFile);
+    const cleanBase64 = base64.split(",")[1];
 
-  // Upload
-  const fileName = "product_" + Date.now() + ".jpg";
-  const storageRef = firebase.storage().ref("products/" + fileName);
+    el("item-image").value = "Uploading...";
 
-  const uploadTask = storageRef.put(compressedFile);
+    // Upload to imgbb
+    const form = new FormData();
+    form.append("image", cleanBase64);
 
-  uploadTask.on("state_changed",
-    null,
-    (error) => alert("Upload failed: " + error),
-    () => {
-      uploadTask.snapshot.ref.getDownloadURL().then((url) => {
-        el("item-image").value = url;   // Auto-fill URL
-      });
-    }
-  );
+    const upload = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: "POST",
+      body: form
+    });
+
+    const result = await upload.json();
+
+    if (!result.success) throw new Error("Upload failed");
+
+    const url = result.data.display_url;
+
+    el("item-image").value = url;
+    console.log("Uploaded:", url);
+    alert("Image uploaded!");
+
+  } catch (err) {
+    console.error(err);
+    alert("Image upload failed");
+    el("item-image").value = "";
+  }
 });
 
-// Image compression function
+// Convert image to Base64
+function fileToBase64(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Compression function
 async function compressImage(file, quality = 0.7) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -128,15 +155,14 @@ async function compressImage(file, quality = 0.7) {
 
         const MAX_WIDTH = 800;
         const scale = MAX_WIDTH / img.width;
+
         canvas.width = MAX_WIDTH;
         canvas.height = img.height * scale;
 
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob(
-          (blob) => {
-            resolve(new File([blob], file.name, { type: "image/jpeg" }));
-          },
+          (blob) => resolve(new File([blob], file.name, { type: "image/jpeg" })),
           "image/jpeg",
           quality
         );
@@ -146,7 +172,6 @@ async function compressImage(file, quality = 0.7) {
     reader.readAsDataURL(file);
   });
 }
-
 
 /* ----------------------------------------------
    CREATE / UPDATE ITEM
@@ -171,10 +196,10 @@ el("item-form").addEventListener("submit", async (ev) => {
   try {
     if (docId) {
       await db.collection("items").doc(docId).update(data);
-      alert("Item updated successfully");
+      alert("Item updated");
     } else {
       await db.collection("items").add(data);
-      alert("Item created successfully");
+      alert("Item created");
     }
 
     clearForm();
@@ -195,7 +220,7 @@ el("btn-delete").addEventListener("click", async () => {
   const docId = el("item-docid").value;
   if (!docId) return alert("No item selected");
 
-  if (!confirm("Delete this item permanently?")) return;
+  if (!confirm("Delete permanently?")) return;
 
   try {
     await db.collection("items").doc(docId).delete({
@@ -207,12 +232,12 @@ el("btn-delete").addEventListener("click", async () => {
     loadAllItems();
   } catch (err) {
     console.error(err);
-    alert("Delete failed: " + err.message);
+    alert("Delete failed");
   }
 });
 
 /* ----------------------------------------------
-   LOAD ITEMS IN ADMIN PANEL
+   LOAD ITEMS
 ------------------------------------------------*/
 async function loadAllItems() {
   const list = el("items-list");
@@ -249,7 +274,7 @@ async function loadAllItems() {
         </div>
       `;
 
-      // Edit item
+      // Edit
       card.querySelector(".edit-btn").addEventListener("click", () => {
         el("item-docid").value = doc.id;
         el("item-name").value = d.name;
@@ -260,7 +285,6 @@ async function loadAllItems() {
         el("item-image").value = d.image || "";
         el("item-desc").value = d.description || "";
 
-        // Show image preview while editing
         const preview = el("imagePreview");
         if (d.image) {
           preview.src = d.image;
@@ -296,20 +320,18 @@ async function loadAllItems() {
 
         } catch (err) {
           console.error(err);
-          alert("Update failed: " + err.message);
+          alert("Update failed");
         }
       });
 
       list.appendChild(card);
     });
 
-    if (snap.empty) {
-      list.innerHTML = "<div class='muted'>No items found</div>";
-    }
+    if (snap.empty) list.innerHTML = "<div class='muted'>No items found</div>";
 
   } catch (err) {
     console.error(err);
-    list.innerHTML = "<div class='muted'>Failed loading items</div>";
+    list.innerHTML = "<div class='muted'>Failed loading</div>";
   }
 }
 
@@ -364,9 +386,7 @@ async function loadOrders() {
       out.appendChild(row);
     });
 
-    if (snap.empty) {
-      out.innerHTML = "<div class='muted'>No orders found</div>";
-    }
+    if (snap.empty) out.innerHTML = "<div class='muted'>No orders found</div>";
 
   } catch (err) {
     console.error(err);
@@ -375,10 +395,10 @@ async function loadOrders() {
 }
 
 /* ----------------------------------------------
-   AUTO-LOGIN RESTORE
+   AUTO LOGIN
 ------------------------------------------------*/
 if (isAdmin()) {
   setAdminState(true);
   loadAllItems();
   loadOrders();
-                  }
+                 }
