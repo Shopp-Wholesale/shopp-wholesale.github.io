@@ -1,3 +1,6 @@
+/* ============================================================
+   GLOBAL RESET + FULL WIDTH FIX
+============================================================ */
 :root {
   --accent: #19a74a;
   --accent-dark: #12853a;
@@ -7,16 +10,24 @@
   --danger: #d9534f;
 }
 
-* { box-sizing: border-box; }
-
-body {
-  font-family: Inter, system-ui, -apple-system, Roboto, Arial;
+* {
+  box-sizing: border-box;
   margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
   background: var(--bg);
+  font-family: Inter, system-ui, -apple-system, Roboto, Arial;
   color: #111;
 }
 
-/* -------- HEADER -------- */
+/* ============================================================
+   HEADER
+============================================================ */
 .site-header {
   display: flex;
   justify-content: space-between;
@@ -27,10 +38,19 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
+  width: 100%;
 }
 
-.brand-name { margin: 0; font-size: 20px; font-weight: 700; }
-.tagline { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.brand-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tagline {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
 
 .cart-button {
   padding: 8px 14px;
@@ -42,8 +62,13 @@ body {
   font-size: 14px;
 }
 
-/* -------- SEARCH -------- */
-.controls { padding: 12px 16px; }
+/* ============================================================
+   SEARCH BAR
+============================================================ */
+.controls {
+  padding: 12px 16px;
+  width: 100%;
+}
 
 #search {
   width: 100%;
@@ -53,35 +78,51 @@ body {
   font-size: 14px;
 }
 
-/* -------- PRODUCT GRID -------- */
+/* ============================================================
+   PRODUCT GRID — FULL WIDTH FIX
+============================================================ */
+#products {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 10px 8px 100px !important;
+}
+
 .product-grid {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 10px;
-  padding: 10px 10px 90px;
   background: none !important;
-  box-shadow: none !important;
 }
 
-/* -------- PRODUCT CARD -------- */
+/* ============================================================
+   PRODUCT CARD
+============================================================ */
 .card {
   background: var(--card);
   border-radius: 12px;
   padding: 10px;
-  box-shadow: none;
+  box-shadow: none; /* flat, Blinkit style */
   display: flex;
   flex-direction: column;
-
-  height: auto; /*⭐ removes white gap */
-  overflow: hidden;
+  transition: 0.2s ease;
+  min-height: 220px;
 }
 
-/* -------- PRODUCT IMAGE -------- */
+.card:hover {
+  transform: scale(1.02);
+}
+
+/* Full-width responsive product image */
 .card img,
 .product-img {
   width: 100%;
   height: 150px;
-  object-fit: cover;     /*⭐ fills entire width */
+  object-fit: cover;
   border-radius: 10px;
   background: #e8e8e8;
 }
@@ -93,7 +134,7 @@ body {
   font-size: 15px;
 }
 
-/* -------- PRICE ROW -------- */
+/* Price row */
 .price-row {
   display: flex;
   justify-content: space-between;
@@ -112,7 +153,9 @@ body {
   color: var(--accent-dark);
 }
 
-/* -------- QTY CONTROLS -------- */
+/* ============================================================
+   QUANTITY CONTROLS
+============================================================ */
 .qty-controls {
   display: flex;
   align-items: center;
@@ -126,6 +169,7 @@ body {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 16px;
+  font-weight: 600;
 }
 
 .qty-display {
@@ -134,9 +178,11 @@ body {
   font-weight: 600;
 }
 
-/* -------- ADD BUTTON -------- */
+/* ============================================================
+   ADD BUTTON
+============================================================ */
 .add-btn {
-  margin-top: 6px;       /*⭐ FIX: removed auto spacing */
+  margin-top: auto;
   padding: 10px;
   border-radius: 10px;
   border: none;
@@ -146,7 +192,9 @@ body {
   font-weight: 600;
 }
 
-/* -------- CART MODAL -------- */
+/* ============================================================
+   CART MODAL
+============================================================ */
 .cart-modal {
   position: fixed;
   inset: 0;
@@ -179,7 +227,9 @@ body {
   border-radius: 8px;
 }
 
-/* -------- CART FOOTER -------- */
+/* ============================================================
+   CART FOOTER (Checkout Bar)
+============================================================ */
 .cart-footer {
   position: fixed;
   bottom: 0;
