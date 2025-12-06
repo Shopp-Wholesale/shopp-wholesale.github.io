@@ -4,6 +4,48 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shopp Wholesale</title>
+
+  <!-- ⭐ FULL-WIDTH FIX (MOST IMPORTANT) -->
+  <style>
+    html, body {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow-x: hidden !important;
+      background: #f4f9f4;
+    }
+
+    /* Prevent GitHub Pages from centering content */
+    body > * {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Ensure product grid is always full width */
+    #products, .product-grid {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      margin: 0 !important;
+      padding: 10px 8px 100px !important;
+      overflow-x: hidden !important;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 10px;
+    }
+
+    /* Product image full width */
+    .product-img, .card img {
+      width: 100% !important;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #eee;
+    }
+  </style>
+
   <link rel="stylesheet" href="style.css">
 
   <!-- Mobile theming -->
@@ -40,8 +82,7 @@
     </div>
 
     <div style="display:flex; gap:8px; align-items:center">
-      <!-- Admin open button -->
-      <button id="open-admin-btn" class="admin-button" type="button" title="Admin">Admin</button>
+      <button id="open-admin-btn" class="admin-button" type="button">Admin</button>
 
       <button class="cart-button" id="open-cart-btn" type="button">
         🛒 <span id="cart-count">0</span>
@@ -49,13 +90,13 @@
     </div>
   </header>
 
-  <!-- Controls (Search + Category Dropdown) -->
+  <!-- Search -->
   <section class="controls">
     <input id="search" class="search-box" placeholder="Search grocery items..." />
     <select id="category-filter" style="margin-top: 8px; display:none;"></select>
   </section>
 
-  <!-- Products Grid -->
+  <!-- Product Grid -->
   <section id="products" class="product-grid"></section>
 
   <!-- Floating Cart Footer -->
@@ -109,24 +150,21 @@
         <button id="close-admin" type="button" style="margin-left:auto">Close</button>
       </div>
 
-      <!-- Items editor -->
       <div id="admin-items-list" style="max-height:50vh;overflow:auto"></div>
 
       <div style="margin-top:12px;color:#666;font-size:13px">
-        Tip: Click Update to save changes to Firestore. Only fields changed will be updated.
+        Tip: Click Update to save changes to Firestore.
       </div>
     </div>
   </div>
 
-  <!-- Orders Modal (admin only) -->
+  <!-- Orders Modal -->
   <div id="orders-modal" class="cart-modal hidden">
     <div class="cart-content">
       <h2>Orders</h2>
       <div id="orders-list" style="max-height:60vh; overflow:auto"></div>
 
-      <div style="margin-top:12px">
-        <button id="close-orders" type="button">Close</button>
-      </div>
+      <button id="close-orders" type="button" style="margin-top:12px">Close</button>
     </div>
   </div>
 
