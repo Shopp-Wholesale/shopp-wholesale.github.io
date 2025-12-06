@@ -1,5 +1,5 @@
 :root {
-  --accent: #19a74a;            /* Green grocery theme */
+  --accent: #19a74a;
   --accent-dark: #12853a;
   --bg: #f4f9f4;
   --card: #ffffff;
@@ -81,7 +81,7 @@ body {
   box-shadow: 0 1px 6px rgba(0,0,0,.06);
   display: flex;
   flex-direction: column;
-  min-height: 240px;
+  min-height: 260px;
   transition: 0.2s;
 }
 
@@ -89,14 +89,18 @@ body {
   transform: scale(1.02);
 }
 
-.card img {
+/* ⭐ UPDATED IMAGE STYLE — FULL WIDTH, NO EMPTY SPACE */
+.card img,
+.product-img {
   width: 100%;
-  height: 130px;
-  object-fit: contain;
-  border-radius: 10px;
-  background: #fff;
+  height: 170px;          /* Increased height for better display */
+  object-fit: cover;      /* Fills entire area — no white space */
+  border-radius: 12px;
+  background: #f1f1f1;
+  display: block;
 }
 
+/* -------- TEXT -------- */
 .item-name {
   font-weight: 600;
   margin: 10px 0 6px 0;
@@ -209,7 +213,7 @@ body {
   color: white;
 }
 
-/* -------- FLOATING CART FOOTER (STYLE C SPECIAL) -------- */
+/* -------- FLOATING CART FOOTER -------- */
 .cart-footer {
   position: fixed;
   bottom: 0;
