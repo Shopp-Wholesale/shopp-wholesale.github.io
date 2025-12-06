@@ -4,7 +4,7 @@
 :root {
   --accent: #19a74a;
   --accent-dark: #12853a;
-  --bg: #f4f9f4;
+  --bg: #f4f9f4;           /* Page background */
   --card: #ffffff;
   --muted: #6f6f6f;
   --danger: #d9534f;
@@ -79,7 +79,7 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT GRID — BLINKIT STYLE
+   PRODUCT GRID — BLINKIT
 ============================================================ */
 #products {
   width: 100%;
@@ -89,26 +89,24 @@ html, body {
 .product-grid {
   display: grid;
   width: 100%;
-
   grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
-  gap: 6px;                      /* TIGHT spacing like Blinkit */
-
+  gap: 6px;
   margin: 0 !important;
   padding: 0 !important;
 }
 
 /* ============================================================
-   PRODUCT CARD — BLINKIT STYLE
+   PRODUCT CARD — BLINKIT STYLE (FLAT)
 ============================================================ */
 .card {
-  background: var(--card);
-  border-radius: 0;              /* FLAT, no curve */
-  padding: 6px 6px 10px;         /* tight padding */
-  border: 1px solid #e8e8e8;     /* thin Blinkit border */
+  background: var(--bg);         /* SAME AS PAGE — no white boxes */
+  border-radius: 0;
+  padding: 6px 6px 10px;
+  border: none !important;       /* remove border */
   display: flex;
   flex-direction: column;
   min-height: 210px;
-  box-shadow: none !important;   /* remove shadow */
+  box-shadow: none !important;
 }
 
 /* PRODUCT IMAGE */
@@ -116,8 +114,8 @@ html, body {
 .product-img {
   width: 100%;
   height: 140px;
-  object-fit: contain;           /* Blinkit uses contain */
-  background: #fff;
+  object-fit: contain;
+  background: var(--bg);         /* match page */
   border-radius: 0;
 }
 
@@ -176,7 +174,7 @@ html, body {
 }
 
 /* ============================================================
-   ADD BUTTON — Blinkit-Style
+   ADD BUTTON — Blinkit
 ============================================================ */
 .add-btn {
   margin-top: 8px;
