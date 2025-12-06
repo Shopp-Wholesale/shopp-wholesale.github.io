@@ -291,10 +291,13 @@ function renderItems(list) {
     card.className = 'card';
 
     // image
-    const imgWrap = document.createElement('div');
-    imgWrap.style.minHeight = '120px';
-    imgWrap.appendChild(createSafeImage(it.image, it.name));
-    card.appendChild(imgWrap);
+    // image
+const imgEl = createSafeImage(it.image, it.name);
+imgEl.style.width = "100%";
+imgEl.style.height = "150px";   // matches CSS
+imgEl.style.objectFit = "cover";
+imgEl.style.borderRadius = "10px";
+card.appendChild(imgEl);
 
     // name
     const nameEl = document.createElement('div');
