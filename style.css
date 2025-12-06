@@ -89,14 +89,18 @@ html, body {
 }
 
 .product-grid {
+  display: grid;
   width: 100% !important;
   max-width: 100% !important;
-  margin: 0 auto !important;
 
-  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
   gap: 10px;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
   background: none !important;
+  justify-items: stretch !important;
 }
 
 /* ============================================================
@@ -106,7 +110,7 @@ html, body {
   background: var(--card);
   border-radius: 12px;
   padding: 10px;
-  box-shadow: none; /* flat, Blinkit style */
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   transition: 0.2s ease;
@@ -251,29 +255,4 @@ html, body {
   border-radius: 10px;
   border: none;
   font-weight: 600;
-}
-/* ============================================================
-   FULL WIDTH FIX — FINAL
-============================================================ */
-html, body {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow-x: hidden !important;
-}
-
-#products {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 10px 8px 100px !important;
-}
-
-.product-grid {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  justify-items: stretch !important;
 }
