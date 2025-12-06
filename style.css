@@ -79,82 +79,73 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT GRID — FULL WIDTH FIX
+   PRODUCT GRID — BLINKIT STYLE
 ============================================================ */
 #products {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 10px 8px 100px !important;
+  width: 100%;
+  padding: 6px 6px 120px !important;
 }
 
 .product-grid {
   display: grid;
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
 
-  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 6px;                      /* TIGHT spacing like Blinkit */
 
   margin: 0 !important;
   padding: 0 !important;
-
-  background: none !important;
-  justify-items: stretch !important;
 }
 
 /* ============================================================
-   PRODUCT CARD
+   PRODUCT CARD — BLINKIT STYLE
 ============================================================ */
 .card {
   background: var(--card);
-  border-radius: 12px;
-  padding: 10px;
-  box-shadow: none;
+  border-radius: 0;              /* FLAT, no curve */
+  padding: 6px 6px 10px;         /* tight padding */
+  border: 1px solid #e8e8e8;     /* thin Blinkit border */
   display: flex;
   flex-direction: column;
-  transition: 0.2s ease;
-  min-height: 220px;
+  min-height: 210px;
+  box-shadow: none !important;   /* remove shadow */
 }
 
-.card:hover {
-  transform: scale(1.02);
-}
-
-/* Full-width responsive product image */
+/* PRODUCT IMAGE */
 .card img,
 .product-img {
   width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 10px;
-  background: #e8e8e8;
+  height: 140px;
+  object-fit: contain;           /* Blinkit uses contain */
+  background: #fff;
+  border-radius: 0;
 }
 
-/* Product name */
+/* PRODUCT NAME */
 .item-name {
   font-weight: 600;
-  margin: 10px 0 6px;
-  font-size: 15px;
+  font-size: 13px;
+  line-height: 1.3;
+  margin: 8px 0 4px;
 }
 
-/* Price row */
+/* PRICE ROW */
 .price-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 6px;
 }
 
 .small-mrp {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 11px;
+  color: #888;
   text-decoration: line-through;
 }
 
 .sale {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--accent-dark);
+  color: #222;
 }
 
 /* ============================================================
@@ -163,35 +154,37 @@ html, body {
 .qty-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
+  gap: 6px;
 }
 
 .qty-controls button {
-  padding: 6px 10px;
-  background: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  background: #fff;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .qty-display {
-  min-width: 28px;
+  min-width: 24px;
   text-align: center;
   font-weight: 600;
+  font-size: 14px;
 }
 
 /* ============================================================
-   ADD BUTTON
+   ADD BUTTON — Blinkit-Style
 ============================================================ */
 .add-btn {
-  margin-top: auto;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  background: var(--accent);
-  color: white;
+  margin-top: 8px;
+  padding: 8px 0;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
   font-size: 14px;
   font-weight: 600;
 }
@@ -232,7 +225,7 @@ html, body {
 }
 
 /* ============================================================
-   CART FOOTER (Checkout Bar)
+   CART FOOTER
 ============================================================ */
 .cart-footer {
   position: fixed;
