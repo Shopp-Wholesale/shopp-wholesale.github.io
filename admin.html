@@ -23,6 +23,29 @@
     .col { flex:1; }
     .items-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin-top:12px; }
     .item-admin { padding:12px; border-radius:12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shopp Wholesale — Admin</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    .admin-wrap { max-width:900px; margin:18px auto; padding:12px; }
+    .admin-top { display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    .admin-actions { display:flex; gap:8px; }
+    .card-small { background:#fff; border-radius:10px; padding:12px; box-shadow:0 1px 2px rgba(0,0,0,0.05); margin-top:12px; }
+    label { display:block; margin:8px 0 6px; font-weight:600; }
+    input[type=text], input[type=number], textarea, select { width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; }
+    .row { display:flex; gap:8px; }
+    .col { flex:1; }
+    .items-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin-top:12px; }
+    .item-admin { padding:12px; border-radius:12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .muted { color:#666; font-size:13px; }
     .btn { background:#2bb26b; color:#fff; padding:8px 12px; border-radius:10px; border:0; cursor:pointer; }
     .btn.secondary { background:#f1f5f9; color:#333; }
@@ -104,12 +127,12 @@
           </button>
         </div>
 
-        <input type="file" id="imagePicker" accept="image/*" capture="environment" style="display:none;">
+        <!-- FIXED: Removed capture="environment" -->
+        <input type="file" id="imagePicker" accept="image/*" style="display:none;">
 
         <img id="imagePreview" 
              style="width:60px;height:60px;border-radius:6px;object-fit:cover;display:none;margin-bottom:8px;">
 
-        <!-- Description -->
         <label>Description (optional)</label>
         <textarea id="item-desc" rows="2"></textarea>
 
@@ -121,11 +144,9 @@
       </form>
     </div>
 
-    <!-- Items list -->
     <h3 style="margin-top:14px;">Products</h3>
     <div id="items-list" class="items-grid"></div>
 
-    <!-- Orders -->
     <h3 style="margin-top:18px;">Orders</h3>
     <div id="orders-list"></div>
 
