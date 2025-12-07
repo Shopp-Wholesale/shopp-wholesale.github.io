@@ -65,24 +65,6 @@ const money = v => Number(v||0).toFixed(0);
 const el = id => document.getElementById(id);
 
 /* ---------------- SAFE IMAGE ---------------- */
-function createSafeImage(src, alt="") {
-  const img = document.createElement('img');
-  img.loading = "lazy";
-  img.alt = alt;
-  img.className = "product-img";
-  img.src = src?.trim() ? src : "images/placeholder.png";
-  img.style.opacity = 0;
-  img.style.transition = "opacity .25s";
-
-  img.onload = () => (img.style.opacity = 1);
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = "images/placeholder.png";
-    img.style.opacity = 1;
-  };
-
-  return img;
-}
 
 /* ---------------- DEBOUNCE ---------------- */
 function debounce(fn, ms=150) {
@@ -119,7 +101,24 @@ function saveCartToStorage() {
 }
 
 /* ---------------- FIRESTORE LOAD ITEMS ---------------- */
-async function loadItems() {
+async function loadItems() {function createSafeImage(src, alt="") {
+  const img = document.createElement('img');
+  img.loading = "lazy";
+  img.alt = alt;
+  img.className = "product-img";
+  img.src = src?.trim() ? src : "images/placeholder.png";
+  img.style.opacity = 0;
+  img.style.transition = "opacity .25s";
+
+  img.onload = () => (img.style.opacity = 1);
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = "images/placeholder.png";
+    img.style.opacity = 1;
+  };
+
+  return img;
+}
   try {
     const snap = await db.collection("items").get();
 
