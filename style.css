@@ -1,5 +1,5 @@
 /* ============================================================
-   GLOBAL RESET + TYPOGRAPHY + FULL WIDTH FIX
+   GLOBAL RESET + VARIABLES + TYPOGRAPHY
 ============================================================ */
 :root {
   --accent: #19a74a;
@@ -102,21 +102,18 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT GRID
+   PRODUCT GRID (FIXED)
 ============================================================ */
 #products {
   width: 100%;
   padding: 6px 6px 120px !important;
-}
-
-.product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
   gap: 6px;
 }
 
 /* ============================================================
-   PRODUCT CARD — FLAT BLINKIT STYLE
+   PRODUCT CARD
 ============================================================ */
 .card {
   background: var(--bg);
@@ -124,11 +121,12 @@ html, body {
   padding: 6px 6px 10px;
   display: flex;
   flex-direction: column;
-  min-height: 225px;
+  border-radius: 10px;
+  min-height: 260px; /* FIXED HEIGHT ISSUE */
 }
 
 /* ============================================================
-   IMAGE BOX (Perfect alignment)
+   IMAGE BOX (PERFECT ALIGNMENT)
 ============================================================ */
 .image-box {
   background: var(--img-box);
@@ -139,14 +137,17 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 8px;
 }
 
-.image-box img {
+/* Image Fix (IMPORTANT) */
+.product-img {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  object-position: center;
 }
 
 /* ============================================================
@@ -251,7 +252,9 @@ html, body {
   max-height: 90vh;
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
 /* ============================================================
    CART FOOTER
