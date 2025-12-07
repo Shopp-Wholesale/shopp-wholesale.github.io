@@ -26,7 +26,7 @@
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Mobile theme color -->
+  <!-- Mobile theme -->
   <meta name="theme-color" content="#ffffff" />
 
   <!-- Firebase -->
@@ -50,7 +50,7 @@
 
 <body>
 
-  <!-- ⭐ PROFESSIONAL HEADER -->
+  <!-- ⭐ PREMIUM HEADER -->
   <header class="site-header">
     <div class="header-left">
       <div class="brand-name">Shopp Wholesale</div>
@@ -59,14 +59,13 @@
 
     <div class="header-right">
       <button id="open-admin-btn" class="header-btn">Admin</button>
-
       <div id="open-cart-btn" class="cart-display">
         🛒 <span id="cart-count">0</span>
       </div>
     </div>
   </header>
 
-  <!-- ⭐ SEARCH BAR -->
+  <!-- ⭐ SEARCH -->
   <section class="controls">
     <input id="search" class="search-box" placeholder="Search grocery items..." />
     <select id="category-filter" style="display:none"></select>
@@ -121,15 +120,15 @@
     <div class="cart-content">
       <h2>Admin Panel</h2>
 
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
         <button id="refresh-items-btn">Refresh Items</button>
         <button id="view-orders-btn">View Orders</button>
         <button id="close-admin" style="margin-left:auto">Close</button>
       </div>
 
-      <div id="admin-items-list" style="max-height:50vh;overflow:auto"></div>
+      <div id="admin-items-list" style="max-height:50vh; overflow:auto"></div>
 
-      <div style="margin-top:12px;color:#666;font-size:13px">
+      <div style="margin-top:12px; color:#666; font-size:13px">
         Tip: Click Update to save changes to Firestore.
       </div>
     </div>
@@ -139,13 +138,12 @@
   <div id="orders-modal" class="cart-modal hidden">
     <div class="cart-content">
       <h2>Orders</h2>
-
-      <div id="orders-list" style="max-height:60vh;overflow:auto"></div>
+      <div id="orders-list" style="max-height:60vh; overflow:auto"></div>
       <button id="close-orders" style="margin-top:12px">Close</button>
     </div>
   </div>
 
-  <!-- Main Script -->
+  <!-- Script -->
   <script src="script.js" defer></script>
 
 </body>
