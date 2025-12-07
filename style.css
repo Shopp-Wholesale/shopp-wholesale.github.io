@@ -4,11 +4,11 @@
 :root {
   --accent: #19a74a;
   --accent-dark: #12853a;
-  --bg: #f4f9f4;           
+  --bg: #f4f9f4;
   --card: #ffffff;
   --muted: #6f6f6f;
   --danger: #d9534f;
-  --img-box: #eef8ee;    
+  --img-box: #eef8ee; 
 }
 
 * {
@@ -18,13 +18,11 @@
 }
 
 html, body {
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--bg);
   font-family: Inter, system-ui, -apple-system, Roboto, Arial;
-
-  /* Blinkit typography tuning */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.2px;
@@ -37,25 +35,53 @@ html, body {
 .site-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
+  align-items: flex-start;
+  padding: 14px 18px;
   background: var(--card);
   box-shadow: 0 1px 6px rgba(0,0,0,.05);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
 .brand-name {
   font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.3px; /* Blinkit style */
+  letter-spacing: -0.3px;
 }
 
 .tagline {
   font-size: 12.5px;
-  font-weight: 500;
   color: var(--muted);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-btn {
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cart-display {
+  background: #fff;
+  border: 1px solid #e1e1e1;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 650;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ============================================================
@@ -65,7 +91,7 @@ html, body {
   padding: 12px 16px;
 }
 
-#search {
+.search-box {
   width: 100%;
   padding: 12px;
   border-radius: 10px;
@@ -89,7 +115,7 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT CARD — FLAT BLINKIT STYLE
+   PRODUCT CARD — BLINKIT FLAT DESIGN
 ============================================================ */
 .card {
   background: var(--bg);
@@ -97,13 +123,13 @@ html, body {
   padding: 6px 6px 10px;
   display: flex;
   flex-direction: column;
-  min-height: 220px;
-  box-shadow: none !important;
+  min-height: 225px;
+  box-shadow: none;
   border: none;
 }
 
 /* ============================================================
-   IMAGE WRAPPER — MINT BACKGROUND
+   IMAGE WRAPPER — SOFT GREEN BOX
 ============================================================ */
 .image-box {
   background: var(--img-box);
@@ -111,32 +137,31 @@ html, body {
   height: 145px;
   border-radius: 6px;
   padding: 8px;
-
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .image-box img {
-  max-height: 100%;
   max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
 }
 
 /* ============================================================
-   PRODUCT NAME — BLINKIT TYPOGRAPHY
+   PRODUCT NAME
 ============================================================ */
 .item-name {
   font-weight: 600;
   font-size: 13.5px;
   line-height: 1.32;
   margin: 8px 0 4px;
-  color: #222;
   letter-spacing: -0.15px;
+  color: #222;
 }
 
 /* ============================================================
-   PRICE SECTION
+   PRICE
 ============================================================ */
 .price-row {
   display: flex;
@@ -188,7 +213,7 @@ html, body {
 }
 
 /* ============================================================
-   ADD TO CART — BLINKIT STYLE
+   ADD TO CART BUTTON
 ============================================================ */
 .add-btn {
   margin-top: 8px;
@@ -208,25 +233,25 @@ html, body {
 .cart-modal {
   position: fixed;
   inset: 0;
+  background: rgba(0,0,0,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.25);
-  z-index: 20;
+  z-index: 25;
 }
 
 .cart-content {
-  background: #fff;
   width: 95%;
   max-width: 520px;
+  background: #fff;
   border-radius: 14px;
   padding: 20px;
   max-height: 90vh;
   overflow-y: auto;
 }
 
-.hidden { 
-  display: none; 
+.hidden {
+  display: none;
 }
 
 /* ============================================================
@@ -238,19 +263,18 @@ html, body {
   left: 0;
   right: 0;
   background: var(--card);
+  padding: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px;
   box-shadow: 0 -2px 6px rgba(0,0,0,.08);
-  z-index: 15;
   font-size: 14px;
   font-weight: 600;
 }
 
 .footer-checkout-btn {
   background: var(--accent);
-  color: white;
+  color: #fff;
   padding: 10px 16px;
   border-radius: 10px;
   border: none;
