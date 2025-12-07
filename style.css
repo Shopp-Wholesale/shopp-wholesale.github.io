@@ -1,14 +1,14 @@
 /* ============================================================
-   GLOBAL RESET + FULL WIDTH FIX
+   GLOBAL RESET + TYPOGRAPHY + FULL WIDTH FIX
 ============================================================ */
 :root {
   --accent: #19a74a;
   --accent-dark: #12853a;
-  --bg: #f4f9f4;          /* Page background */
+  --bg: #f4f9f4;           
   --card: #ffffff;
   --muted: #6f6f6f;
   --danger: #d9534f;
-  --img-box: #eef8ee;     /* Blinkit soft green image box */
+  --img-box: #eef8ee;    
 }
 
 * {
@@ -23,6 +23,11 @@ html, body {
   overflow-x: hidden !important;
   background: var(--bg);
   font-family: Inter, system-ui, -apple-system, Roboto, Arial;
+
+  /* Blinkit typography tuning */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.2px;
   color: #111;
 }
 
@@ -44,10 +49,12 @@ html, body {
 .brand-name {
   font-size: 20px;
   font-weight: 700;
+  letter-spacing: -0.3px; /* Blinkit style */
 }
 
 .tagline {
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--muted);
 }
 
@@ -64,6 +71,7 @@ html, body {
   border-radius: 10px;
   border: 1px solid #d3d3d3;
   font-size: 14px;
+  letter-spacing: -0.2px;
 }
 
 /* ============================================================
@@ -76,34 +84,34 @@ html, body {
 
 .product-grid {
   display: grid;
-  width: 100%;
   grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
   gap: 6px;
 }
 
 /* ============================================================
-   PRODUCT CARD — BLINKIT FLAT
+   PRODUCT CARD — FLAT BLINKIT STYLE
 ============================================================ */
 .card {
-  background: var(--bg);     /* Match page background (flat cards) */
+  background: var(--bg);
   border-radius: 0;
   padding: 6px 6px 10px;
-  border: none;
   display: flex;
   flex-direction: column;
   min-height: 220px;
   box-shadow: none !important;
+  border: none;
 }
 
 /* ============================================================
-   IMAGE WRAPPER — BLINKIT STYLE BOX
+   IMAGE WRAPPER — MINT BACKGROUND
 ============================================================ */
 .image-box {
-  background: var(--img-box);   /* soft mint-green backing */
+  background: var(--img-box);
   width: 100%;
   height: 145px;
   border-radius: 6px;
   padding: 8px;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -116,17 +124,19 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT NAME
+   PRODUCT NAME — BLINKIT TYPOGRAPHY
 ============================================================ */
 .item-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 13.5px;
+  line-height: 1.32;
   margin: 8px 0 4px;
-  line-height: 1.3;
+  color: #222;
+  letter-spacing: -0.15px;
 }
 
 /* ============================================================
-   PRICE ROW
+   PRICE SECTION
 ============================================================ */
 .price-row {
   display: flex;
@@ -135,15 +145,17 @@ html, body {
 }
 
 .small-mrp {
-  font-size: 11px;
-  color: #888;
+  font-size: 11.3px;
+  color: #7b7b7b;
+  font-weight: 500;
   text-decoration: line-through;
 }
 
 .sale {
-  font-size: 15px;
+  font-size: 16.2px;
   font-weight: 700;
-  color: #222;
+  color: #1d1d1d;
+  letter-spacing: -0.25px;
 }
 
 /* ============================================================
@@ -164,6 +176,7 @@ html, body {
   background: #fff;
   font-size: 16px;
   font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .qty-display {
@@ -171,10 +184,11 @@ html, body {
   text-align: center;
   font-weight: 600;
   font-size: 14px;
+  color: #222;
 }
 
 /* ============================================================
-   ADD BUTTON — BLINKIT STYLE
+   ADD TO CART — BLINKIT STYLE
 ============================================================ */
 .add-btn {
   margin-top: 8px;
@@ -185,6 +199,7 @@ html, body {
   color: var(--accent);
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: -0.2px;
 }
 
 /* ============================================================
@@ -210,7 +225,9 @@ html, body {
   overflow-y: auto;
 }
 
-.hidden { display: none; }
+.hidden { 
+  display: none; 
+}
 
 /* ============================================================
    CART FOOTER
@@ -227,6 +244,8 @@ html, body {
   padding: 14px;
   box-shadow: 0 -2px 6px rgba(0,0,0,.08);
   z-index: 15;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .footer-checkout-btn {
@@ -235,5 +254,7 @@ html, body {
   padding: 10px 16px;
   border-radius: 10px;
   border: none;
-  font-weight: 600;
+  font-weight: 650;
+  font-size: 15px;
+  letter-spacing: -0.2px;
 }
