@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shopp Wholesale</title>
 
-  <!-- ⭐ FULL-WIDTH FIX (MOST IMPORTANT) -->
+  <!-- ⭐ FULL-WIDTH FIX -->
   <style>
     html, body {
       width: 100vw !important;
@@ -14,48 +14,25 @@
       padding: 0 !important;
       overflow-x: hidden !important;
       background: #f4f9f4;
+      font-family: Inter, system-ui, -apple-system, Roboto, Arial;
     }
-
-    /* Prevent GitHub Pages from centering content */
     body > * {
       margin-left: 0 !important;
       margin-right: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
     }
-
-    /* Ensure product grid is always full width */
-    #products, .product-grid {
-      width: 100vw !important;
-      max-width: 100vw !important;
-      margin: 0 !important;
-      padding: 10px 8px 100px !important;
-      overflow-x: hidden !important;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-      gap: 10px;
-    }
-
-    /* Product image full width */
-    .product-img, .card img {
-      width: 100% !important;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 10px;
-      background: #eee;
-    }
   </style>
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 
-  <!-- Mobile theming -->
-  <meta name="theme-color" content="#ffffff">
+  <!-- Mobile theme color -->
+  <meta name="theme-color" content="#ffffff" />
 
-  <!-- Firebase v8 -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
@@ -65,7 +42,6 @@
       messagingSenderId: "811103669232",
       appId: "1:811103669232:web:825724b3738658192b6b35"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
@@ -74,43 +50,45 @@
 
 <body>
 
-  <!-- Header -->
+  <!-- ⭐ PROFESSIONAL HEADER -->
   <header class="site-header">
-    <div class="brand">
-      <h1 class="brand-name">Shopp Wholesale</h1>
-      <p class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</p>
+    <div class="header-left">
+      <div class="brand-name">Shopp Wholesale</div>
+      <div class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</div>
     </div>
 
-    <div style="display:flex; gap:8px; align-items:center">
-      <button id="open-admin-btn" class="admin-button" type="button">Admin</button>
+    <div class="header-right">
+      <button id="open-admin-btn" class="header-btn">Admin</button>
 
-      <button class="cart-button" id="open-cart-btn" type="button">
+      <div id="open-cart-btn" class="cart-display">
         🛒 <span id="cart-count">0</span>
-      </button>
+      </div>
     </div>
   </header>
 
-  <!-- Search -->
+  <!-- ⭐ SEARCH BAR -->
   <section class="controls">
     <input id="search" class="search-box" placeholder="Search grocery items..." />
-    <select id="category-filter" style="margin-top: 8px; display:none;"></select>
+    <select id="category-filter" style="display:none"></select>
   </section>
 
-  <!-- Product Grid -->
+  <!-- ⭐ PRODUCT GRID -->
   <section id="products" class="product-grid"></section>
 
-  <!-- Floating Cart Footer -->
+  <!-- ⭐ FLOATING CART FOOTER -->
   <div class="cart-footer" id="cart-footer">
     <div class="cart-footer-left">
       <span id="footer-item-count">0 Items</span> • ₹<span id="footer-total">0</span>
     </div>
-    <button class="footer-checkout-btn" id="open-cart-btn-2" type="button">Checkout</button>
+
+    <button id="open-cart-btn-2" class="footer-checkout-btn">Checkout</button>
   </div>
 
-  <!-- Cart Modal -->
+  <!-- ⭐ CART MODAL -->
   <div id="cart-modal" class="cart-modal hidden">
     <div class="cart-content">
       <h2>Your Cart</h2>
+
       <div id="cart-items"></div>
 
       <div class="cart-totals">
@@ -119,6 +97,7 @@
       </div>
 
       <h3>Customer Details</h3>
+
       <div class="customer-form">
         <input id="customer-name" placeholder="Customer Name" />
         <input id="customer-phone" placeholder="Phone (optional)" />
@@ -131,23 +110,21 @@
       </div>
 
       <div class="cart-actions">
-        <button id="close-cart" type="button">Close</button>
-        <button id="send-whatsapp" class="primary" type="button">
-          Send Order on WhatsApp
-        </button>
+        <button id="close-cart">Close</button>
+        <button id="send-whatsapp" class="primary">Send Order on WhatsApp</button>
       </div>
     </div>
   </div>
 
-  <!-- Admin Modal -->
+  <!-- ⭐ ADMIN MODAL -->
   <div id="admin-modal" class="cart-modal hidden">
     <div class="cart-content">
       <h2>Admin Panel</h2>
 
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
-        <button id="refresh-items-btn" type="button">Refresh Items</button>
-        <button id="view-orders-btn" type="button">View Orders</button>
-        <button id="close-admin" type="button" style="margin-left:auto">Close</button>
+        <button id="refresh-items-btn">Refresh Items</button>
+        <button id="view-orders-btn">View Orders</button>
+        <button id="close-admin" style="margin-left:auto">Close</button>
       </div>
 
       <div id="admin-items-list" style="max-height:50vh;overflow:auto"></div>
@@ -158,17 +135,17 @@
     </div>
   </div>
 
-  <!-- Orders Modal -->
+  <!-- ⭐ ORDERS MODAL -->
   <div id="orders-modal" class="cart-modal hidden">
     <div class="cart-content">
       <h2>Orders</h2>
-      <div id="orders-list" style="max-height:60vh; overflow:auto"></div>
 
-      <button id="close-orders" type="button" style="margin-top:12px">Close</button>
+      <div id="orders-list" style="max-height:60vh;overflow:auto"></div>
+      <button id="close-orders" style="margin-top:12px">Close</button>
     </div>
   </div>
 
-  <!-- Main Logic -->
+  <!-- Main Script -->
   <script src="script.js" defer></script>
 
 </body>
