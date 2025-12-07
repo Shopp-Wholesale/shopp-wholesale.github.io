@@ -614,4 +614,288 @@ const debouncedApply = debounce(applyFilters, 180);
           list.innerHTML = '';
           snap.forEach(doc => {
             const d = doc.data() || {};
-          
+            // Safely get and format time
+            const time = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().toLocaleString('en-IN') : '---';
+            const total = d.total || 0;
+            const name = d.customerName || '---';
+            const phone = d.customerPhone || '---';
+
+            const row = document.createElement('div');
+            row.style.borderBottom = '1px solid #eee';
+            row.style.padding = '8px 0';
+
+            row.innerHTML = `
+              <div style="font-weight:600">${name} • ₹${money(total)}</div>
+              <div style="font-size:13px;color:#666">${phone} • ${time}</div>
+            `;
+
+            list.appendChild(row);
+          });
+        }
+
+        if (ordersModal) ordersModal.classList.remove('hidden');
+
+      } catch (err) {
+        alert('Failed to load orders: ' + err.message);
+      }
+    });
+  }
+
+  if (closeOrdersBtn) {
+    closeOrdersBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (ordersModal) ordersModal.classList.add('hidden');
+    });
+  }
+
+})();
+
+/* ---------------- FIXED TRANSACTION (ALL READS FIRST → THEN WRITES) ---------------- */
+/**
+ * Atomically creates an order and reduces stock using a Firestore transaction.
+ * @param {Array<Object>} orderItems - Items to order, e.g., [{ docId, name, qty, price }]
+ * @param {Object} customer - Customer details, e.g., { name, phone, address, payment }
+ * @returns {Promise<{ok: boolean, error?: string}>}
+ */
+async function createOrderAndReduceStock(orderItems, customer) {
+  try {
+    await db.runTransaction(async (tx) => {
+      const docsToUpdate = [];
+
+      // 1️⃣ READ PHASE — all reads FIRST
+      for (const o of orderItems) {
+        const ref = db.collection('items').doc(o.docId);
+        const snap = await tx.get(ref);   // READ ONLY here
+
+        if (!snap.exists) throw new Error(`${o.name} — item not found`);
+
+        docsToUpdate.push({
+          ref,
+          name: o.name,
+          qty: o.qty,
+          currentStock: Number(snap.data().stock || 0)
+        });
+      }
+
+      // 2️⃣ VALIDATION — check stock after all reads are complete
+      for (const d of docsToUpdate) {
+        if (d.qty > d.currentStock) {
+          throw new Error(`${d.name} — only ${d.currentStock} left`);
+        }
+      }
+
+      // 3️⃣ WRITE PHASE — now update all stock
+      for (const d of docsToUpdate) {
+        tx.update(d.ref, { stock: d.currentStock - d.qty });
+      }
+
+      // 4️⃣ CREATE ORDER DOCUMENT — last step in transaction
+      const orderRef = db.collection('orders').doc();
+      const totalAmount = orderItems.reduce((s, o) => s + o.qty * o.price, 0);
+
+      tx.set(orderRef, {
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        customerName: customer.name || '---',
+        customerPhone: customer.phone || '---',
+        customerAddress: customer.address || '---',
+        paymentMode: customer.payment || '---',
+        items: orderItems.map(o => ({
+          docId: o.docId,
+          name: o.name,
+          qty: o.qty,
+          price: o.price
+        })),
+        total: totalAmount,
+        status: 'pending'
+      });
+    });
+
+    return { ok: true };
+
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) };
+  }
+}
+
+/* ---------------- WHATSAPP BUILD + CHECKOUT ---------------- */
+function buildWhatsAppMessage(orderItems, customer) {
+  let msg = `New Order — Shopp Wholesale\n\n`;
+  orderItems.forEach((o, i) => {
+    msg += `${i + 1}. ${o.name} x ${o.qty} = ₹${money(o.qty * o.price)}\n`;
+  });
+  msg += `\nTotal: ₹${money(orderItems.reduce((s, o) => s + o.qty * o.price, 0))}`;
+  msg += `\nDelivery Promise: ${DELIVERY_PROMISE_TEXT} • Radius: ${DELIVERY_RADIUS_TEXT}`;
+  msg += `\nOrder Time: ${new Date().toLocaleString('en-IN')}`;
+  msg += `\n\nName: ${customer.name || '---'}`;
+  msg += `\nPhone: ${customer.phone || '---'}`;
+  msg += `\nAddress: ${customer.address || '---'}`;
+  msg += `\nPayment: ${customer.payment || '---'}`;
+  return msg;
+}
+
+(async function attachWhatsAppCheckout() {
+  const btn = el('send-whatsapp');
+  if (!btn) return;
+
+  btn.addEventListener('click', async (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+
+    updateCartCount();
+
+    // build orderItems from cart (ignore legacy orphan)
+    const orderItems = [];
+    for (const key of Object.keys(cart)) {
+      if (key === '__legacy_orphan__') continue;
+      const e = cart[key];
+      if (!e || Number(e.qty || 0) <= 0) continue;
+      orderItems.push({ docId: key, name: e.name || 'Unknown', qty: Number(e.qty), price: Number(e.price || 0) });
+    }
+
+    if (!orderItems.length) {
+      alert('Cart is empty — add items before checkout');
+      return;
+    }
+
+    // read customer
+    const customer = {
+      name: (el('customer-name') && el('customer-name').value.trim()) || '---',
+      phone: (el('customer-phone') && el('customer-phone').value.trim()) || '---',
+      address: (el('customer-address') && el('customer-address').value.trim()) || '---',
+      payment: (el('payment-mode') && el('payment-mode').value) || '---'
+    };
+
+    // disable while processing
+    btn.disabled = true;
+    const oldLabel = btn.innerText;
+    btn.innerText = 'Processing...';
+
+    // Transaction: reduce stock atomically and create order
+    const res = await createOrderAndReduceStock(orderItems, customer);
+    if (!res.ok) {
+      alert('Order failed: ' + res.error);
+      btn.disabled = false; btn.innerText = oldLabel;
+      await loadItems(); // refresh stock
+      return;
+    }
+
+    // update local items stock and clear cart
+    orderItems.forEach(o => {
+      const it = items.find(x => x.docId === o.docId);
+      if (it) it.stock = Math.max(0, it.stock - o.qty);
+    });
+
+    cart = {};
+    saveCartToStorage();
+    updateCartCount();
+
+    const waMsg = buildWhatsAppMessage(orderItems, customer);
+    const encoded = encodeURIComponent(waMsg);
+
+    // open WhatsApp
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, "_blank");
+
+    btn.disabled = false;
+    btn.innerText = oldLabel;
+
+    alert("Order placed successfully!");
+
+    // close modal if open
+    const modal = el('cart-modal');
+    if (modal) modal.classList.add('hidden');
+  });
+})();
+
+/* ---------------- ADMIN BADGE (visual) ---------------- */
+function showAdminBadge() {
+  // show small badge in header when admin override active
+  const existing = el('admin-badge');
+  if (existing) return;
+  const badge = document.createElement('div');
+  badge.id = 'admin-badge';
+  badge.style.background = '#222';
+  badge.style.color = '#fff';
+  badge.style.padding = '4px 8px';
+  badge.style.borderRadius = '8px';
+  badge.style.fontSize = '12px';
+  badge.style.fontWeight = '700';
+  badge.style.marginLeft = '8px';
+  badge.innerText = 'ADMIN';
+  // append to header right area if available
+  const header = document.querySelector('.site-header > div[style]');
+  if (header) header.appendChild(badge);
+}
+
+/* ---------------- INIT (Location-lock + Admin bypass) ---------------- */
+(async () => {
+  try {
+    // If admin already logged in -> bypass location check
+    const adminActive = isAdminSession();
+    if (adminActive) {
+      showAdminBadge();
+      loadCartFromStorage();
+      await loadItems();
+      updateCartCount();
+      return;
+    }
+
+    // Not admin — check location
+    const allowed = await verifyLocationAccess();
+
+    if (!allowed) {
+      // Render blocked UI (no Firestore reads)
+      document.body.innerHTML = `
+        <div style="
+          padding: 40px;
+          text-align: center;
+          font-size: 18px;
+          color: #b00020;
+          font-family: Inter, system-ui, -apple-system, Roboto, Arial;
+        ">
+          🚫 <b>Service not available in your area</b><br><br>
+          We currently deliver only within a ${SERVICE_RADIUS_KM} km radius of our store.<br><br>
+          If you are the store owner or an admin, click <b>Admin</b> and enter PIN to bypass.
+        </div>
+      `;
+
+      // Re-create a minimal admin button so admin can login even from block screen
+      const adminBtn = document.createElement('button');
+      adminBtn.style.position = 'fixed';
+      adminBtn.style.top = '12px';
+      adminBtn.style.left = '12px';
+      adminBtn.style.zIndex = '9999';
+      adminBtn.style.padding = '8px 10px';
+      adminBtn.style.borderRadius = '8px';
+      adminBtn.style.border = 'none';
+      adminBtn.style.background = '#222';
+      adminBtn.style.color = '#fff';
+      adminBtn.style.fontWeight = '700';
+      adminBtn.innerText = 'Admin';
+      adminBtn.onclick = () => {
+        const pin = prompt("Enter admin PIN to access admin panel:");
+        if (!pin) return;
+        if (pin === ADMIN_PIN) {
+          setAdminSession(true);
+          // reload full page to show admin UI
+          location.reload();
+        } else {
+          alert("Wrong PIN");
+        }
+      };
+      document.body.appendChild(adminBtn);
+
+      return;
+    }
+
+    // allowed -> load normal site
+    loadCartFromStorage();
+    await loadItems();
+    updateCartCount();
+
+  } catch (ex) {
+    console.error('Init error:', ex);
+    // fallback: try to load site (non-blocking)
+    loadCartFromStorage();
+    loadItems();
+    updateCartCount();
+  }
+})();
