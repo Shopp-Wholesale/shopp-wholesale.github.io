@@ -8,13 +8,13 @@
   --card: #ffffff;
   --muted: #6f6f6f;
   --danger: #d9534f;
-  --img-box: #eef8ee; 
+  --img-box: #eef8ee;
 }
 
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 html, body {
@@ -25,23 +25,24 @@ html, body {
   font-family: Inter, system-ui, -apple-system, Roboto, Arial;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.2px;
   color: #111;
+  letter-spacing: -0.2px;
 }
 
 /* ============================================================
    HEADER
 ============================================================ */
 .site-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 14px 18px;
   background: var(--card);
+  padding: 14px 18px;
   box-shadow: 0 1px 6px rgba(0,0,0,.05);
   position: sticky;
   top: 0;
   z-index: 20;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .brand-name {
@@ -51,10 +52,10 @@ html, body {
 }
 
 .tagline {
-  font-size: 12.5px;
-  color: var(--muted);
   margin-top: 2px;
+  font-size: 12.5px;
   font-weight: 500;
+  color: var(--muted);
 }
 
 .header-right {
@@ -64,24 +65,24 @@ html, body {
 }
 
 .header-btn {
+  background: #fff;
   border: 1px solid #ccc;
   padding: 6px 12px;
-  background: #fff;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
 }
 
 .cart-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: #fff;
   border: 1px solid #e1e1e1;
   padding: 6px 14px;
   border-radius: 6px;
-  font-weight: 650;
   font-size: 15px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-weight: 650;
 }
 
 /* ============================================================
@@ -115,31 +116,31 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT CARD — BLINKIT FLAT DESIGN
+   PRODUCT CARD — FLAT BLINKIT STYLE
 ============================================================ */
 .card {
   background: var(--bg);
-  border-radius: 0;
+  border: none;
   padding: 6px 6px 10px;
   display: flex;
   flex-direction: column;
   min-height: 225px;
-  box-shadow: none;
-  border: none;
 }
 
 /* ============================================================
-   IMAGE WRAPPER — SOFT GREEN BOX
+   IMAGE BOX (Perfect alignment)
 ============================================================ */
 .image-box {
   background: var(--img-box);
-  width: 100%;
   height: 145px;
+  width: 100%;
   border-radius: 6px;
-  padding: 8px;
+
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+
+  padding: 8px;
 }
 
 .image-box img {
@@ -152,16 +153,16 @@ html, body {
    PRODUCT NAME
 ============================================================ */
 .item-name {
-  font-weight: 600;
-  font-size: 13.5px;
-  line-height: 1.32;
   margin: 8px 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.32;
   letter-spacing: -0.15px;
   color: #222;
 }
 
 /* ============================================================
-   PRICE
+   PRICE ROW
 ============================================================ */
 .price-row {
   display: flex;
@@ -171,8 +172,8 @@ html, body {
 
 .small-mrp {
   font-size: 11.3px;
-  color: #7b7b7b;
   font-weight: 500;
+  color: #7b7b7b;
   text-decoration: line-through;
 }
 
@@ -187,10 +188,10 @@ html, body {
    QUANTITY CONTROLS
 ============================================================ */
 .qty-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .qty-controls button {
@@ -207,13 +208,13 @@ html, body {
 .qty-display {
   min-width: 24px;
   text-align: center;
-  font-weight: 600;
   font-size: 14px;
+  font-weight: 600;
   color: #222;
 }
 
 /* ============================================================
-   ADD TO CART BUTTON
+   ADD BUTTON
 ============================================================ */
 .add-btn {
   margin-top: 8px;
@@ -235,24 +236,22 @@ html, body {
   inset: 0;
   background: rgba(0,0,0,0.25);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 25;
 }
 
 .cart-content {
+  background: #fff;
   width: 95%;
   max-width: 520px;
-  background: #fff;
   border-radius: 14px;
   padding: 20px;
-  max-height: 90vh;
   overflow-y: auto;
+  max-height: 90vh;
 }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 /* ============================================================
    CART FOOTER
@@ -262,14 +261,17 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
+
   background: var(--card);
   padding: 14px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 -2px 6px rgba(0,0,0,.08);
+
   font-size: 14px;
   font-weight: 600;
+  box-shadow: 0 -2px 6px rgba(0,0,0,.08);
 }
 
 .footer-checkout-btn {
