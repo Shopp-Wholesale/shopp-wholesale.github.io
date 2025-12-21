@@ -102,7 +102,7 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT GRID (FIXED)
+   PRODUCT GRID
 ============================================================ */
 #products {
   width: 100%;
@@ -122,31 +122,29 @@ html, body {
   display: flex;
   flex-direction: column;
   border-radius: 10px;
-  min-height: 260px; /* FIXED HEIGHT ISSUE */
+  min-height: 260px;
 }
 
 /* ============================================================
-   IMAGE BOX (PERFECT ALIGNMENT)
+   IMAGE BOX — FINAL FIX (FULL COVER)
 ============================================================ */
 .image-box {
   background: var(--img-box);
   height: 145px;
   width: 100%;
   border-radius: 6px;
+  overflow: hidden;       /* 🔥 CRITICAL */
+  padding: 0;             /* 🔥 CRITICAL */
 
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
 }
 
-/* Image Fix (IMPORTANT) */
 .product-img {
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  object-fit: cover;      /* 🔥 KEY FIX */
   object-position: center;
 }
 
