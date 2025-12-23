@@ -29,6 +29,10 @@ html, body {
   letter-spacing: -0.2px;
 }
 
+body {
+  touch-action: manipulation; /* 🔒 prevents zoom reflow */
+}
+
 /* ============================================================
    HEADER
 ============================================================ */
@@ -102,14 +106,20 @@ html, body {
 }
 
 /* ============================================================
-   PRODUCT GRID
+   PRODUCT GRID — LOCKED (NO ZOOM JUMP)
 ============================================================ */
 #products {
   width: 100%;
-  padding: 6px 6px 120px !important;
+  padding: 6px 6px 120px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  grid-template-columns: repeat(2, 1fr); /* 🔒 LOCKED */
   gap: 6px;
+}
+
+@media (min-width: 768px) {
+  #products {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 /* ============================================================
@@ -122,19 +132,17 @@ html, body {
   display: flex;
   flex-direction: column;
   border-radius: 10px;
-  min-height: 260px;
 }
 
 /* ============================================================
-   IMAGE BOX — FINAL FIX (FULL COVER)
+   IMAGE BOX — FINAL, BLINKIT STYLE
 ============================================================ */
 .image-box {
   background: var(--img-box);
-  height: 145px;
   width: 100%;
+  aspect-ratio: 1 / 1;   /* 🔥 CRITICAL FIX */
   border-radius: 6px;
-  overflow: hidden;       /* 🔥 CRITICAL */
-  padding: 0;             /* 🔥 CRITICAL */
+  overflow: hidden;
 
   display: flex;
   align-items: center;
@@ -144,7 +152,7 @@ html, body {
 .product-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;      /* 🔥 KEY FIX */
+  object-fit: cover;    /* 🔥 FULL COVER */
   object-position: center;
 }
 
@@ -201,7 +209,6 @@ html, body {
   background: #fff;
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: -0.3px;
 }
 
 .qty-display {
@@ -209,11 +216,10 @@ html, body {
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-  color: #222;
 }
 
 /* ============================================================
-   ADD BUTTON
+   ADD TO CART BUTTON
 ============================================================ */
 .add-btn {
   margin-top: 8px;
@@ -224,7 +230,6 @@ html, body {
   color: var(--accent);
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.2px;
 }
 
 /* ============================================================
@@ -283,5 +288,4 @@ html, body {
   border: none;
   font-weight: 650;
   font-size: 15px;
-  letter-spacing: -0.2px;
 }
