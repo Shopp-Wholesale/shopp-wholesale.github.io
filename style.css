@@ -33,7 +33,7 @@ body {
   letter-spacing: -0.2px;
   overflow-x: hidden;
   overscroll-behavior: none;
-  touch-action: manipulation; /* 🔒 prevents zoom jump */
+  touch-action: manipulation;
 }
 
 /* ============================================================
@@ -105,15 +105,14 @@ body {
   border-radius: 10px;
   border: 1px solid #d3d3d3;
   font-size: 14px;
-  letter-spacing: -0.2px;
 }
 
 /* ============================================================
-   PRODUCT GRID — STABLE (NO ZOOM / JUMP)
+   PRODUCT GRID — STABLE
 ============================================================ */
 #products {
   width: 100%;
-  padding: 6px 6px 120px;
+  padding: 6px 6px 140px; /* space for footer */
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
@@ -130,7 +129,6 @@ body {
 ============================================================ */
 .card {
   background: var(--bg);
-  border: none;
   padding: 6px 6px 10px;
   display: flex;
   flex-direction: column;
@@ -138,7 +136,7 @@ body {
 }
 
 /* ============================================================
-   IMAGE BOX — FINAL, BLINKIT STYLE
+   IMAGE BOX — FIXED
 ============================================================ */
 .image-box {
   background: var(--img-box);
@@ -156,33 +154,26 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
 }
 
 /* ============================================================
-   PRODUCT NAME
+   PRODUCT INFO
 ============================================================ */
 .item-name {
   margin: 8px 0 4px;
   font-size: 13.5px;
   font-weight: 600;
   line-height: 1.32;
-  letter-spacing: -0.15px;
-  color: #222;
 }
 
-/* ============================================================
-   PRICE ROW
-============================================================ */
 .price-row {
   display: flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
 }
 
 .small-mrp {
   font-size: 11.3px;
-  font-weight: 500;
   color: #7b7b7b;
   text-decoration: line-through;
 }
@@ -190,8 +181,6 @@ body {
 .sale {
   font-size: 16.2px;
   font-weight: 700;
-  color: #1d1d1d;
-  letter-spacing: -0.25px;
 }
 
 /* ============================================================
@@ -217,7 +206,6 @@ body {
 .qty-display {
   min-width: 24px;
   text-align: center;
-  font-size: 14px;
   font-weight: 600;
 }
 
@@ -236,21 +224,24 @@ body {
 }
 
 /* ============================================================
-   CART FOOTER (BOTTOM BAR ONLY)
+   CART FOOTER — ONLY THIS SHOULD BE VISIBLE
 ============================================================ */
 .cart-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  height: 56px;
+
   background: var(--card);
-  padding: 14px;
+  padding: 10px 14px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  font-weight: 600;
+
   box-shadow: 0 -2px 6px rgba(0,0,0,.08);
+  z-index: 30;
 }
 
 .footer-checkout-btn {
@@ -264,15 +255,19 @@ body {
 }
 
 /* ============================================================
-   🔥 CRITICAL FIX — HIDE ADMIN / CART / ORDERS SECTIONS
+   🔥 HARD BLOCK — PREVENT ALL LEAKED PANELS
 ============================================================ */
 #cart,
-#cart-modal,
-.cart-modal,
-#admin,
-#admin-panel,
-.admin-panel,
-#orders,
-#orders-panel {
+#cartPanel,
+#adminPanel,
+#ordersPanel,
+.cart,
+.admin,
+.orders {
+  display: none !important;
+}
+
+/* modal should only appear when JS removes .hidden */
+.cart-modal.hidden {
   display: none !important;
 }
