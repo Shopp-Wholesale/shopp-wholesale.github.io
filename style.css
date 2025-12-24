@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 
-<!-- 🔒 VIEWPORT LOCK (NO ZOOM JUMP) -->
+<!-- 🔒 VIEWPORT LOCK (NO ZOOM / NO JUMP) -->
 <meta name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
@@ -11,15 +11,13 @@
 
 <style>
 /* ============================================================
-   GLOBAL RESET + VARIABLES + TYPOGRAPHY
+   GLOBAL RESET + VARIABLES
 ============================================================ */
 :root {
   --accent: #19a74a;
-  --accent-dark: #12853a;
   --bg: #f4f9f4;
   --card: #ffffff;
   --muted: #6f6f6f;
-  --danger: #d9534f;
   --img-box: #eef8ee;
 }
 
@@ -32,34 +30,31 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 
 body {
   background: var(--bg);
   font-family: Inter, system-ui, -apple-system, Roboto, Arial;
   color: #111;
-  letter-spacing: -0.2px;
   overflow-x: hidden;
   overscroll-behavior: none;
   touch-action: manipulation;
-  transform: translateZ(0);
 }
 
 /* ============================================================
    HEADER
 ============================================================ */
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: var(--card);
   padding: 14px 18px;
   box-shadow: 0 1px 6px rgba(0,0,0,.05);
-  position: sticky;
-  top: 0;
-  z-index: 20;
 
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .brand-name {
@@ -68,21 +63,20 @@ body {
 }
 
 .tagline {
-  margin-top: 2px;
   font-size: 12.5px;
   color: var(--muted);
 }
 
 .cart-display {
   background: #fff;
-  border: 1px solid #e1e1e1;
+  border: 1px solid #ddd;
   padding: 6px 14px;
   border-radius: 6px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 /* ============================================================
-   SEARCH BAR
+   SEARCH
 ============================================================ */
 .controls {
   padding: 12px 16px;
@@ -97,10 +91,9 @@ body {
 }
 
 /* ============================================================
-   PRODUCT GRID — LOCKED
+   PRODUCT GRID (LOCKED — NO ZOOM SHIFT)
 ============================================================ */
 #products {
-  width: 100%;
   padding: 6px 6px 120px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -122,16 +115,15 @@ body {
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
 /* ============================================================
-   IMAGE BOX — FINAL FIX
+   IMAGE BOX — FINAL (NO JUMP)
 ============================================================ */
 .image-box {
-  background: var(--img-box);
   width: 100%;
   aspect-ratio: 1 / 1;
+  background: var(--img-box);
   border-radius: 6px;
   overflow: hidden;
 
@@ -147,7 +139,7 @@ body {
 }
 
 /* ============================================================
-   PRODUCT INFO
+   PRODUCT TEXT
 ============================================================ */
 .item-name {
   margin: 6px 0 2px;
@@ -210,7 +202,7 @@ body {
 }
 
 /* ============================================================
-   CART FOOTER
+   CART FOOTER (FIXED)
 ============================================================ */
 .cart-footer {
   position: fixed;
@@ -231,14 +223,13 @@ body {
   padding: 10px 16px;
   border-radius: 10px;
   border: none;
-  font-weight: 650;
+  font-weight: 700;
 }
 </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <header class="site-header">
   <div>
     <div class="brand-name">Shopp Wholesale</div>
@@ -247,15 +238,12 @@ body {
   <div class="cart-display">0</div>
 </header>
 
-<!-- SEARCH -->
 <div class="controls">
   <input class="search-box" placeholder="Search grocery items…" />
 </div>
 
-<!-- PRODUCTS -->
 <div id="products"></div>
 
-<!-- FOOTER -->
 <div class="cart-footer">
   <div>0 items • ₹0</div>
   <button class="footer-checkout-btn">Checkout</button>
@@ -263,7 +251,7 @@ body {
 
 <script>
 /* ============================
-   DEMO DATA (replace with Firestore)
+   DEMO DATA (Replace with Firestore later)
 ============================ */
 const items = [
   { name: "Toor dal 2kg", mrp: 300, price: 240, img: "https://i.imgur.com/6X4dF.jpg" },
@@ -272,10 +260,10 @@ const items = [
   { name: "Sunflower Oil 1L", mrp: 140, price: 118, img: "https://i.imgur.com/0qM7R.jpg" }
 ];
 
-const box = document.getElementById("products");
+const products = document.getElementById("products");
 
 items.forEach(it => {
-  box.innerHTML += `
+  products.innerHTML += `
     <div class="card">
       <div class="image-box">
         <img class="product-img" src="${it.img}">
