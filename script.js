@@ -1,10 +1,13 @@
-// script.js — FINAL STABLE RELEASE (v9.2)
+// script.js — FINAL STABLE RELEASE (v9.1)
+// Fixed: Function nesting syntax error resolved.
 
 /* ---------------- CONFIG ---------------- */
 const WHATSAPP_NUMBER = "919000810084";
+const DELIVERY_RADIUS_TEXT = "3 km";
+const DELIVERY_PROMISE_TEXT = "Within 24 hrs";
 const CART_LS_KEY = "shopp_cart_v1";
 
-/* ---------------- LOCATION LOCK / ADMIN ---------------- */
+/* ---------------- LOCATION LOCK / ADMIN BYPASS ---------------- */
 const SHOP_LAT = 17.3526633;
 const SHOP_LNG = 78.3860868;
 const SERVICE_RADIUS_KM = 3;
@@ -12,11 +15,10 @@ const SERVICE_RADIUS_KM = 3;
 const ADMIN_PIN = "Sreekanth@1";
 const ADMIN_SESSION_KEY = "shopp_admin_override";
 
-/* ---------------- UTIL ---------------- */
+/* ---------------- UTILITIES ---------------- */
 const money = v => Number(v || 0).toFixed(0);
 const el = id => document.getElementById(id);
 
-/* ---------------- GEO ---------------- */
 function distanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -34,78 +36,118 @@ async function verifyLocationAccess() {
     if (!navigator.geolocation) return res(false);
     navigator.geolocation.getCurrentPosition(
       pos => {
-        const d = distanceKm(
-          pos.coords.latitude,
-          pos.coords.longitude,
-          SHOP_LAT,
-          SHOP_LNG
-        );
+        const d = distanceKm(pos.coords.latitude, pos.coords.longitude, SHOP_LAT, SHOP_LNG);
         res(d <= SERVICE_RADIUS_KM);
       },
       () => res(false),
-      { timeout: 8000 }
+      { maximumAge: 60000, timeout: 8000 }
     );
   });
 }
 
-/* ---------------- ADMIN ---------------- */
 function isAdminSession() {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
-}
-function setAdminSession() {
-  sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+  try { return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"; }
+  catch { return false; }
 }
 
-/* ---------------- SAFE IMAGE ---------------- */
+function setAdminSession(flag = true) {
+  try {
+    flag ? sessionStorage.setItem(ADMIN_SESSION_KEY, "1") : sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  } catch { }
+}
+
+/* ---------------- SAFE IMAGE HELPER ---------------- */
+// Moved outside loadItems to fix syntax error
 function createSafeImage(src, alt = "") {
   const img = document.createElement("img");
-  img.className = "product-img";
   img.loading = "lazy";
-  img.src = src || "images/placeholder.png";
   img.alt = alt;
-  img.onerror = () => (img.src = "images/placeholder.png");
+  img.className = "product-img";
+  img.src = src && src.trim() ? src : "images/placeholder.png";
+  img.style.opacity = 0;
+  img.style.transition = "opacity .25s";
+
+  img.onload = () => (img.style.opacity = 1);
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = "images/placeholder.png";
+    img.style.opacity = 1;
+  };
+
   return img;
 }
 
-/* ---------------- STATE ---------------- */
+/* ---------------- DEBOUNCE ---------------- */
+function debounce(fn, ms = 150) {
+  let t;
+  return (...a) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...a), ms);
+  };
+}
+
+/* ---------------- GLOBAL STATE ---------------- */
 let items = [];
 let cart = {};
 
-/* ---------------- CART STORAGE ---------------- */
+/* ---------------- CART LOAD / SAVE ---------------- */
 function loadCartFromStorage() {
   try {
-    cart = JSON.parse(localStorage.getItem(CART_LS_KEY)) || {};
+    const raw = localStorage.getItem(CART_LS_KEY);
+    if (!raw) return (cart = {});
+    const parsed = JSON.parse(raw);
+    cart = (parsed && typeof parsed === "object") ? parsed : {};
   } catch {
     cart = {};
   }
 }
+
 function saveCartToStorage() {
-  localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
+  try {
+    localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
+  } catch { }
 }
 
-/* ---------------- LOAD ITEMS ---------------- */
+/* ---------------- FIRESTORE LOAD ITEMS ---------------- */
 async function loadItems() {
-  const snap = await db.collection("items").get();
-  items = [];
-  snap.forEach(doc => {
-    const d = doc.data();
-    items.push({
-      docId: doc.id,
-      name: d.name,
-      mrp: d.mrp,
-      price: d.price,
-      stock: d.stock,
-      image: d.image
+  try {
+    const snap = await db.collection("items").get();
+    items = [];
+    let idx = 1;
+
+    snap.forEach(doc => {
+      const d = doc.data() || {};
+      items.push({
+        id: idx++,
+        docId: doc.id,
+        name: d.name || "Unnamed",
+        mrp: Number(d.mrp || 0),
+        salePrice: Number(d.price || 0),
+        stock: Number(d.stock || 0),
+        category: d.category || "",
+        description: d.description || "",
+        image: d.image || "images/placeholder.png"
+      });
     });
-  });
-  renderItems(items);
-  updateCartUI();
+
+    renderItems(items);
+    updateCartCount();
+  } catch (e) {
+    console.error("Firestore error:", e);
+    el("products").innerHTML = "<p style='padding:20px'>Failed to load items</p>";
+  }
 }
 
-/* ---------------- RENDER PRODUCTS ---------------- */
+/* ---------------- RENDER ITEMS ---------------- */
 function renderItems(list) {
   const box = el("products");
+  if (!box) return;
   box.innerHTML = "";
+
+  if (!list.length) {
+    box.innerHTML = `<p style="padding:20px">No items found</p>`;
+    return;
+  }
 
   list.forEach(it => {
     const card = document.createElement("div");
@@ -114,35 +156,64 @@ function renderItems(list) {
     const imgBox = document.createElement("div");
     imgBox.className = "image-box";
     imgBox.appendChild(createSafeImage(it.image, it.name));
+    card.appendChild(imgBox);
 
-    const qty = cart[it.docId]?.qty || 0;
+    const nm = document.createElement("div");
+    nm.className = "item-name";
+    nm.textContent = it.name;
+    card.appendChild(nm);
 
-    card.innerHTML = `
-      <div class="item-name">${it.name}</div>
-      <div class="price-row">
-        <div class="small-mrp">₹${money(it.mrp)}</div>
-        <div class="sale">₹${money(it.price)}</div>
-      </div>
-      <div class="qty-controls">
-        <button class="dec" data-id="${it.docId}">-</button>
-        <div class="qty-display" id="qty-${it.docId}">${qty}</div>
-        <button class="inc" data-id="${it.docId}">+</button>
-      </div>
-      <button class="add-btn" data-id="${it.docId}">Add to cart</button>
+    const price = document.createElement("div");
+    price.className = "price-row";
+    price.innerHTML = `
+      <div class="small-mrp">MRP ₹${money(it.mrp)}</div>
+      <div class="sale">₹${money(it.salePrice)}</div>
     `;
+    card.appendChild(price);
 
-    card.prepend(imgBox);
+    if (it.stock <= 0) {
+      const s = document.createElement("div");
+      s.style.color = "#c00";
+      s.style.fontSize = "13px";
+      s.textContent = "Out of stock";
+      card.appendChild(s);
+    }
+
+    if (isAdminSession() && it.category) {
+      const c = document.createElement("div");
+      c.style.fontSize = "12px";
+      c.style.color = "#555";
+      c.textContent = "Category: " + it.category;
+      card.appendChild(c);
+    }
+
+    const controls = document.createElement("div");
+    controls.className = "qty-controls";
+    const cur = cart[it.docId]?.qty || 0;
+
+    controls.innerHTML = `
+      <button class="dec" data-id="${it.docId}">-</button>
+      <div class="qty-display" id="qty-${it.docId}">${cur}</div>
+      <button class="inc" data-id="${it.docId}">+</button>
+    `;
+    card.appendChild(controls);
+
+    const btn = document.createElement("button");
+    btn.className = "add-btn";
+    btn.dataset.id = it.docId;
+    btn.textContent = it.stock <= 0 ? "Unavailable" : "Add to cart";
+    btn.disabled = it.stock <= 0;
+    card.appendChild(btn);
+
     box.appendChild(card);
   });
 
-  box.querySelectorAll(".inc").forEach(b =>
+  // Attach Events
+  box.querySelectorAll(".inc, .add-btn").forEach(b => 
     b.onclick = () => changeQty(b.dataset.id, 1)
   );
-  box.querySelectorAll(".dec").forEach(b =>
+  box.querySelectorAll(".dec").forEach(b => 
     b.onclick = () => changeQty(b.dataset.id, -1)
-  );
-  box.querySelectorAll(".add-btn").forEach(b =>
-    b.onclick = () => changeQty(b.dataset.id, 1)
   );
 }
 
@@ -151,115 +222,213 @@ function changeQty(docId, delta) {
   const it = items.find(x => x.docId === docId);
   if (!it) return;
 
-  let next = (cart[docId]?.qty || 0) + delta;
+  const cur = cart[docId]?.qty || 0;
+  let next = cur + delta;
+
   if (next < 0) next = 0;
-  if (next > it.stock) return alert("Stock limit reached");
+  if (next > it.stock) {
+      alert("Only " + it.stock + " items left in stock");
+      next = it.stock;
+  }
 
-  if (next === 0) delete cart[docId];
-  else cart[docId] = { qty: next, name: it.name, price: it.price };
+  if (next === 0) {
+    delete cart[docId];
+  } else {
+    cart[docId] = {
+      qty: next,
+      name: it.name,
+      price: it.salePrice,
+      mrp: it.mrp
+    };
+  }
 
-  el(`qty-${docId}`).innerText = next;
+  const d = el(`qty-${docId}`);
+  if (d) d.textContent = next;
+
   saveCartToStorage();
-  updateCartUI();
+  updateCartCount();
 }
 
-/* ---------------- CART UI ---------------- */
+/* ---------------- CART TOTALS & RENDERING ---------------- */
 function calculateTotal() {
-  return Object.values(cart).reduce((s, i) => s + i.qty * i.price, 0);
+  return Object.values(cart).reduce((sum, it) => sum + (it.qty * it.price), 0);
 }
 
-function updateCartUI() {
+function updateCartCount() {
   let count = 0;
-  Object.values(cart).forEach(i => count += i.qty);
+  Object.values(cart).forEach(it => (count += it.qty));
 
-  el("cart-count").innerText = count;
-  el("footer-item-count").innerText = `${count} items`;
-  el("footer-total").innerText = money(calculateTotal());
+  const countEl = el("cart-count");
+  if (countEl) countEl.innerText = count;
+  
+  if (el("footer-item-count")) el("footer-item-count").innerText = `${count} Items`;
+  if (el("footer-total")) el("footer-total").innerText = money(calculateTotal());
+  if (el("total-items")) el("total-items").innerText = count;
+  if (el("total-amount")) el("total-amount").innerText = money(calculateTotal());
 
   renderCartItems();
 }
 
 function renderCartItems() {
   const box = el("cart-items");
+  if (!box) return;
   box.innerHTML = "";
 
-  Object.values(cart).forEach(i => {
-    box.innerHTML += `
-      <div style="display:flex;justify-content:space-between">
-        <div>${i.name} x ${i.qty}</div>
-        <div>₹${money(i.qty * i.price)}</div>
-      </div>
-    `;
+  Object.keys(cart).forEach(id => {
+    const it = cart[id];
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.padding = "6px 0";
+    row.innerHTML = `<div>${it.name} x ${it.qty}</div><div>₹${money(it.qty * it.price)}</div>`;
+    box.appendChild(row);
   });
 
-  if (!box.innerHTML) box.innerHTML = "<p>No items in cart</p>";
+  if (!box.innerHTML.trim()) box.innerHTML = "<p>No items in cart</p>";
 }
 
-/* ---------------- CART MODAL ---------------- */
-function openCart() {
-  el("cart-modal").classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-}
-function closeCart() {
-  el("cart-modal").classList.add("hidden");
-  document.body.style.overflow = "";
-}
+/* ---------------- SEARCH ---------------- */
+const applyFilters = debounce(() => {
+  const q = el("search").value.toLowerCase();
+  const filtered = items.filter(it => it.name.toLowerCase().includes(q));
+  renderItems(filtered);
+}, 150);
 
-el("open-cart-btn").onclick = openCart;
-el("close-cart").onclick = closeCart;
-el("cart-modal").onclick = e => {
-  if (e.target.id === "cart-modal") closeCart();
-};
+if (el("search")) el("search").addEventListener("input", applyFilters);
+
+/* ---------------- MODALS ---------------- */
+(function setupModals() {
+  const cartModal = el("cart-modal");
+  const close = el("close-cart");
+
+  const show = () => cartModal?.classList.remove("hidden");
+  const hide = () => cartModal?.classList.add("hidden");
+
+  [el("open-cart-btn"), el("open-cart-btn-2")].forEach(b => {
+    if (b) b.onclick = show;
+  });
+
+  if (close) close.onclick = hide;
+  if (cartModal) cartModal.onclick = e => { if (e.target === cartModal) hide(); };
+})();
+
+/* ---------------- CHECKOUT & STOCK ---------------- */
+async function createOrderAndReduceStock(orderItems, customer) {
+  try {
+    await db.runTransaction(async tx => {
+      const updates = [];
+      for (const o of orderItems) {
+        const ref = db.collection("items").doc(o.docId);
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new Error(`${o.name} not found`);
+        const stock = snap.data().stock || 0;
+        if (o.qty > stock) throw new Error(`Only ${stock} left for ${o.name}`);
+        updates.push({ ref, newStock: stock - o.qty });
+      }
+
+      updates.forEach(u => tx.update(u.ref, { stock: u.newStock }));
+
+      const orderRef = db.collection("orders").doc();
+      tx.set(orderRef, {
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerAddress: customer.address,
+        paymentMode: customer.payment,
+        items: orderItems,
+        total: orderItems.reduce((s, o) => s + o.qty * o.price, 0),
+        status: "pending"
+      });
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
 
 /* ---------------- WHATSAPP ---------------- */
-el("send-whatsapp").onclick = async () => {
-  if (!Object.keys(cart).length) return alert("Cart empty");
+(function setupWhatsapp() {
+  const btn = el("send-whatsapp");
+  if (!btn) return;
 
-  const name = el("customer-name").value.trim();
-  const phone = el("customer-phone").value.trim();
-  const address = el("customer-address").value.trim();
+  btn.onclick = async () => {
+    const orderItems = Object.entries(cart).map(([id, v]) => ({ docId: id, ...v }));
+    if (!orderItems.length) return alert("Cart is empty");
 
-  if (!name || !phone || !address) return alert("Fill all details");
+    const customer = {
+      name: el("customer-name").value.trim(),
+      phone: el("customer-phone").value.trim(),
+      address: el("customer-address").value.trim(),
+      payment: el("payment-mode").value
+    };
 
-  const msg =
-    "New Order - Shopp Wholesale\n\n" +
-    Object.values(cart)
-      .map(i => `${i.name} x ${i.qty}`)
-      .join("\n") +
-    `\n\nTotal: ₹${money(calculateTotal())}`;
+    if (!customer.name || !customer.phone || !customer.address) return alert("Fill all details");
 
-  window.open(
-    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`,
-    "_blank"
-  );
+    btn.disabled = true;
+    const oldTxt = btn.innerText;
+    btn.innerText = "Processing...";
 
-  cart = {};
-  saveCartToStorage();
-  updateCartUI();
-  closeCart();
-};
+    const result = await createOrderAndReduceStock(orderItems, customer);
 
-/* ---------------- INIT ---------------- */
-(async function init() {
-  loadCartFromStorage();
-
-  if (!isAdminSession()) {
-    const ok = await verifyLocationAccess();
-    if (!ok) {
-      document.body.innerHTML = `
-        <h3 style="text-align:center;margin-top:40px">
-          Delivery only within ${SERVICE_RADIUS_KM}km
-        </h3>
-        <button onclick="adminLogin()">Admin Login</button>
-      `;
-      window.adminLogin = () => {
-        if (prompt("Enter PIN") === ADMIN_PIN) {
-          setAdminSession();
-          location.reload();
-        }
-      };
+    if (!result.ok) {
+      alert(result.error);
+      btn.disabled = false;
+      btn.innerText = oldTxt;
+      await loadItems();
       return;
     }
+
+    const message = `New Order — Shopp Wholesale\n\n` +
+      orderItems.map((o, i) => `${i+1}. ${o.name} x ${o.qty}`).join("\n") +
+      `\n\nTotal: ₹${money(calculateTotal())}\nName: ${customer.name}\nAddress: ${customer.address}`;
+
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+
+    cart = {};
+    saveCartToStorage();
+    updateCartCount();
+    btn.disabled = false;
+    btn.innerText = oldTxt;
+    el("cart-modal").classList.add("hidden");
+    alert("Order placed successfully!");
+  };
+})();
+
+/* ---------------- ADMIN & INIT ---------------- */
+function showAdminBadge() {
+  if (el("admin-badge")) return;
+  const badge = document.createElement("div");
+  badge.id = "admin-badge";
+  badge.style = "background:#000;color:#fff;font-size:12px;padding:4px 8px;border-radius:8px;";
+  badge.innerText = "ADMIN";
+  document.querySelector(".header-right")?.appendChild(badge);
+}
+
+(async function init() {
+  loadCartFromStorage();
+  
+  if (isAdminSession()) {
+    showAdminBadge();
+    await loadItems();
+    return;
+  }
+
+  const allowed = await verifyLocationAccess();
+  if (!allowed) {
+    document.body.innerHTML = `
+      <div style="text-align:center;padding:40px;font-family:sans-serif;">
+        <h2 style="color:#b00">Service Unavailable</h2>
+        <p>Delivery only within ${SERVICE_RADIUS_KM}km radius.</p>
+        <button id="admin-login-bypass" style="margin-top:20px;padding:10px;background:#333;color:#fff;border:none;border-radius:5px;">Admin Login</button>
+      </div>`;
+    
+    el("admin-login-bypass").onclick = () => {
+      if (prompt("Enter PIN") === ADMIN_PIN) {
+        setAdminSession(true);
+        location.reload();
+      }
+    };
+    return;
   }
 
   await loadItems();
