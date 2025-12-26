@@ -9,9 +9,6 @@
 <title>Shopp Wholesale</title>
 
 <style>
-/* ============================================================
-   GLOBAL RESET + VARIABLES
-============================================================ */
 :root{
   --accent:#19a74a;
   --bg:#f4f9f4;
@@ -32,9 +29,7 @@ html,body{
 
 body.cart-open{overflow:hidden}
 
-/* ============================================================
-   HEADER
-============================================================ */
+/* HEADER */
 .site-header{
   position:sticky;
   top:0;
@@ -45,10 +40,8 @@ body.cart-open{overflow:hidden}
   justify-content:space-between;
   box-shadow:0 1px 6px rgba(0,0,0,.05);
 }
-
 .brand-name{font-size:20px;font-weight:700}
 .tagline{font-size:12px;color:var(--muted)}
-
 .cart-display{
   background:#fff;
   border:1px solid #ddd;
@@ -57,9 +50,7 @@ body.cart-open{overflow:hidden}
   font-weight:600;
 }
 
-/* ============================================================
-   SEARCH
-============================================================ */
+/* SEARCH */
 .controls{padding:12px 16px}
 .search-box{
   width:100%;
@@ -68,9 +59,7 @@ body.cart-open{overflow:hidden}
   border:1px solid #ccc;
 }
 
-/* ============================================================
-   PRODUCT GRID
-============================================================ */
+/* GRID */
 #products{
   padding:6px 6px 120px;
   display:grid;
@@ -81,9 +70,7 @@ body.cart-open{overflow:hidden}
   #products{grid-template-columns:repeat(4,1fr)}
 }
 
-/* ============================================================
-   PRODUCT CARD
-============================================================ */
+/* CARD */
 .card{
   background:var(--bg);
   border-radius:10px;
@@ -91,7 +78,6 @@ body.cart-open{overflow:hidden}
   display:flex;
   flex-direction:column;
 }
-
 .image-box{
   background:var(--img-box);
   aspect-ratio:1/1;
@@ -103,16 +89,12 @@ body.cart-open{overflow:hidden}
   height:100%;
   object-fit:cover;
 }
-
 .item-name{
   margin:6px 0 2px;
   font-size:13px;
   font-weight:600;
 }
-.price-row{
-  display:flex;
-  gap:6px;
-}
+.price-row{display:flex;gap:6px}
 .small-mrp{
   font-size:11px;
   text-decoration:line-through;
@@ -120,6 +102,7 @@ body.cart-open{overflow:hidden}
 }
 .sale{font-size:16px;font-weight:700}
 
+/* QTY */
 .qty-controls{
   margin-top:6px;
   display:flex;
@@ -145,9 +128,7 @@ body.cart-open{overflow:hidden}
   font-weight:600;
 }
 
-/* ============================================================
-   CART FOOTER
-============================================================ */
+/* FOOTER */
 .cart-footer{
   position:fixed;
   bottom:0;left:0;right:0;
@@ -160,7 +141,6 @@ body.cart-open{overflow:hidden}
   box-shadow:0 -2px 6px rgba(0,0,0,.08);
   z-index:30;
 }
-
 .footer-checkout-btn{
   background:var(--accent);
   color:#fff;
@@ -170,9 +150,7 @@ body.cart-open{overflow:hidden}
   font-weight:700;
 }
 
-/* ============================================================
-   CART MODAL (POPUP)
-============================================================ */
+/* MODAL */
 .cart-modal{
   position:fixed;
   inset:0;
@@ -183,7 +161,6 @@ body.cart-open{overflow:hidden}
   z-index:9999;
 }
 .cart-modal.show{display:flex}
-
 .cart-content{
   background:#fff;
   width:92%;
@@ -193,14 +170,11 @@ body.cart-open{overflow:hidden}
   max-height:85vh;
   overflow-y:auto;
 }
-
-.hidden{display:none!important}
 </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <header class="site-header">
   <div>
     <div class="brand-name">Shopp Wholesale</div>
@@ -209,34 +183,27 @@ body.cart-open{overflow:hidden}
   <div class="cart-display" id="cartCount">0</div>
 </header>
 
-<!-- SEARCH -->
 <div class="controls">
   <input class="search-box" placeholder="Search grocery items…" />
 </div>
 
-<!-- PRODUCTS -->
 <div id="products"></div>
 
-<!-- CART FOOTER -->
 <div class="cart-footer">
   <div id="footerText">0 items • ₹0</div>
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
-<!-- CART MODAL -->
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3>Your Cart</h3>
     <div id="cartItems"></div>
-    <hr><br>
+    <br>
     <button onclick="closeCart()">Close</button>
   </div>
 </div>
 
 <script>
-/* ============================================================
-   DATA
-============================================================ */
 const items=[
  {name:"Toor dal 2kg",mrp:300,price:240,img:"https://i.imgur.com/6X4dF.jpg"},
  {name:"Chupa Chips 21g",mrp:15,price:10,img:"https://i.imgur.com/u8Q0v.jpg"},
@@ -246,16 +213,14 @@ const items=[
 
 const cart={};
 const products=document.getElementById("products");
+const cartCount=document.getElementById("cartCount");
+const footerText=document.getElementById("footerText");
+const cartModal=document.getElementById("cartModal");
 
-/* ============================================================
-   RENDER PRODUCTS
-============================================================ */
 items.forEach((p,i)=>{
   products.innerHTML+=`
   <div class="card">
-    <div class="image-box">
-      <img class="product-img" src="${p.img}">
-    </div>
+    <div class="image-box"><img class="product-img" src="${p.img}"></div>
     <div class="item-name">${p.name}</div>
     <div class="price-row">
       <div class="small-mrp">₹${p.mrp}</div>
@@ -270,16 +235,18 @@ items.forEach((p,i)=>{
   </div>`;
 });
 
-/* ============================================================
-   CART LOGIC
-============================================================ */
 function updateQty(i,d){
   cart[i]=(cart[i]||0)+d;
   if(cart[i]<0)cart[i]=0;
   document.getElementById("q"+i).innerText=cart[i];
+  updateFooter();
 }
 
-function add(i){updateFooter()}
+function add(i){
+  cart[i]=(cart[i]||0)+1;
+  document.getElementById("q"+i).innerText=cart[i];
+  updateFooter();
+}
 
 function updateFooter(){
   let qty=0,amt=0;
@@ -295,13 +262,22 @@ function openCart(){
   const box=document.getElementById("cartItems");
   box.innerHTML="";
   let amt=0;
+  let hasItems=false;
+
   for(let i in cart){
     if(cart[i]>0){
-      box.innerHTML+=`${items[i].name} x ${cart[i]}<br>`;
+      hasItems=true;
+      box.innerHTML+=`${items[i].name} × ${cart[i]}<br>`;
       amt+=cart[i]*items[i].price;
     }
   }
-  box.innerHTML+=`<br><b>Total: ₹${amt}</b>`;
+
+  if(!hasItems){
+    box.innerHTML="<p>Your cart is empty</p>";
+  }else{
+    box.innerHTML+=`<br><b>Total: ₹${amt}</b>`;
+  }
+
   document.body.classList.add("cart-open");
   cartModal.classList.add("show");
 }
