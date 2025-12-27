@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shopp Wholesale</title>
 
-  <!-- ⭐ FULL-WIDTH FIX -->
   <style>
+    /* ⭐ FULL-WIDTH & LAYOUT FIXES */
     html, body {
       width: 100vw !important;
       max-width: 100vw !important;
@@ -16,20 +16,89 @@
       background: #f4f9f4;
       font-family: Inter, system-ui, -apple-system, Roboto, Arial;
     }
-    body > * {
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-      width: 100% !important;
-      max-width: 100% !important;
+
+    /* ⭐ CSS FOR MISSING ELEMENTS */
+    .cart-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 65px;
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      box-shadow: 0 -3px 12px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+
+    .footer-checkout-btn {
+      background: #19a74a;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* ⭐ MODAL VISIBILITY */
+    .cart-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 2000;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end; /* Bottom sheet style on mobile */
+    }
+
+    .cart-modal.hidden {
+      display: none !important;
+    }
+
+    .cart-content {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 20px 20px 0 0;
+      padding: 24px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .customer-form input, .customer-form textarea, .customer-form select {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .primary {
+      width: 100%;
+      background: #19a74a;
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: bold;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    .product-grid {
+      padding: 15px;
+      padding-bottom: 80px; /* Space for footer */
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
     }
   </style>
 
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- Mobile theme -->
-  <meta name="theme-color" content="#ffffff" />
-
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -45,106 +114,67 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
-
 </head>
 
 <body>
 
-  <!-- ⭐ PREMIUM HEADER -->
-  <header class="site-header">
+  <header class="site-header" style="background:#fff; padding: 15px; display:flex; justify-content:space-between; align-items:center;">
     <div class="header-left">
-      <div class="brand-name">Shopp Wholesale</div>
-      <div class="tagline">Fast delivery • Within 24 hrs • Radius: 3 km</div>
+      <div class="brand-name" style="font-weight:bold; font-size:20px;">Shopp Wholesale</div>
+      <div class="tagline" style="font-size:12px; color:#666;">Within 24 hrs • Radius: 3 km</div>
     </div>
 
-    <div class="header-right">
-      <button id="open-admin-btn" class="header-btn">Admin</button>
-      <div id="open-cart-btn" class="cart-display">
+    <div class="header-right" style="display:flex; gap:10px; align-items:center;">
+      <button id="open-admin-btn" style="padding:5px 10px;">Admin</button>
+      <div id="open-cart-btn" style="cursor:pointer; background:#eee; padding:8px 12px; border-radius:8px;">
         🛒 <span id="cart-count">0</span>
       </div>
     </div>
   </header>
 
-  <!-- ⭐ SEARCH -->
-  <section class="controls">
-    <input id="search" class="search-box" placeholder="Search grocery items..." />
-    <select id="category-filter" style="display:none"></select>
+  <section class="controls" style="padding:15px;">
+    <input id="search" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ccc;" placeholder="Search grocery items..." />
   </section>
 
-  <!-- ⭐ PRODUCT GRID -->
   <section id="products" class="product-grid"></section>
 
-  <!-- ⭐ FLOATING CART FOOTER -->
   <div class="cart-footer" id="cart-footer">
     <div class="cart-footer-left">
-      <span id="footer-item-count">0 Items</span> • ₹<span id="footer-total">0</span>
+      <span id="footer-item-count">0 Items</span> • <strong>₹<span id="footer-total">0</span></strong>
     </div>
-
     <button id="open-cart-btn-2" class="footer-checkout-btn">Checkout</button>
   </div>
 
-  <!-- ⭐ CART MODAL -->
   <div id="cart-modal" class="cart-modal hidden">
     <div class="cart-content">
-      <h2>Your Cart</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Your Cart</h2>
+        <button id="close-cart" style="background:none; border:none; font-size:24px;">&times;</button>
+      </div>
 
-      <div id="cart-items"></div>
+      <div id="cart-items" style="margin: 15px 0;"></div>
 
-      <div class="cart-totals">
-        <div>Total Items: <span id="total-items">0</span></div>
+      <div class="cart-totals" style="border-top: 1px solid #eee; padding-top: 10px; font-weight:bold;">
         <div>Total Amount: ₹<span id="total-amount">0</span></div>
       </div>
 
-      <h3>Customer Details</h3>
-
+      <h3 style="margin-top:20px;">Customer Details</h3>
       <div class="customer-form">
-        <input id="customer-name" placeholder="Customer Name" />
-        <input id="customer-phone" placeholder="Phone (optional)" />
-        <textarea id="customer-address" placeholder="Delivery address"></textarea>
+        <input id="customer-name" placeholder="Full Name" required />
+        <input id="customer-phone" placeholder="Phone Number" required />
+        <textarea id="customer-address" placeholder="Full Delivery Address" rows="3" required></textarea>
 
         <select id="payment-mode">
           <option value="Cash">Cash on Delivery</option>
-          <option value="UPI">UPI</option>
+          <option value="UPI">UPI / PhonePe</option>
         </select>
       </div>
 
-      <div class="cart-actions">
-        <button id="close-cart">Close</button>
-        <button id="send-whatsapp" class="primary">Send Order on WhatsApp</button>
-      </div>
+      <button id="send-whatsapp" class="primary">Send Order on WhatsApp</button>
     </div>
   </div>
 
-  <!-- ⭐ ADMIN MODAL -->
-  <div id="admin-modal" class="cart-modal hidden">
-    <div class="cart-content">
-      <h2>Admin Panel</h2>
-
-      <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
-        <button id="refresh-items-btn">Refresh Items</button>
-        <button id="view-orders-btn">View Orders</button>
-        <button id="close-admin" style="margin-left:auto">Close</button>
-      </div>
-
-      <div id="admin-items-list" style="max-height:50vh; overflow:auto"></div>
-
-      <div style="margin-top:12px; color:#666; font-size:13px">
-        Tip: Click Update to save changes to Firestore.
-      </div>
-    </div>
-  </div>
-
-  <!-- ⭐ ORDERS MODAL -->
-  <div id="orders-modal" class="cart-modal hidden">
-    <div class="cart-content">
-      <h2>Orders</h2>
-      <div id="orders-list" style="max-height:60vh; overflow:auto"></div>
-      <button id="close-orders" style="margin-top:12px">Close</button>
-    </div>
-  </div>
-
-  <!-- Script -->
   <script src="script.js" defer></script>
-
 </body>
 </html>
+
