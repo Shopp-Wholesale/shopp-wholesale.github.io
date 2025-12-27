@@ -32,74 +32,139 @@ html, body {
    HEADER & SEARCH
    ============================================================ */
 .site-header {
-  position:sticky; top:0; z-index:20; background:#fff;
+  position:sticky; top:0; z-index:100; background:#fff;
   padding:14px 18px; display:flex; justify-content:space-between;
   box-shadow:0 1px 6px rgba(0,0,0,.05);
 }
-.brand-name { font-size:20px; font-weight:700; }
-.tagline { font-size:12px; color:var(--muted); }
+.brand-name { font-size:18px; font-weight:700; }
+.tagline { font-size:11px; color:var(--muted); }
 .header-right { display:flex; align-items:center; gap:8px; }
-.cart-display { background:#fff; border:1px solid #ddd; padding:6px 12px; border-radius:6px; font-weight:600; }
+.cart-display { background:#fff; border:1px solid #ddd; padding:6px 10px; border-radius:6px; font-weight:600; font-size:14px; }
 
-.controls { padding:12px 16px; }
-.search-box { width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; outline:none; }
+.controls { padding:12px 16px; background:#fff; }
+.search-box { width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; outline:none; font-size:14px; }
 
 /* ============================================================
-   PRODUCT GRID
+   PRODUCT GRID (FIXED)
    ============================================================ */
-#products { padding:6px 6px 120px; display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
-@media(min-width:768px) { #products { grid-template-columns:repeat(4,1fr); } }
+#products { 
+  padding:10px; 
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 10px;
+  padding-bottom: 120px; /* Space for footer */
+}
 
-.card { background:#fff; border-radius:10px; padding:6px; display:flex; flex-direction:column; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.image-box { background:var(--img-box); aspect-ratio:1/1; border-radius:6px; overflow:hidden; }
-.product-img { width:100%; height:100%; object-fit:cover; }
-.item-name { margin:6px 0 2px; font-size:13.5px; font-weight:600; height:34px; overflow:hidden; }
-.price-row { display:flex; gap:6px; align-items:baseline; }
-.small-mrp { font-size:11px; color:#777; text-decoration:line-through; }
-.sale { font-size:16px; font-weight:700; color: #000; }
+@media(min-width:768px) { 
+  #products { grid-template-columns: repeat(4, 1fr); } 
+}
 
-.qty-controls { margin-top:6px; display:flex; gap:6px; align-items:center; justify-content:center; }
-.qty-controls button { width:28px; height:28px; border-radius:6px; border:1px solid #ccc; background:#fff; font-weight:700; cursor:pointer; }
-.qty-display { min-width:22px; text-align:center; font-weight: 600; }
-.add-btn { margin-top:6px; height:34px; border-radius:6px; border:1px solid var(--accent); background:#fff; color:var(--accent); font-weight:600; cursor:pointer; transition: 0.2s; }
-.add-btn:hover { background: var(--accent); color: #fff; }
+.card { 
+  background: var(--card); 
+  border-radius: 12px; 
+  padding: 10px; 
+  display: flex; 
+  flex-direction: column; 
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border: 1px solid #eee;
+}
+
+.image-box { 
+  background: var(--img-box); 
+  aspect-ratio: 1/1; 
+  border-radius: 8px; 
+  overflow: hidden; 
+  margin-bottom: 8px;
+}
+
+.product-img { width: 100%; height: 100%; object-fit: contain; }
+
+.item-name { 
+  font-size: 13px; 
+  font-weight: 600; 
+  height: 36px; 
+  overflow: hidden; 
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-bottom: 4px;
+}
+
+.price-row { display: flex; align-items: baseline; gap: 5px; margin-bottom: 8px; }
+.small-mrp { font-size: 10px; color: #888; text-decoration: line-through; }
+.sale { font-size: 15px; font-weight: 700; color: #000; }
 
 /* ============================================================
-   FOOTER (The lower side checkout)
+   CONTROLS (FIXED ALIGNMENT)
+   ============================================================ */
+.qty-controls { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  background: #f0f0f0;
+  border-radius: 6px;
+  padding: 2px;
+  margin-top: auto;
+}
+
+.qty-controls button { 
+  width: 30px; 
+  height: 30px; 
+  border: none; 
+  background: none; 
+  font-size: 18px; 
+  font-weight: bold; 
+  color: var(--accent);
+  cursor: pointer; 
+}
+
+.qty-display { font-weight: 700; font-size: 14px; }
+
+.add-btn { 
+  width: 100%;
+  margin-top: auto; 
+  height: 34px; 
+  border-radius: 6px; 
+  border: 1px solid var(--accent); 
+  background: #fff; 
+  color: var(--accent); 
+  font-weight: 600; 
+  font-size: 13px;
+  cursor: pointer; 
+}
+
+/* ============================================================
+   FOOTER & MODAL
    ============================================================ */
 .cart-footer {
-  position:fixed; bottom:0; left:0; right:0; height:60px;
-  background:#fff; padding:10px 14px; display:flex;
-  justify-content:space-between; align-items:center;
-  box-shadow:0 -2px 10px rgba(0,0,0,.1); z-index:1000;
+  position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+  background: #fff; padding: 0 16px; display: flex;
+  justify-content: space-between; align-items: center;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 500;
 }
-.footer-checkout-btn { background:var(--accent); color:#fff; padding:10px 18px; border-radius:10px; border:none; font-weight:700; cursor:pointer; }
 
-/* ============================================================
-   CART MODAL (Popup for Customer Details)
-   ============================================================ */
-.cart-modal { 
-    position:fixed; inset:0; background:rgba(0,0,0,0.5); 
-    z-index:2000; display:none; 
-    justify-content:center; align-items:flex-end; 
+.footer-checkout-btn { 
+  background: var(--accent); color: #fff; padding: 10px 20px; 
+  border-radius: 8px; border: none; font-weight: 700; cursor: pointer; 
 }
-/* This class must be present for the script to show the modal */
-.cart-modal.show { display:flex; }
+
+.cart-modal { 
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
+  z-index: 1000; display: none; 
+  justify-content: center; align-items: flex-end; 
+}
+.cart-modal.show { display: flex; }
 
 .cart-content { 
-    background:#fff; width:100%; max-width:500px; 
-    border-radius:16px 16px 0 0; padding:20px; 
-    max-height:85vh; overflow-y:auto; 
-    animation: slideUp 0.3s ease-out;
+  background: #fff; width: 100%; max-width: 500px; 
+  border-radius: 20px 20px 0 0; padding: 20px; 
+  max-height: 80vh; overflow-y: auto; 
 }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-.form-group { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+.form-group { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
 .form-group input, .form-group textarea, .form-group select { 
-    padding:12px; border:1px solid #ddd; border-radius:8px; width:100%; font-size: 14px; outline: none;
+  padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; outline: none; font-size: 14px;
 }
-.cart-items-list { margin: 15px 0; border-top: 1px solid #eee; padding-top: 10px; max-height: 200px; overflow-y: auto; }
-.cart-item-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
 </style>
 </head>
 
@@ -116,28 +181,26 @@ html, body {
 </header>
 
 <div class="controls">
-  <input class="search-box" id="search" placeholder="Search grocery items…" />
+  <input class="search-box" id="search" placeholder="Search products..." />
 </div>
 
 <div id="products"></div>
 
 <div class="cart-footer">
-  <div id="footerText">
-      <span id="footer-item-count">0 items</span> • ₹<span id="footer-total">0</span>
-  </div>
+  <div><span id="footer-item-count">0 items</span> • <strong>₹<span id="footer-total">0</span></strong></div>
   <button class="footer-checkout-btn" id="open-cart-btn">Checkout</button>
 </div>
 
 <div class="cart-modal" id="cart-modal">
   <div class="cart-content">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h3 style="font-size: 18px;">Review Order</h3>
-        <button id="close-cart" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        <button id="close-cart" style="background:none; border:none; font-size:28px; color:#999;">&times;</button>
     </div>
     
-    <div class="cart-items-list" id="cart-items"></div>
+    <div id="cart-items" style="border-top: 1px solid #eee; padding-top:10px;"></div>
     
-    <div style="display:flex; justify-content:space-between; font-weight:700; padding: 10px 0; border-bottom: 1px solid #eee;">
+    <div style="display:flex; justify-content:space-between; font-weight:700; padding: 15px 0; border-top: 1px solid #eee; margin-top:10px;">
         <span>Total Amount:</span>
         <span>₹<span id="total-amount">0</span></span>
     </div>
@@ -145,23 +208,21 @@ html, body {
     <div class="form-group">
       <input type="text" id="customer-name" placeholder="Full Name">
       <input type="tel" id="customer-phone" placeholder="Mobile Number">
-      <textarea id="customer-address" placeholder="Complete Delivery Address"></textarea>
+      <textarea id="customer-address" placeholder="Full Delivery Address" rows="2"></textarea>
       <select id="payment-mode">
         <option value="Cash">Cash on Delivery</option>
-        <option value="UPI">UPI / Online Transfer</option>
+        <option value="UPI">UPI / PhonePe</option>
       </select>
     </div>
 
-    <div style="margin-top:20px;">
-      <button id="send-whatsapp" style="width:100%; padding:14px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; font-size:16px; cursor:pointer;">
-        Confirm Order via WhatsApp
-      </button>
-    </div>
+    <button id="send-whatsapp" style="width:100%; padding:15px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; font-size:16px; margin-top:20px; cursor:pointer;">
+      Place Order on WhatsApp
+    </button>
   </div>
 </div>
 
 <script>
-/* ---------------- FIREBASE CONFIG ---------------- */
+/* ---------------- FIREBASE ---------------- */
 const firebaseConfig = {
   apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
   authDomain: "shopp-wholesale.firebaseapp.com",
@@ -173,145 +234,110 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ---------------- GLOBAL SETTINGS ---------------- */
 const WHATSAPP_NUMBER = "919000810084";
 const CART_LS_KEY = "shopp_cart_v1";
 
 const el = id => document.getElementById(id);
-const money = v => Number(v || 0).toFixed(0);
-
 let items = [];
-let cart = {};
-
-/* ---------------- FUNCTIONS ---------------- */
+let cart = JSON.parse(localStorage.getItem(CART_LS_KEY)) || {};
 
 async function loadItems() {
   try {
     const snap = await db.collection("items").get();
     items = [];
-    snap.forEach(doc => {
-      const d = doc.data();
-      items.push({ docId: doc.id, ...d });
-    });
+    snap.forEach(doc => items.push({ docId: doc.id, ...doc.data() }));
     renderItems(items);
     updateCartDisplay();
-  } catch (e) { console.error(e); el("products").innerHTML = "Error loading products."; }
+  } catch (e) { el("products").innerHTML = "Error loading products."; }
 }
 
 function renderItems(list) {
   const box = el("products");
   box.innerHTML = "";
   list.forEach(it => {
-    const curQty = cart[it.docId]?.qty || 0;
-    box.innerHTML += `
-    <div class="card">
+    const qty = cart[it.docId]?.qty || 0;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
       <div class="image-box"><img class="product-img" src="${it.image || 'https://via.placeholder.com/150'}"></div>
       <div class="item-name">${it.name}</div>
       <div class="price-row">
         <div class="small-mrp">₹${it.mrp || ''}</div>
         <div class="sale">₹${it.price}</div>
       </div>
-      <div class="qty-controls" style="${curQty > 0 ? 'display:flex' : 'display:none'}" id="ctrl-${it.docId}">
-        <button onclick="changeQty('${it.docId}', -1)">-</button>
-        <div class="qty-display" id="qty-${it.docId}">${curQty}</div>
+      <div class="qty-controls" id="ctrl-${it.docId}" style="display: ${qty > 0 ? 'flex' : 'none'}">
+        <button onclick="changeQty('${it.docId}', -1)">−</button>
+        <div class="qty-display" id="qty-${it.docId}">${qty}</div>
         <button onclick="changeQty('${it.docId}', 1)">+</button>
       </div>
-      <button class="add-btn" id="btn-${it.docId}" style="${curQty > 0 ? 'display:none' : 'display:block'}" onclick="changeQty('${it.docId}', 1)">Add to cart</button>
-    </div>`;
+      <button class="add-btn" id="btn-${it.docId}" style="display: ${qty > 0 ? 'none' : 'block'}" onclick="changeQty('${it.docId}', 1)">Add to cart</button>
+    `;
+    box.appendChild(card);
   });
 }
 
-function changeQty(docId, delta) {
-  const it = items.find(x => x.docId === docId);
-  if(!it) return;
-  const cur = cart[docId]?.qty || 0;
-  let next = cur + delta;
-
-  if (next < 0) next = 0;
+function changeQty(id, delta) {
+  const it = items.find(x => x.docId === id);
+  let qty = (cart[id]?.qty || 0) + delta;
   
-  if (next === 0) {
-    delete cart[docId];
-    if(el(`ctrl-${docId}`)) el(`ctrl-${docId}`).style.display = "none";
-    if(el(`btn-${docId}`)) el(`btn-${docId}`).style.display = "block";
+  if (qty <= 0) {
+    delete cart[id];
+    el(`ctrl-${id}`).style.display = "none";
+    el(`btn-${id}`).style.display = "block";
   } else {
-    cart[docId] = { qty: next, name: it.name, price: it.price };
-    if(el(`ctrl-${docId}`)) el(`ctrl-${docId}`).style.display = "flex";
-    if(el(`btn-${docId}`)) el(`btn-${docId}`).style.display = "none";
+    cart[id] = { qty, name: it.name, price: it.price };
+    el(`ctrl-${id}`).style.display = "flex";
+    el(`btn-${id}`).style.display = "none";
+    el(`qty-${id}`).innerText = qty;
   }
-
-  if(el(`qty-${docId}`)) el(`qty-${docId}`).innerText = next;
-  updateCartDisplay();
+  
   localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
+  updateCartDisplay();
 }
 
 function updateCartDisplay() {
   let count = 0, total = 0;
-  const itemBox = el("cart-items");
-  itemBox.innerHTML = "";
-
+  let html = "";
   Object.values(cart).forEach(it => {
     count += it.qty;
     total += it.qty * it.price;
-    itemBox.innerHTML += `
-      <div class="cart-item-row">
-        <span>${it.name} x ${it.qty}</span>
-        <span>₹${it.qty * it.price}</span>
-      </div>`;
+    html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
+              <span>${it.name} x ${it.qty}</span>
+              <span>₹${it.qty * it.price}</span>
+             </div>`;
   });
-
   el("cart-count").innerText = count;
   el("footer-item-count").innerText = `${count} items`;
-  el("footer-total").innerText = money(total);
-  el("total-amount").innerText = money(total);
+  el("footer-total").innerText = total;
+  el("total-amount").innerText = total;
+  el("cart-items").innerHTML = html || "<p style='color:#999'>Cart is empty</p>";
 }
 
-/* ---------------- EVENT LISTENERS ---------------- */
-
 el("open-cart-btn").onclick = () => {
-    if(Object.keys(cart).length === 0) return alert("Your cart is empty!");
-    el("cart-modal").classList.add("show");
-};
-
-el("close-cart").onclick = () => {
-    el("cart-modal").classList.remove("show");
-};
+  if(Object.keys(cart).length === 0) return alert("Cart is empty!");
+  el("cart-modal").classList.add("show");
+}
+el("close-cart").onclick = () => el("cart-modal").classList.remove("show");
 
 el("search").oninput = (e) => {
   const q = e.target.value.toLowerCase();
   renderItems(items.filter(it => it.name.toLowerCase().includes(q)));
-};
+}
 
-el("send-whatsapp").onclick = async () => {
-  const customer = {
-    name: el("customer-name").value.trim(),
-    phone: el("customer-phone").value.trim(),
-    address: el("customer-address").value.trim(),
-    pay: el("payment-mode").value
-  };
+el("send-whatsapp").onclick = () => {
+  const name = el("customer-name").value.trim();
+  const addr = el("customer-address").value.trim();
+  if(!name || !addr) return alert("Please enter Name and Address");
 
-  if(!customer.name || !customer.address || !customer.phone) {
-      return alert("Please fill all details!");
-  }
-
-  let total = el("total-amount").innerText;
-  let orderList = Object.values(cart).map((o, i) => `${i+1}. ${o.name} x ${o.qty}`).join("\n");
+  let list = Object.values(cart).map((it, i) => `${i+1}. ${it.name} x ${it.qty} = ₹${it.qty*it.price}`).join("\n");
+  const msg = `*New Order - Shopp Wholesale*\n\n${list}\n\n*Total: ₹${el("total-amount").innerText}*\n\nName: ${name}\nPhone: ${el("customer-phone").value}\nAddress: ${addr}\nPayment: ${el("payment-mode").value}`;
   
-  const msg = `New Order — Shopp Wholesale\n------------------\n${orderList}\n------------------\nTotal: ₹${total}\n\nName: ${customer.name}\nPhone: ${customer.phone}\nAddress: ${customer.address}\nPayment: ${customer.pay}\n\nDelivery within 24 hrs.`;
-  
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
-  
-  cart = {};
-  localStorage.removeItem(CART_LS_KEY);
-  location.reload();
-};
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+  cart = {}; localStorage.removeItem(CART_LS_KEY); location.reload();
+}
 
-/* ---------------- INIT ---------------- */
-(async function init() {
-  const saved = localStorage.getItem(CART_LS_KEY);
-  if (saved) cart = JSON.parse(saved);
-  await loadItems();
-})();
+loadItems();
 </script>
 </body>
 </html>
-     
+   
