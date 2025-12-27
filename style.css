@@ -17,7 +17,7 @@
   --bg: #f4f9f4;
   --card: #ffffff;
   --muted: #6f6f6f;
-  --img-box: #f8fbf8;
+  --img-box: #ffffff; /* Clean white for product boxes */
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
@@ -33,23 +33,23 @@ html, body {
    ============================================================ */
 .site-header {
   position:sticky; top:0; z-index:100; background:#fff;
-  padding:14px 18px; display:flex; justify-content:space-between; align-items: center;
+  padding:12px 16px; display:flex; justify-content:space-between; align-items: center;
   box-shadow:0 1px 6px rgba(0,0,0,.05);
 }
 .brand-name { font-size:18px; font-weight:700; color: #000; }
-.tagline { font-size:11px; color:var(--muted); }
+.tagline { font-size:10px; color:var(--muted); margin-top: 2px; }
 
 .controls { padding:12px 16px; background:#fff; border-bottom: 1px solid #f0f0f0; }
-.search-box { width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; outline:none; font-size:14px; transition: 0.2s; }
-.search-box:focus { border-color: var(--accent); }
+.search-box { width:100%; padding:10px 14px; border-radius:8px; border:1px solid #eee; background: #f9f9f9; outline:none; font-size:14px; transition: 0.2s; }
+.search-box:focus { border-color: var(--accent); background: #fff; }
 
 /* ============================================================
-   PRODUCT GRID (FIXED 2-COLUMN)
+   PRODUCT GRID (RESTORED 2-COLUMN TILES)
    ============================================================ */
 #products { 
-  padding:10px; 
+  padding:12px; 
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
+  grid-template-columns: repeat(2, 1fr); /* FORCES 2 TILES */
   gap: 12px;
   padding-bottom: 120px; 
 }
@@ -64,58 +64,60 @@ html, body {
   padding: 10px; 
   display: flex; 
   flex-direction: column; 
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   border: 1px solid #f0f0f0;
-  height: 100%;
+  height: 100%; /* Ensures all cards in a row match height */
 }
 
 .image-box { 
   background: var(--img-box); 
-  aspect-ratio: 1/1; 
+  aspect-ratio: 1/1; /* FORCES SQUARE IMAGES */
   border-radius: 8px; 
   overflow: hidden; 
   margin-bottom: 10px;
   display: flex; align-items: center; justify-content: center;
+  border: 1px solid #f9f9f9;
 }
 
 .product-img { width: 100%; height: 100%; object-fit: contain; }
 
 .item-name { 
   font-size: 13px; font-weight: 600; 
-  height: 36px; overflow: hidden; 
+  height: 34px; overflow: hidden; 
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  margin-bottom: 6px; line-height: 1.3;
+  margin-bottom: 4px; line-height: 1.3;
+  color: #333;
 }
 
 .price-row { display: flex; align-items: baseline; gap: 5px; margin-bottom: 10px; }
 .small-mrp { font-size: 10px; color: #999; text-decoration: line-through; }
 .sale { font-size: 15px; font-weight: 700; color: #000; }
 
-/* FIX: Forces buttons to the bottom regardless of text height */
+/* STICKY BOTTOM ACTION AREA */
 .card-action { margin-top: auto; }
 
 /* ============================================================
-   CONTROLS (FIXED ALIGNMENT)
+   CONTROLS (CLEAN TILED BUTTONS)
    ============================================================ */
 .qty-controls { 
   display: flex; align-items: center; justify-content: space-between; 
-  background: #f0f3f0; border-radius: 8px; padding: 4px;
+  background: #f0f3f0; border-radius: 8px; padding: 3px;
 }
 
 .qty-controls button { 
-  width: 32px; height: 32px; border: none; 
+  width: 30px; height: 30px; border: none; 
   background: #fff; border-radius: 6px;
-  font-size: 18px; font-weight: bold; color: var(--accent);
+  font-size: 16px; font-weight: bold; color: var(--accent);
   cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.qty-display { font-weight: 700; font-size: 14px; width: 24px; text-align: center; }
+.qty-display { font-weight: 700; font-size: 14px; width: 20px; text-align: center; }
 
 .add-btn { 
   width: 100%; height: 36px; border-radius: 8px; 
-  border: 1.5px solid var(--accent); background: #fff; 
+  border: 1px solid var(--accent); background: #fff; 
   color: var(--accent); font-weight: 700; font-size: 13px;
-  cursor: pointer; transition: 0.2s;
+  cursor: pointer; transition: 0.1s;
 }
 .add-btn:active { background: var(--accent); color: #fff; }
 
@@ -123,15 +125,15 @@ html, body {
    FOOTER & MODAL
    ============================================================ */
 .cart-footer {
-  position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
-  background: #fff; padding: 0 18px; display: flex;
+  position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+  background: #fff; padding: 0 16px; display: flex;
   justify-content: space-between; align-items: center;
-  box-shadow: 0 -3px 12px rgba(0,0,0,0.08); z-index: 500;
+  box-shadow: 0 -3px 12px rgba(0,0,0,0.06); z-index: 500;
 }
 
 .footer-checkout-btn { 
-  background: var(--accent); color: #fff; padding: 12px 24px; 
-  border-radius: 10px; border: none; font-weight: 700; cursor: pointer; 
+  background: var(--accent); color: #fff; padding: 10px 20px; 
+  border-radius: 8px; border: none; font-weight: 700; cursor: pointer; 
 }
 
 .cart-modal { 
@@ -143,13 +145,13 @@ html, body {
 
 .cart-content { 
   background: #fff; width: 100%; max-width: 500px; 
-  border-radius: 20px 20px 0 0; padding: 24px; 
-  max-height: 80vh; overflow-y: auto; 
+  border-radius: 20px 20px 0 0; padding: 20px; 
+  max-height: 85vh; overflow-y: auto; 
 }
 
 .form-group { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
 .form-group input, .form-group textarea, .form-group select { 
-  padding: 12px; border: 1px solid #ddd; border-radius: 10px; width: 100%; outline: none; font-size: 14px;
+  padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; outline: none; font-size: 14px;
 }
 </style>
 </head>
@@ -162,33 +164,33 @@ html, body {
     <div class="tagline">Radius: 3 km • Within 24 hrs</div>
   </div>
   <div class="header-right">
-    <div class="cart-display">🛒 <span id="cart-count">0</span></div>
+    <div class="cart-display" style="font-weight:700; color:var(--accent)">🛒 <span id="cart-count">0</span></div>
   </div>
 </header>
 
 <div class="controls">
-  <input class="search-box" id="search" placeholder="Search products..." autocomplete="off" />
+  <input class="search-box" id="search" placeholder="Search grocery items..." autocomplete="off" />
 </div>
 
 <div id="products"></div>
 
 <div class="cart-footer">
-  <div><span id="footer-item-count" style="font-size: 12px; color: var(--muted);">0 items</span><br><strong>₹<span id="footer-total">0</span></strong></div>
+  <div><span id="footer-item-count" style="font-size: 11px; color: var(--muted);">0 items</span><br><strong>₹<span id="footer-total">0</span></strong></div>
   <button class="footer-checkout-btn" id="open-cart-btn">Checkout</button>
 </div>
 
 <div class="cart-modal" id="cart-modal">
   <div class="cart-content">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h3 style="font-size: 20px; font-weight: 800;">Review Order</h3>
-        <button id="close-cart" style="background:#f0f0f0; border:none; width: 32px; height: 32px; border-radius: 50%; font-size:20px; color:#666; cursor: pointer;">&times;</button>
+        <h3 style="font-size: 18px; font-weight: 800;">Review Order</h3>
+        <button id="close-cart" style="background:#f5f5f5; border:none; width: 30px; height: 30px; border-radius: 50%; font-size:18px; color:#666; cursor: pointer;">&times;</button>
     </div>
     
     <div id="cart-items" style="border-top: 1px solid #eee; padding-top:10px;"></div>
     
     <div style="display:flex; justify-content:space-between; font-weight:700; padding: 15px 0; border-top: 1px solid #eee; margin-top:10px;">
         <span>Total Amount:</span>
-        <span style="color: var(--accent); font-size: 18px;">₹<span id="total-amount">0</span></span>
+        <span style="color: var(--accent);">₹<span id="total-amount">0</span></span>
     </div>
     
     <div class="form-group">
@@ -201,7 +203,7 @@ html, body {
       </select>
     </div>
 
-    <button id="send-whatsapp" style="width:100%; padding:16px; border-radius:12px; background:var(--accent); color:#fff; border:none; font-weight:bold; font-size:16px; margin-top:20px; cursor:pointer;">
+    <button id="send-whatsapp" style="width:100%; padding:14px; border-radius:10px; background:var(--accent); color:#fff; border:none; font-weight:bold; font-size:16px; margin-top:15px; cursor:pointer;">
       Place Order on WhatsApp
     </button>
   </div>
@@ -270,13 +272,13 @@ function changeQty(id, delta) {
   
   if (qty <= 0) {
     delete cart[id];
-    el(`ctrl-${id}`).style.display = "none";
-    el(`btn-${id}`).style.display = "block";
+    if(el(`ctrl-${id}`)) el(`ctrl-${id}`).style.display = "none";
+    if(el(`btn-${id}`)) el(`btn-${id}`).style.display = "block";
   } else {
     cart[id] = { qty, name: it.name, price: it.price };
-    el(`ctrl-${id}`).style.display = "flex";
-    el(`btn-${id}`).style.display = "none";
-    el(`qty-${id}`).innerText = qty;
+    if(el(`ctrl-${id}`)) el(`ctrl-${id}`).style.display = "flex";
+    if(el(`btn-${id}`)) el(`btn-${id}`).style.display = "none";
+    if(el(`qty-${id}`)) el(`qty-${id}`).innerText = qty;
   }
   
   localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
@@ -316,7 +318,7 @@ el("send-whatsapp").onclick = () => {
   const name = el("customer-name").value.trim();
   const phone = el("customer-phone").value.trim();
   const addr = el("customer-address").value.trim();
-  if(!name || !addr || !phone) return alert("Please fill in your details");
+  if(!name || !addr || !phone) return alert("Please enter Name, Phone and Address");
 
   let list = Object.values(cart).map((it, i) => `${i+1}. ${it.name} x ${it.qty} = ₹${it.qty*it.price}`).join("\n");
   const msg = `*New Order - Shopp Wholesale*\n\n${list}\n\n*Total: ₹${el("total-amount").innerText}*\n\nName: ${name}\nPhone: ${phone}\nAddress: ${addr}\nPayment: ${el("payment-mode").value}`;
@@ -329,3 +331,4 @@ loadItems();
 </script>
 </body>
 </html>
+   
