@@ -1,331 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Shopp Wholesale</title>
 
-<title>Shopp Wholesale</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
 
-<style>
-/* ============================================================
-GLOBAL RESET + VARIABLES + TYPOGRAPHY
-============================================================ */
-:root {
-  --accent: #19a74a;
-  --bg: #f4f9f4;
-  --card: #ffffff;
-  --muted: #6f6f6f;
-  --img-box: #eef8ee;
-}
+    <style>
+        :root {
+            --accent: #19a74a;
+            --bg: #f4f9f4;
+            --card: #ffffff;
+            --muted: #6f6f6f;
+            --img-box: #eef8ee;
+        }
 
-/* RESET */
-* { margin:0; padding:0; box-sizing:border-box }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: #111; overflow-x: hidden; }
 
-html, body {
-  width:100%;
-  overflow-x:hidden;
-  background:var(--bg);
-  font-family:Inter,system-ui,Arial;
-  color:#111;
-  letter-spacing:-0.2px;
-}
+        /* HEADER */
+        .site-header {
+            position: sticky; top: 0; z-index: 20; background: #fff;
+            padding: 14px 18px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 1px 6px rgba(0,0,0,.05);
+        }
+        .brand-name { font-size: 20px; font-weight: 700; }
+        .tagline { font-size: 12px; color: var(--muted); }
+        .cart-display {
+            background: #fff; border: 1px solid #ddd; padding: 6px 12px;
+            border-radius: 6px; font-weight: 600;
+        }
+        .header-right { display: flex; align-items: center; gap: 10px; }
 
-body.cart-open {
-  overflow: hidden; /* 🔒 lock background */
-}
+        /* SEARCH & GRID */
+        .controls { padding: 12px 16px; }
+        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; }
+        
+        #products {
+            padding: 6px 6px 120px; display: grid;
+            grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
 
-/* ============================================================
-HEADER
-============================================================ */
-.site-header{
-  position:sticky;
-  top:0;
-  z-index:20;
-  background:#fff;
-  padding:14px 18px;
-  display:flex;
-  justify-content:space-between;
-  box-shadow:0 1px 6px rgba(0,0,0,.05);
-}
+        /* PRODUCT CARD */
+        .card { background: #fff; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .image-box { background: var(--img-box); aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; }
+        .product-img { width: 100%; height: 100%; object-fit: cover; }
+        .item-name { margin: 8px 0 4px; font-size: 14px; font-weight: 600; height: 34px; overflow: hidden; }
+        .price-row { display: flex; gap: 6px; align-items: baseline; }
+        .small-mrp { font-size: 11px; color: #777; text-decoration: line-through; }
+        .sale { font-size: 16px; font-weight: 700; color: var(--accent); }
+        
+        .qty-controls { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; background: #f0f0f0; border-radius: 6px; padding: 2px; }
+        .qty-controls button { width: 30px; height: 30px; border: none; background: none; font-weight: bold; cursor: pointer; }
+        .add-btn { margin-top: 8px; padding: 8px; border-radius: 6px; border: 1px solid var(--accent); background: #fff; color: var(--accent); font-weight: 600; cursor: pointer; }
+        .add-btn:disabled { border-color: #ccc; color: #ccc; }
 
-.brand-name{font-size:20px;font-weight:700}
-.tagline{font-size:12px;color:var(--muted)}
+        /* FOOTER */
+        .cart-footer {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
+            background: #fff; padding: 10px 16px; display: flex;
+            justify-content: space-between; align-items: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 30;
+        }
+        .footer-checkout-btn { background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 10px; border: none; font-weight: 700; }
 
-.cart-display{
-  background:#fff;
-  border:1px solid #ddd;
-  padding:6px 12px;
-  border-radius:6px;
-  font-weight:600;
-}
-
-/* ============================================================
-SEARCH
-============================================================ */
-.controls{padding:12px 16px}
-.search-box{
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ccc;
-}
-
-/* ============================================================
-PRODUCT GRID
-============================================================ */
-#products{
-  padding:6px 6px 120px;
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:6px;
-}
-@media(min-width:768px){
-  #products{grid-template-columns:repeat(4,1fr)}
-}
-
-/* ============================================================
-PRODUCT CARD
-============================================================ */
-.card{
-  background:var(--bg);
-  border-radius:10px;
-  padding:6px;
-  display:flex;
-  flex-direction:column;
-}
-
-.image-box{
-  background:var(--img-box);
-  aspect-ratio:1/1;
-  border-radius:6px;
-  overflow:hidden;
-}
-.product-img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.item-name{
-  margin:6px 0 2px;
-  font-size:13.5px;
-  font-weight:600;
-}
-
-.price-row{
-  display:flex;
-  gap:6px;
-  align-items:baseline;
-}
-.small-mrp{
-  font-size:11px;
-  color:#777;
-  text-decoration:line-through;
-}
-.sale{
-  font-size:16px;
-  font-weight:700;
-}
-
-.qty-controls{
-  margin-top:6px;
-  display:flex;
-  gap:6px;
-  align-items:center;
-}
-.qty-controls button{
-  width:28px;height:28px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  background:#fff;
-  font-weight:700;
-}
-.qty-display{
-  min-width:22px;
-  text-align:center;
-}
-
-.add-btn{
-  margin-top:6px;
-  height:34px;
-  border-radius:6px;
-  border:1px solid var(--accent);
-  background:#fff;
-  color:var(--accent);
-  font-weight:600;
-}
-
-/* ============================================================
-CART FOOTER
-============================================================ */
-.cart-footer{
-  position:fixed;
-  bottom:0;left:0;right:0;
-  height:56px;
-  background:#fff;
-  padding:10px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  box-shadow:0 -2px 6px rgba(0,0,0,.08);
-  z-index:30;
-}
-
-.footer-checkout-btn{
-  background:var(--accent);
-  color:#fff;
-  padding:10px 16px;
-  border-radius:10px;
-  border:none;
-  font-weight:700;
-}
-
-/* ============================================================
-CART MODAL (POPUP)
-============================================================ */
-.cart-modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.35);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:100;
-}
-.cart-modal.show{
-  display:flex;
-}
-
-.cart-content{
-  background:#fff;
-  width:92%;
-  max-width:420px;
-  border-radius:14px;
-  padding:16px;
-  max-height:85vh;
-  overflow-y:auto;
-}
-</style>
+        /* MODAL */
+        .cart-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 100; display: flex; justify-content: center; align-items: flex-end;
+        }
+        .cart-modal.hidden { display: none; }
+        .cart-content {
+            background: #fff; width: 100%; max-width: 500px;
+            border-radius: 20px 20px 0 0; padding: 20px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .form-group { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .form-group input, .form-group textarea, .form-group select {
+            padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%;
+        }
+    </style>
 </head>
-
 <body>
 
-<!-- HEADER -->
 <header class="site-header">
-  <div>
-    <div class="brand-name">Shopp Wholesale</div>
-    <div class="tagline">Fast delivery • 3 km radius</div>
-  </div>
-  <div class="cart-display" id="cartCount">0</div>
+    <div>
+        <div class="brand-name">Shopp Wholesale</div>
+        <div class="tagline">Fast delivery • 3 km radius</div>
+    </div>
+    <div class="header-right">
+        <div class="cart-display" id="cart-count">0</div>
+    </div>
 </header>
 
-<!-- SEARCH -->
 <div class="controls">
-  <input class="search-box" placeholder="Search grocery items…" />
+    <input id="search" class="search-box" placeholder="Search grocery items..." />
 </div>
 
-<!-- PRODUCTS -->
-<div id="products"></div>
+<div id="products">
+    <p style="padding:20px">Loading items...</p>
+</div>
 
-<!-- FOOTER -->
 <div class="cart-footer">
-  <div id="footerText">0 items • ₹0</div>
-  <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
+    <div>
+        <div style="font-size:12px; color:var(--muted)">Your Total</div>
+        <div style="font-weight:700; font-size:18px;">₹<span id="footer-total">0</span></div>
+    </div>
+    <button class="footer-checkout-btn" id="open-cart-btn">View Cart (<span id="footer-item-count">0 Items</span>)</button>
 </div>
 
-<!-- CART POPUP -->
-<div class="cart-modal" id="cartModal">
-  <div class="cart-content">
-    <h3>Your Cart</h3>
-    <div id="cartItems" style="margin:10px 0"></div>
-    <button onclick="closeCart()">Close</button>
-  </div>
+<div class="cart-modal hidden" id="cart-modal">
+    <div class="cart-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="font-size:20px;">Review Order</h2>
+            <button id="close-cart" style="background:none; border:none; font-size:24px;">&times;</button>
+        </div>
+        
+        <div id="cart-items" style="border-bottom:1px solid #eee; margin-bottom:15px;"></div>
+        
+        <div style="display:flex; justify-content:space-between; font-weight:700; margin-bottom:20px;">
+            <span>Total Amount:</span>
+            <span>₹<span id="total-amount">0</span></span>
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="customer-name" placeholder="Full Name">
+            <input type="tel" id="customer-phone" placeholder="Mobile Number">
+            <textarea id="customer-address" rows="2" placeholder="Complete Delivery Address"></textarea>
+            <select id="payment-mode">
+                <option value="Cash">Cash on Delivery</option>
+                <option value="UPI">UPI (Pay on Delivery)</option>
+            </select>
+            <button id="send-whatsapp" style="background:var(--accent); color:white; padding:15px; border:none; border-radius:10px; font-weight:700; margin-top:10px;">
+                Confirm Order via WhatsApp
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
-/* ============================================================
-DATA (demo)
-============================================================ */
-const items=[
- {name:"Toor dal 2kg",mrp:300,price:240,img:"https://i.imgur.com/6X4dF.jpg"},
- {name:"Rin 225g",mrp:22,price:19,img:"https://i.imgur.com/5Zp0k.jpg"},
- {name:"Biscuit 25g",mrp:10,price:10,img:"https://i.imgur.com/XeKpZ.jpg"},
- {name:"Sunflower Oil 1L",mrp:140,price:118,img:"https://i.imgur.com/0qM7R.jpg"}
-];
+/* ---------------- FIREBASE CONFIG ---------------- */
+// !!! REPLACE WITH YOUR ACTUAL FIREBASE CONFIG !!!
+const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "your-app.firebaseapp.com",
+  projectId: "your-app-id",
+  storageBucket: "your-app.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-const cart={};
-const products=document.getElementById("products");
+/* ---------------- PASTE YOUR SCRIPT.JS BELOW ---------------- */
+// (I have integrated your v9.1 logic with the HTML IDs above)
 
-/* ============================================================
-RENDER PRODUCTS
-============================================================ */
-items.forEach((p,i)=>{
-  products.innerHTML+=`
-  <div class="card">
-    <div class="image-box">
-      <img class="product-img" src="${p.img}">
-    </div>
-    <div class="item-name">${p.name}</div>
-    <div class="price-row">
-      <div class="small-mrp">₹${p.mrp}</div>
-      <div class="sale">₹${p.price}</div>
-    </div>
-    <div class="qty-controls">
-      <button onclick="updateQty(${i},-1)">-</button>
-      <div class="qty-display" id="q${i}">0</div>
-      <button onclick="updateQty(${i},1)">+</button>
-    </div>
-    <button class="add-btn" onclick="add(${i})">Add to cart</button>
-  </div>`;
-});
+const WHATSAPP_NUMBER = "919000810084";
+const SHOP_LAT = 17.3526633;
+const SHOP_LNG = 78.3860868;
+const SERVICE_RADIUS_KM = 3;
+const ADMIN_PIN = "Sreekanth@1";
+const ADMIN_SESSION_KEY = "shopp_admin_override";
+const CART_LS_KEY = "shopp_cart_v1";
 
-/* ============================================================
-CART LOGIC
-============================================================ */
-function updateQty(i,d){
-  cart[i]=(cart[i]||0)+d;
-  if(cart[i]<0)cart[i]=0;
-  document.getElementById("q"+i).innerText=cart[i];
+const money = v => Number(v || 0).toFixed(0);
+const el = id => document.getElementById(id);
+
+// ... (Distance and Location Logic)
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function add(){updateFooter()}
-
-function updateFooter(){
-  let qty=0,amt=0;
-  for(let i in cart){
-    qty+=cart[i];
-    amt+=cart[i]*items[i].price;
-  }
-  cartCount.innerText=qty;
-  footerText.innerText=`${qty} items • ₹${amt}`;
+async function verifyLocationAccess() {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(false);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const d = distanceKm(pos.coords.latitude, pos.coords.longitude, SHOP_LAT, SHOP_LNG);
+        res(d <= SERVICE_RADIUS_KM);
+      },
+      () => res(false),
+      { maximumAge: 60000, timeout: 8000 }
+    );
+  });
 }
 
-/* ============================================================
-CHECKOUT POPUP
-============================================================ */
-function openCart(){
-  const box=document.getElementById("cartItems");
-  box.innerHTML="";
-  let amt=0;
+function isAdminSession() { return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"; }
+function setAdminSession(flag = true) { flag ? sessionStorage.setItem(ADMIN_SESSION_KEY, "1") : sessionStorage.removeItem(ADMIN_SESSION_KEY); }
 
-  for(let i in cart){
-    if(cart[i]>0){
-      box.innerHTML+=`${items[i].name} x ${cart[i]}<br>`;
-      amt+=cart[i]*items[i].price;
+let items = [];
+let cart = {};
+
+function createSafeImage(src, alt = "") {
+  const img = document.createElement("img");
+  img.loading = "lazy";
+  img.className = "product-img";
+  img.src = src || "https://via.placeholder.com/150";
+  return img;
+}
+
+async function loadItems() {
+  try {
+    const snap = await db.collection("items").get();
+    items = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      items.push({ docId: doc.id, ...d, mrp: d.mrp||0, salePrice: d.price||0, stock: d.stock||0 });
+    });
+    renderItems(items);
+    updateCartCount();
+  } catch (e) { console.error(e); el("products").innerHTML = "Error loading items."; }
+}
+
+function renderItems(list) {
+  const box = el("products");
+  box.innerHTML = "";
+  list.forEach(it => {
+    const div = document.createElement("div");
+    div.className = "card";
+    const cur = cart[it.docId]?.qty || 0;
+    div.innerHTML = `
+      <div class="image-box"><img src="${it.image}" class="product-img"></div>
+      <div class="item-name">${it.name}</div>
+      <div class="price-row"><div class="small-mrp">₹${it.mrp}</div><div class="sale">₹${it.salePrice}</div></div>
+      <div class="qty-controls">
+        <button onclick="changeQty('${it.docId}', -1)">-</button>
+        <div id="qty-${it.docId}">${cur}</div>
+        <button onclick="changeQty('${it.docId}', 1)">+</button>
+      </div>
+      <button class="add-btn" ${it.stock <= 0 ? 'disabled' : ''} onclick="changeQty('${it.docId}', 1)">
+        ${it.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+      </button>
+    `;
+    box.appendChild(div);
+  });
+}
+
+function changeQty(docId, delta) {
+  const it = items.find(x => x.docId === docId);
+  const cur = cart[docId]?.qty || 0;
+  let next = cur + delta;
+  if (next < 0) next = 0;
+  if (next > it.stock) { alert("Stock limit reached"); next = it.stock; }
+  
+  if (next === 0) delete cart[docId];
+  else cart[docId] = { qty: next, name: it.name, price: it.salePrice };
+
+  const d = el(`qty-${docId}`);
+  if (d) d.textContent = next;
+  updateCartCount();
+  localStorage.setItem(CART_LS_KEY, JSON.stringify(cart));
+}
+
+function updateCartCount() {
+  let count = 0, total = 0;
+  Object.values(cart).forEach(it => { count += it.qty; total += it.qty * it.price; });
+  
+  el("cart-count").innerText = count;
+  el("footer-item-count").innerText = `${count} Items`;
+  el("footer-total").innerText = money(total);
+  el("total-amount").innerText = money(total);
+  
+  const cbox = el("cart-items");
+  cbox.innerHTML = Object.values(cart).map(it => `
+    <div style="display:flex; justify-content:space-between; padding:8px 0;">
+      <span>${it.name} x ${it.qty}</span>
+      <span>₹${it.qty * it.price}</span>
+    </div>
+  `).join("");
+}
+
+// Search, Modals, and WhatsApp logic
+el("search").oninput = (e) => {
+    const q = e.target.value.toLowerCase();
+    renderItems(items.filter(it => it.name.toLowerCase().includes(q)));
+};
+
+el("open-cart-btn").onclick = () => el("cart-modal").classList.remove("hidden");
+el("close-cart").onclick = () => el("cart-modal").classList.add("hidden");
+
+el("send-whatsapp").onclick = async () => {
+    const customer = {
+        name: el("customer-name").value.trim(),
+        phone: el("customer-phone").value.trim(),
+        address: el("customer-address").value.trim(),
+        payment: el("payment-mode").value
+    };
+    if(!customer.name || !customer.phone || !customer.address) return alert("Please fill all details");
+
+    const msg = `Order from ${customer.name}\n---\n` + 
+                Object.values(cart).map(it => `${it.name} x ${it.qty}`).join("\n") + 
+                `\n---\nTotal: ₹${el("total-amount").innerText}\nAddress: ${customer.address}`;
+    
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+};
+
+(async function init() {
+    const raw = localStorage.getItem(CART_LS_KEY);
+    if(raw) cart = JSON.parse(raw);
+    
+    if (isAdminSession()) { await loadItems(); return; }
+    const allowed = await verifyLocationAccess();
+    if (!allowed) {
+        document.body.innerHTML = `<div style="padding:50px; text-align:center;"><h2>Service unavailable in your area</h2><p>We deliver within ${SERVICE_RADIUS_KM}km.</p></div>`;
+        return;
     }
-  }
-  box.innerHTML+=`<br><b>Total: ₹${amt}</b>`;
-
-  document.body.classList.add("cart-open");
-  cartModal.classList.add("show");
-}
-
-function closeCart(){
-  document.body.classList.remove("cart-open");
-  cartModal.classList.remove("show");
-}
+    await loadItems();
+})();
 </script>
-
 </body>
 </html>
+
