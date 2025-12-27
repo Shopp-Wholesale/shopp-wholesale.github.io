@@ -1,332 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Shopp Wholesale</title>
 
-<title>Shopp Wholesale</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<style>
-/* ============================================================
-GLOBAL RESET + VARIABLES + TYPOGRAPHY
-============================================================ */
-:root {
-  --accent: #19a74a;
-  --bg: #f4f9f4;
-  --card: #ffffff;
-  --muted: #6f6f6f;
-  --img-box: #eef8ee;
-}
+  <style>
+    /* ⭐ GLOBAL RESET */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100%; margin: 0; padding: 0;
+      overflow-x: hidden; background: #f4f9f4;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
 
-/* RESET */
-* { margin:0; padding:0; box-sizing:border-box }
+    /* ⭐ HEADER & SEARCH */
+    .site-header {
+      background: #fff; padding: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee;
+    }
+    .brand-name { font-weight: 800; font-size: 20px; color: #111; }
+    .tagline { font-size: 11px; color: #666; }
 
-html, body {
-  width:100%;
-  overflow-x:hidden;
-  background:var(--bg);
-  font-family:Inter,system-ui,Arial;
-  color:#111;
-  letter-spacing:-0.2px;
-}
+    .search-container { padding: 15px; background: #fff; }
+    #search {
+      width: 100%; padding: 12px; border-radius: 10px;
+      border: 1px solid #ddd; font-size: 14px; outline: none;
+    }
 
-body.cart-open {
-  overflow: hidden; /* 🔒 lock background */
-}
+    /* ⭐ PRODUCT GRID (2 TILES MOBILE / 4 TILES WEB) */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr); /* 2 tiles on mobile */
+      gap: 12px; padding: 12px; padding-bottom: 100px;
+    }
 
-/* ============================================================
-HEADER
-============================================================ */
-.site-header{
-  position:sticky;
-  top:0;
-  z-index:20;
-  background:#fff;
-  padding:14px 18px;
-  display:flex;
-  justify-content:space-between;
-  box-shadow:0 1px 6px rgba(0,0,0,.05);
-}
+    @media (min-width: 768px) {
+      .product-grid { grid-template-columns: repeat(4, 1fr); } /* 4 tiles on web */
+    }
 
-.brand-name{font-size:20px;font-weight:700}
-.tagline{font-size:12px;color:var(--muted)}
+    /* ⭐ PRODUCT CARD (FIXED HEIGHT) */
+    .card {
+      background: #fff; border-radius: 12px; padding: 10px;
+      display: flex; flex-direction: column;
+      border: 1px solid #eee; height: 100%;
+    }
 
-.cart-display{
-  background:#fff;
-  border:1px solid #ddd;
-  padding:6px 12px;
-  border-radius:6px;
-  font-weight:600;
-}
+    .image-box {
+      width: 100%; aspect-ratio: 1/1; background: #f9f9f9;
+      border-radius: 8px; margin-bottom: 8px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .product-img { width: 100%; height: 100%; object-fit: contain; }
+    .no-img { color: #ccc; font-size: 10px; font-weight: bold; }
 
-/* ============================================================
-SEARCH
-============================================================ */
-.controls{padding:12px 16px}
-.search-box{
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ccc;
-}
+    .item-name {
+      font-size: 13px; font-weight: 600; color: #333;
+      height: 34px; overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
 
-/* ============================================================
-PRODUCT GRID
-============================================================ */
-#products{
-  padding:6px 6px 120px;
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:6px;
-}
-@media(min-width:768px){
-  #products{grid-template-columns:repeat(4,1fr)}
-}
+    .price-row { margin-top: auto; padding-top: 8px; }
+    .mrp { font-size: 10px; color: #999; text-decoration: line-through; }
+    .sale { font-size: 15px; font-weight: 700; color: #111; display: block; }
 
-/* ============================================================
-PRODUCT CARD
-============================================================ */
-.card{
-  background:var(--bg);
-  border-radius:10px;
-  padding:6px;
-  display:flex;
-  flex-direction:column;
-}
+    /* ⭐ BUTTONS */
+    .add-btn {
+      width: 100%; margin-top: 10px; padding: 8px;
+      border: 1.5px solid #19a74a; background: #fff;
+      color: #19a74a; border-radius: 8px; font-weight: bold;
+      cursor: pointer; font-size: 13px;
+    }
+    .qty-controls {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; background: #f0f3f0; border-radius: 8px; padding: 4px;
+    }
+    .qty-btn {
+      background: #fff; border: none; width: 28px; height: 28px;
+      border-radius: 6px; font-weight: bold; color: #19a74a; cursor: pointer;
+    }
 
-.image-box{
-  background:var(--img-box);
-  aspect-ratio:1/1;
-  border-radius:6px;
-  overflow:hidden;
-}
-.product-img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
+    /* ⭐ CART FOOTER & MODAL */
+    .cart-footer {
+      position: fixed; bottom: 0; width: 100%; height: 65px;
+      background: #fff; display: flex; justify-content: space-between;
+      align-items: center; padding: 0 20px; border-top: 1px solid #eee; z-index: 1000;
+    }
+    .footer-checkout-btn {
+      background: #19a74a; color: #fff; border: none;
+      padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;
+    }
 
-.item-name{
-  margin:6px 0 2px;
-  font-size:13.5px;
-  font-weight:600;
-}
-
-.price-row{
-  display:flex;
-  gap:6px;
-  align-items:baseline;
-}
-.small-mrp{
-  font-size:11px;
-  color:#777;
-  text-decoration:line-through;
-}
-.sale{
-  font-size:16px;
-  font-weight:700;
-}
-
-.qty-controls{
-  margin-top:6px;
-  display:flex;
-  gap:6px;
-  align-items:center;
-}
-.qty-controls button{
-  width:28px;height:28px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  background:#fff;
-  font-weight:700;
-}
-.qty-display{
-  min-width:22px;
-  text-align:center;
-}
-
-.add-btn{
-  margin-top:6px;
-  height:34px;
-  border-radius:6px;
-  border:1px solid var(--accent);
-  background:#fff;
-  color:var(--accent);
-  font-weight:600;
-}
-
-/* ============================================================
-CART FOOTER
-============================================================ */
-.cart-footer{
-  position:fixed;
-  bottom:0;left:0;right:0;
-  height:56px;
-  background:#fff;
-  padding:10px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  box-shadow:0 -2px 6px rgba(0,0,0,.08);
-  z-index:30;
-}
-
-.footer-checkout-btn{
-  background:var(--accent);
-  color:#fff;
-  padding:10px 16px;
-  border-radius:10px;
-  border:none;
-  font-weight:700;
-}
-
-/* ============================================================
-CART MODAL (POPUP)
-============================================================ */
-.cart-modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.35);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:100;
-}
-.cart-modal.show{
-  display:flex;
-}
-
-.cart-content{
-  background:#fff;
-  width:92%;
-  max-width:420px;
-  border-radius:14px;
-  padding:16px;
-  max-height:85vh;
-  overflow-y:auto;
-}
-</style>
+    .cart-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 2000; display: flex; justify-content: center; align-items: flex-end;
+    }
+    .cart-modal.hidden { display: none; }
+    .cart-content {
+      background: #fff; width: 100%; max-width: 500px;
+      border-radius: 20px 20px 0 0; padding: 20px; max-height: 80vh; overflow-y: auto;
+    }
+    .primary { width: 100%; background: #19a74a; color: #fff; border: none; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+    input, textarea, select { width: 100%; margin-bottom: 10px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+  </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
-<header class="site-header">
-  <div>
-    <div class="brand-name">Shopp Wholesale</div>
-    <div class="tagline">Fast delivery • 3 km radius</div>
+  <header class="site-header">
+    <div>
+      <div class="brand-name">Shopp Wholesale</div>
+      <div class="tagline">Within 24 hrs • Radius: 3 km</div>
+    </div>
+    <div id="open-cart-btn" style="cursor:pointer; background:#f0f0f0; padding:8px 12px; border-radius:8px;">
+      🛒 <span id="cart-count">0</span>
+    </div>
+  </header>
+
+  <div class="search-container">
+    <input id="search" placeholder="Search products..." />
   </div>
-  <div class="cart-display" id="cartCount">0</div>
-</header>
 
-<!-- SEARCH -->
-<div class="controls">
-  <input class="search-box" placeholder="Search grocery items…" />
-</div>
+  <div id="products" class="product-grid"></div>
 
-<!-- PRODUCTS -->
-<div id="products"></div>
-
-<!-- FOOTER -->
-<div class="cart-footer">
-  <div id="footerText">0 items • ₹0</div>
-  <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
-</div>
-
-<!-- CART POPUP -->
-<div class="cart-modal" id="cartModal">
-  <div class="cart-content">
-    <h3>Your Cart</h3>
-    <div id="cartItems" style="margin:10px 0"></div>
-    <button onclick="closeCart()">Close</button>
+  <div class="cart-footer" id="cart-footer">
+    <div><strong>₹<span id="footer-total">0</span></strong> <span style="font-size:12px; color:#666;">(<span id="footer-item-count">0</span> Items)</span></div>
+    <button id="open-cart-btn-2" class="footer-checkout-btn">Checkout</button>
   </div>
-</div>
 
-<script>
-/* ============================================================
-DATA (demo)
-============================================================ */
-const items=[
- {name:"Toor dal 2kg",mrp:300,price:240,img:"https://i.imgur.com/6X4dF.jpg"},
- {name:"Rin 225g",mrp:22,price:19,img:"https://i.imgur.com/5Zp0k.jpg"},
- {name:"Biscuit 25g",mrp:10,price:10,img:"https://i.imgur.com/XeKpZ.jpg"},
- {name:"Sunflower Oil 1L",mrp:140,price:118,img:"https://i.imgur.com/0qM7R.jpg"}
-];
-
-const cart={};
-const products=document.getElementById("products");
-
-/* ============================================================
-RENDER PRODUCTS
-============================================================ */
-items.forEach((p,i)=>{
-  products.innerHTML+=`
-  <div class="card">
-    <div class="image-box">
-      <img class="product-img" src="${p.img}">
+  <div id="cart-modal" class="cart-modal hidden">
+    <div class="cart-content">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Review Order</h3>
+        <button id="close-cart" style="background:none; border:none; font-size:24px;">&times;</button>
+      </div>
+      <div id="cart-items"></div>
+      <div style="border-top: 1px solid #eee; padding: 10px 0; font-weight:bold;">Total: ₹<span id="total-amount">0</span></div>
+      <input id="customer-name" placeholder="Name" />
+      <input id="customer-phone" type="tel" placeholder="Phone" />
+      <textarea id="customer-address" placeholder="Address"></textarea>
+      <select id="payment-mode"><option value="Cash">Cash on Delivery</option><option value="UPI">UPI</option></select>
+      <button id="send-whatsapp" class="primary">Place Order on WhatsApp</button>
     </div>
-    <div class="item-name">${p.name}</div>
-    <div class="price-row">
-      <div class="small-mrp">₹${p.mrp}</div>
-      <div class="sale">₹${p.price}</div>
-    </div>
-    <div class="qty-controls">
-      <button onclick="updateQty(${i},-1)">-</button>
-      <div class="qty-display" id="q${i}">0</div>
-      <button onclick="updateQty(${i},1)">+</button>
-    </div>
-    <button class="add-btn" onclick="add(${i})">Add to cart</button>
-  </div>`;
-});
+  </div>
 
-/* ============================================================
-CART LOGIC
-============================================================ */
-function updateQty(i,d){
-  cart[i]=(cart[i]||0)+d;
-  if(cart[i]<0)cart[i]=0;
-  document.getElementById("q"+i).innerText=cart[i];
-}
+  <script>
+    // --- FIREBASE INITIALIZATION ---
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-function add(){updateFooter()}
+    let products = [];
+    let cart = {};
 
-function updateFooter(){
-  let qty=0,amt=0;
-  for(let i in cart){
-    qty+=cart[i];
-    amt+=cart[i]*items[i].price;
-  }
-  cartCount.innerText=qty;
-  footerText.innerText=`${qty} items • ₹${amt}`;
-}
-
-/* ============================================================
-CHECKOUT POPUP
-============================================================ */
-function openCart(){
-  const box=document.getElementById("cartItems");
-  box.innerHTML="";
-  let amt=0;
-
-  for(let i in cart){
-    if(cart[i]>0){
-      box.innerHTML+=`${items[i].name} x ${cart[i]}<br>`;
-      amt+=cart[i]*items[i].price;
+    // --- LOAD PRODUCTS ---
+    async function loadProducts() {
+      const snap = await db.collection("items").get();
+      products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderProducts(products);
     }
-  }
-  box.innerHTML+=`<br><b>Total: ₹${amt}</b>`;
 
-  document.body.classList.add("cart-open");
-  cartModal.classList.add("show");
-}
+    function renderProducts(list) {
+      const grid = document.getElementById("products");
+      grid.innerHTML = list.map(item => {
+        const qty = cart[item.id] || 0;
+        return `
+          <div class="card">
+            <div class="image-box">
+              ${item.image ? `<img src="${item.image}" class="product-img">` : `<span class="no-img">NO IMAGE</span>`}
+            </div>
+            <div class="item-name">${item.name}</div>
+            <div class="price-row">
+              <span class="mrp">₹${item.mrp || item.price}</span>
+              <span class="sale">₹${item.price}</span>
+            </div>
+            ${qty > 0 ? `
+              <div class="qty-controls">
+                <button class="qty-btn" onclick="updateQty('${item.id}', -1)">-</button>
+                <span>${qty}</span>
+                <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
+              </div>
+            ` : `
+              <button class="add-btn" onclick="updateQty('${item.id}', 1)">ADD TO CART</button>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
 
-function closeCart(){
-  document.body.classList.remove("cart-open");
-  cartModal.classList.remove("show");
-}
-</script>
+    // --- CART LOGIC ---
+    function updateQty(id, change) {
+      cart[id] = (cart[id] || 0) + change;
+      if (cart[id] <= 0) delete cart[id];
+      updateTotals();
+      renderProducts(products);
+    }
 
+    function updateTotals() {
+      let count = 0, total = 0;
+      Object.keys(cart).forEach(id => {
+        const item = products.find(p => p.id === id);
+        if (item) {
+          count += cart[id];
+          total += item.price * cart[id];
+        }
+      });
+      document.getElementById("cart-count").innerText = count;
+      document.getElementById("footer-item-count").innerText = count;
+      document.getElementById("footer-total").innerText = total;
+      document.getElementById("total-amount").innerText = total;
+    }
+
+    // --- UI EVENTS ---
+    document.getElementById("open-cart-btn").onclick = () => document.getElementById("cart-modal").classList.remove("hidden");
+    document.getElementById("open-cart-btn-2").onclick = () => document.getElementById("cart-modal").classList.remove("hidden");
+    document.getElementById("close-cart").onclick = () => document.getElementById("cart-modal").classList.add("hidden");
+
+    document.getElementById("search").oninput = (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtered = products.filter(p => p.name.toLowerCase().includes(q));
+      renderProducts(filtered);
+    };
+
+    document.getElementById("send-whatsapp").onclick = () => {
+      const name = document.getElementById("customer-name").value;
+      const addr = document.getElementById("customer-address").value;
+      if (!name || !addr) return alert("Please fill details");
+
+      let text = `*New Order From ${name}*\n\n`;
+      Object.keys(cart).forEach(id => {
+        const item = products.find(p => p.id === id);
+        text += `- ${item.name} (x${cart[id]}) = ₹${item.price * cart[id]}\n`;
+      });
+      text += `\n*Total: ₹${document.getElementById("total-amount").innerText}*\n*Address:* ${addr}`;
+      window.open(`https://wa.me/919000810084?text=${encodeURIComponent(text)}`);
+    };
+
+    loadProducts();
+  </script>
 </body>
 </html>
-
+              
