@@ -68,18 +68,24 @@ html, body {
    FOOTER (The lower side checkout)
    ============================================================ */
 .cart-footer {
-  position:fixed; bottom:0; left:0; right:0; height:56px;
+  position:fixed; bottom:0; left:0; right:0; height:60px;
   background:#fff; padding:10px 14px; display:flex;
   justify-content:space-between; align-items:center;
-  box-shadow:0 -2px 6px rgba(0,0,0,.08); z-index:30;
+  box-shadow:0 -2px 10px rgba(0,0,0,.1); z-index:1000;
 }
 .footer-checkout-btn { background:var(--accent); color:#fff; padding:10px 18px; border-radius:10px; border:none; font-weight:700; cursor:pointer; }
 
 /* ============================================================
    CART MODAL (Popup for Customer Details)
    ============================================================ */
-.cart-modal { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; display:none; justify-content:center; align-items:flex-end; }
+.cart-modal { 
+    position:fixed; inset:0; background:rgba(0,0,0,0.5); 
+    z-index:2000; display:none; 
+    justify-content:center; align-items:flex-end; 
+}
+/* This class must be present for the script to show the modal */
 .cart-modal.show { display:flex; }
+
 .cart-content { 
     background:#fff; width:100%; max-width:500px; 
     border-radius:16px 16px 0 0; padding:20px; 
@@ -116,7 +122,9 @@ html, body {
 <div id="products"></div>
 
 <div class="cart-footer">
-  <div id="footerText"><span id="footer-item-count">0 items</span> • ₹<span id="footer-total">0</span></div>
+  <div id="footerText">
+      <span id="footer-item-count">0 items</span> • ₹<span id="footer-total">0</span>
+  </div>
   <button class="footer-checkout-btn" id="open-cart-btn">Checkout</button>
 </div>
 
@@ -140,7 +148,7 @@ html, body {
       <textarea id="customer-address" placeholder="Complete Delivery Address"></textarea>
       <select id="payment-mode">
         <option value="Cash">Cash on Delivery</option>
-        <option value="UPI">UPI / PhonePe / GPay</option>
+        <option value="UPI">UPI / Online Transfer</option>
       </select>
     </div>
 
@@ -177,7 +185,6 @@ let cart = {};
 
 /* ---------------- FUNCTIONS ---------------- */
 
-// Load items from Firebase
 async function loadItems() {
   try {
     const snap = await db.collection("items").get();
@@ -216,6 +223,7 @@ function renderItems(list) {
 
 function changeQty(docId, delta) {
   const it = items.find(x => x.docId === docId);
+  if(!it) return;
   const cur = cart[docId]?.qty || 0;
   let next = cur + delta;
 
@@ -223,12 +231,12 @@ function changeQty(docId, delta) {
   
   if (next === 0) {
     delete cart[docId];
-    el(`ctrl-${docId}`).style.display = "none";
-    el(`btn-${docId}`).style.display = "block";
+    if(el(`ctrl-${docId}`)) el(`ctrl-${docId}`).style.display = "none";
+    if(el(`btn-${docId}`)) el(`btn-${docId}`).style.display = "block";
   } else {
     cart[docId] = { qty: next, name: it.name, price: it.price };
-    el(`ctrl-${docId}`).style.display = "flex";
-    el(`btn-${docId}`).style.display = "none";
+    if(el(`ctrl-${docId}`)) el(`ctrl-${docId}`).style.display = "flex";
+    if(el(`btn-${docId}`)) el(`btn-${docId}`).style.display = "none";
   }
 
   if(el(`qty-${docId}`)) el(`qty-${docId}`).innerText = next;
@@ -259,21 +267,20 @@ function updateCartDisplay() {
 
 /* ---------------- EVENT LISTENERS ---------------- */
 
-// Modal Toggles
 el("open-cart-btn").onclick = () => {
     if(Object.keys(cart).length === 0) return alert("Your cart is empty!");
     el("cart-modal").classList.add("show");
 };
 
-el("close-cart").onclick = () => el("cart-modal").classList.remove("show");
+el("close-cart").onclick = () => {
+    el("cart-modal").classList.remove("show");
+};
 
-// Search Filter
 el("search").oninput = (e) => {
   const q = e.target.value.toLowerCase();
   renderItems(items.filter(it => it.name.toLowerCase().includes(q)));
 };
 
-// Checkout to WhatsApp
 el("send-whatsapp").onclick = async () => {
   const customer = {
     name: el("customer-name").value.trim(),
@@ -282,16 +289,17 @@ el("send-whatsapp").onclick = async () => {
     pay: el("payment-mode").value
   };
 
-  if(!customer.name || !customer.address) return alert("Please fill Name and Address");
+  if(!customer.name || !customer.address || !customer.phone) {
+      return alert("Please fill all details!");
+  }
 
   let total = el("total-amount").innerText;
   let orderList = Object.values(cart).map((o, i) => `${i+1}. ${o.name} x ${o.qty}`).join("\n");
   
-  const msg = `New Order — Shopp Wholesale\n------------------\n${orderList}\n------------------\nTotal: ₹${total}\n\nName: ${customer.name}\nPhone: ${customer.phone}\nAddress: ${customer.address}\nPayment: ${customer.pay}`;
+  const msg = `New Order — Shopp Wholesale\n------------------\n${orderList}\n------------------\nTotal: ₹${total}\n\nName: ${customer.name}\nPhone: ${customer.phone}\nAddress: ${customer.address}\nPayment: ${customer.pay}\n\nDelivery within 24 hrs.`;
   
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
   
-  // Optional: Clear cart after ordering
   cart = {};
   localStorage.removeItem(CART_LS_KEY);
   location.reload();
@@ -306,4 +314,4 @@ el("send-whatsapp").onclick = async () => {
 </script>
 </body>
 </html>
-
+     
