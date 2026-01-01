@@ -9,7 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <style>
-    /* ⭐ GLOBAL & GRID (Restores the 2-Tile Look) */
+    /* ⭐ GLOBAL RESET */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0; padding: 0; background: #f4f9f4;
@@ -22,7 +22,6 @@
       position: sticky; top: 0; z-index: 1000;
     }
     .brand-name { font-weight: 800; font-size: 18px; }
-    .tagline { font-size: 10px; color: #666; }
 
     .search-container { padding: 10px 16px; background: #fff; }
     #search {
@@ -30,7 +29,7 @@
       border: 1px solid #ddd; outline: none; background: #fcfcfc;
     }
 
-    /* ⭐ THE GRID: 2 Tiles Mobile, 4 Tiles Web */
+    /* ⭐ THE GRID */
     .product-grid {
       display: grid; grid-template-columns: repeat(2, 1fr);
       gap: 12px; padding: 12px; padding-bottom: 100px;
@@ -39,44 +38,51 @@
       .product-grid { grid-template-columns: repeat(4, 1fr); }
     }
 
-    /* ⭐ CLEAN TILES */
+    /* ⭐ CLEAN TILES - IMAGE FIXED TO EDGES */
     .card {
-      background: #fff; border-radius: 10px; padding: 10px;
+      background: #fff; border-radius: 12px; 
+      padding: 0 !important; /* Forces image to touch edges */
       display: flex; flex-direction: column; border: 1px solid #eee;
-      height: 100%; position: relative;
+      height: 100%; overflow: hidden; /* Clips image corners to card radius */
     }
 
     .image-box {
-      width: 100%; aspect-ratio: 1/1; background: #f9f9f9;
-      border-radius: 6px; margin-bottom: 8px; overflow: hidden;
+      width: 100%; aspect-ratio: 1/1; background: #fff;
+      margin-bottom: 0 !important; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
+      border-bottom: 1px solid #f5f5f5;
     }
-    .product-img { width: 100%; height: 100%; object-fit: contain; }
+    
+    .product-img { 
+      width: 100% !important; 
+      height: 100% !important; 
+      object-fit: cover !important; /* Stretches image to fill the square width */
+      display: block;
+    }
+
+    /* Text padding (since card padding is 0) */
+    .item-name, .price-row, .qty-controls { padding: 0 10px; }
 
     .item-name {
       font-size: 13px; font-weight: 600; color: #333;
-      height: 34px; overflow: hidden; line-height: 1.3;
+      margin-top: 10px; height: 34px; overflow: hidden; line-height: 1.3;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     }
 
-    .price-row { margin-top: auto; padding: 8px 0; }
+    .price-row { margin-top: auto; padding-top: 8px; }
     .small-mrp { font-size: 10px; color: #999; text-decoration: line-through; }
     .sale { font-size: 15px; font-weight: 700; color: #000; display: block; }
 
-    /* ⭐ BUTTONS & CONTROLS */
-    .add-btn {
-      width: 100%; padding: 8px; border-radius: 6px;
-      border: 1px solid #19a74a; background: #fff;
-      color: #19a74a; font-weight: 700; cursor: pointer; font-size: 12px;
-    }
+    /* ⭐ QTY CONTROLS (Always Visible) */
     .qty-controls {
       display: flex; align-items: center; justify-content: space-between;
-      background: #f0f4f0; border-radius: 6px; padding: 3px;
+      background: #f0f4f0; border-radius: 8px; margin: 10px; padding: 4px;
     }
     .qty-btn {
-      background: #fff; border: none; width: 28px; height: 28px;
-      border-radius: 4px; color: #19a74a; font-weight: bold; cursor: pointer;
+      background: #fff; border: none; width: 30px; height: 30px;
+      border-radius: 6px; color: #19a74a; font-weight: bold; cursor: pointer; font-size: 18px;
     }
+    .qty-num { font-weight: bold; font-size: 14px; }
 
     /* ⭐ STICKY FOOTER */
     .cart-footer {
@@ -132,18 +138,20 @@
         <h3>Your Cart</h3>
         <button id="close-cart" style="background:none; border:none; font-size:24px;">&times;</button>
       </div>
-      <div id="cart-items" style="margin-bottom:15px;"></div>
+      <div id="cart-items"></div>
       <div style="border-top:1px solid #eee; padding:10px 0; font-weight:700;">Total: ₹<span id="total-amount">0</span></div>
       <input id="customer-name" placeholder="Full Name">
       <input id="customer-phone" placeholder="Phone Number">
       <textarea id="customer-address" placeholder="Delivery Address" rows="2"></textarea>
-      <select id="payment-mode"><option value="Cash">Cash on Delivery</option><option value="UPI">UPI</option></select>
-      <button id="send-whatsapp" style="width:100%; background:#19a74a; color:#fff; border:none; padding:15px; border-radius:10px; font-weight:700;">Place Order on WhatsApp</button>
+      <select id="payment-mode">
+        <option value="Cash">Cash on Delivery</option>
+        <option value="UPI">UPI Payment</option>
+      </select>
+      <button id="send-whatsapp" style="width:100%; background:#19a74a; color:#fff; border:none; padding:15px; border-radius:10px; font-weight:700; margin-top:10px;">Place Order on WhatsApp</button>
     </div>
   </div>
 
   <script>
-    // Paste your Firebase Config here
     const firebaseConfig = {
       apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
       authDomain: "shopp-wholesale.firebaseapp.com",
@@ -154,9 +162,88 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    let allItems = [];
+    let cart = {};
+
+    async function loadProducts() {
+      const snap = await db.collection("items").get();
+      allItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderUI(allItems);
+    }
+
+    function renderUI(items) {
+      const grid = document.getElementById("products");
+      grid.innerHTML = items.map(item => {
+        const qty = cart[item.id] || 0;
+        return `
+          <div class="card">
+            <div class="image-box">
+              <img src="${item.image}" class="product-img">
+            </div>
+            <div class="item-name">${item.name}</div>
+            <div class="price-row">
+              <span class="small-mrp">₹${item.mrp || item.price}</span>
+              <span class="sale">₹${item.price}</span>
+            </div>
+            <div class="qty-controls">
+              <button class="qty-btn" onclick="updateQty('${item.id}', -1)">-</button>
+              <span class="qty-num">${qty}</span>
+              <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateQty(id, change) {
+      cart[id] = (cart[id] || 0) + change;
+      if (cart[id] <= 0) delete cart[id];
+      
+      let total = 0, count = 0;
+      Object.keys(cart).forEach(itemId => {
+        const item = allItems.find(i => i.id === itemId);
+        total += item.price * cart[itemId];
+        count += cart[itemId];
+      });
+      
+      document.getElementById("footer-total").innerText = total;
+      document.getElementById("footer-item-count").innerText = count;
+      document.getElementById("cart-count").innerText = count;
+      document.getElementById("total-amount").innerText = total;
+      renderUI(allItems);
+    }
+
+    // Modal Controls
+    const modal = document.getElementById("cart-modal");
+    document.getElementById("open-cart-btn").onclick = () => modal.classList.remove("hidden");
+    document.getElementById("open-cart-btn-2").onclick = () => modal.classList.remove("hidden");
+    document.getElementById("close-cart").onclick = () => modal.classList.add("hidden");
+
+    // Search Logic
+    document.getElementById("search").oninput = (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = allItems.filter(p => p.name.toLowerCase().includes(query));
+      renderUI(filtered);
+    };
+
+    // WhatsApp Order
+    document.getElementById("send-whatsapp").onclick = () => {
+      const name = document.getElementById("customer-name").value;
+      const addr = document.getElementById("customer-address").value;
+      if(!name || !addr) return alert("Fill Name and Address");
+
+      let text = `*New Order From ${name}*\n\n`;
+      Object.keys(cart).forEach(id => {
+        const item = allItems.find(p => p.id === id);
+        text += `- ${item.name} (x${cart[id]}) = ₹${item.price * cart[id]}\n`;
+      });
+      text += `\n*Total: ₹${document.getElementById("total-amount").innerText}*\n*Address:* ${addr}`;
+      window.open(`https://wa.me/919000810084?text=${encodeURIComponent(text)}`);
+    };
+
+    loadProducts();
   </script>
-  
-  <script src="script.js"></script>
 </body>
 </html>
 
