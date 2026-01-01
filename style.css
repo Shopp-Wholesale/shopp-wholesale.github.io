@@ -13,7 +13,7 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
       width: 100%; margin: 0; padding: 0;
-      overflow-x: hidden; background: #f4f9f4;
+      overflow-x: hidden; background: #f7f7f7;
       font-family: 'Inter', system-ui, sans-serif;
     }
 
@@ -25,7 +25,7 @@
     }
     .brand-name { font-weight: 800; font-size: 19px; }
 
-    .search-container { padding: 12px; background: #fff; }
+    .search-container { padding: 12px; background: #fff; border-bottom: 1px solid #eee; }
     #search {
       width: 100%; padding: 10px; border-radius: 8px;
       border: 1px solid #ddd; outline: none; background: #fcfcfc;
@@ -37,81 +37,82 @@
       gap: 10px; padding: 10px; padding-bottom: 120px;
     }
 
-    /* ⭐ TRUE EDGE-TO-EDGE CARD */
+    /* ⭐ PLAIN TEXT CARD DESIGN */
     .card {
-      background: #fff; border-radius: 8px; 
-      padding: 0 !important; /* Forces all children to touch borders */
-      display: flex; flex-direction: column;
-      border: 1px solid #e0e0e0; height: 100%; overflow: hidden;
+      background: #fff; 
+      border-radius: 12px; 
+      padding: 0 !important; /* Forces edge-to-edge content */
+      display: flex; 
+      flex-direction: column;
+      border: 1px solid #efefef; 
+      height: 100%; 
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
-    /* IMAGE SECTION */
+    /* FULL WIDTH IMAGE */
     .image-box {
-      width: 100%; aspect-ratio: 1/1; 
-      margin: 0; padding: 0; overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
+      width: 100%; 
+      aspect-ratio: 1/1; 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden;
+      border-bottom: 1px solid #f9f9f9;
     }
     .product-img { 
-      width: 100%; height: 100%; object-fit: cover; display: block;
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+      display: block;
     }
 
-    /* TEXT SECTION */
+    /* ⭐ PLAIN TEXT INFO SECTION (No padding white box) */
     .info-section {
-        padding: 8px;
+        padding: 10px 8px 0 8px; /* Internal breathing room for text */
         flex-grow: 1;
-        display: flex;
-        flex-direction: column;
+        background: transparent; /* Ensures it stays plain */
     }
 
     .item-name {
-      font-size: 12px; font-weight: 600; color: #333;
-      height: 32px; overflow: hidden; display: -webkit-box;
+      font-size: 13px; font-weight: 600; color: #333;
+      height: 34px; overflow: hidden; display: -webkit-box;
       -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      line-height: 1.2; margin-bottom: 4px;
+      line-height: 1.3; margin-bottom: 4px;
     }
 
-    .price-row { margin-top: auto; }
-    .mrp { font-size: 9px; color: #999; text-decoration: line-through; }
-    .sale { font-size: 14px; font-weight: 800; color: #000; display: block; }
+    .price-row { margin-top: 4px; }
+    .mrp { font-size: 10px; color: #999; text-decoration: line-through; margin-right: 4px; }
+    .sale { font-size: 15px; font-weight: 800; color: #111; }
 
-    /* ⭐ QTY CONTROLS - FULL WIDTH COLORED BLOCK */
+    /* ⭐ PLAIN QUANTITY SECTION (Edge-to-Edge) */
     .qty-controls {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #f1f8f3; /* Light green background to fill the space */
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
       width: 100%;
-      height: 40px;
-      border-top: 1px solid #e8eee9;
-      margin-top: 8px;
+      height: 44px;
+      margin-top: 10px;
+      border-top: 1px solid #f5f5f5;
+      background: #f9fdf9; /* Very subtle tint to distinguish button area */
     }
     
     .qty-btn {
       background: transparent; border: none; width: 45px; height: 100%;
-      color: #19a74a; font-weight: bold; cursor: pointer; font-size: 20px;
+      color: #19a74a; font-weight: bold; cursor: pointer; font-size: 22px;
     }
     
-    .qty-num { font-weight: 800; font-size: 14px; color: #333; }
+    .qty-num { font-weight: 800; font-size: 15px; color: #333; }
 
     /* ⭐ FOOTER */
     .cart-footer {
-      position: fixed; bottom: 0; width: 100%; height: 65px;
+      position: fixed; bottom: 0; width: 100%; height: 70px;
       background: #fff; border-top: 1px solid #eee; z-index: 1000;
       display: flex; justify-content: space-between; align-items: center; padding: 0 16px;
     }
-    .footer-checkout-btn {
+    .checkout-btn {
       background: #19a74a; color: #fff; border: none;
-      padding: 10px 20px; border-radius: 8px; font-weight: 700;
+      padding: 12px 24px; border-radius: 10px; font-weight: 700;
     }
-
-    .hidden { display: none !important; }
-    .cart-modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-      z-index: 2000; display: flex; align-items: flex-end; justify-content: center;
-    }
-    .cart-content {
-      background: #fff; width: 100%; max-width: 500px;
-      border-radius: 20px 20px 0 0; padding: 20px; max-height: 85vh; overflow-y: auto;
-    }
-    input, textarea { width: 100%; margin-bottom: 10px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
   </style>
 </head>
 
@@ -119,33 +120,27 @@
 
   <header class="site-header">
     <div class="brand-name">Shopp Wholesale</div>
-    <div id="open-cart-btn" style="cursor:pointer; background:#f0f0f0; padding:8px 12px; border-radius:8px;">
+    <div id="cart-indicator" style="background:#f0f0f0; padding:8px 12px; border-radius:8px;">
       🛒 <span id="cart-count">0</span>
     </div>
   </header>
 
   <div class="search-container">
-    <input id="search" placeholder="Search products..." autocomplete="off">
+    <input id="search" placeholder="Search grocery items..." autocomplete="off">
   </div>
 
   <div id="products" class="product-grid"></div>
 
   <div class="cart-footer">
-    <div><strong>₹<span id="footer-total">0</span></strong></div>
-    <button id="open-cart-btn-2" class="footer-checkout-btn">Checkout</button>
-  </div>
-
-  <div id="cart-modal" class="cart-modal hidden">
-    <div class="cart-content">
-      <h3>Your Cart</h3>
-      <div id="cart-items-list" style="margin-bottom:15px;"></div>
-      <input id="c-name" placeholder="Full Name">
-      <textarea id="c-addr" placeholder="Delivery Address" rows="2"></textarea>
-      <button id="wa-btn" style="width:100%; background:#19a74a; color:#fff; border:none; padding:15px; border-radius:10px; font-weight:700;">Order on WhatsApp</button>
+    <div>
+        <small style="color:#888;">Grand Total</small><br>
+        <strong>₹<span id="footer-total">0</span></strong>
     </div>
+    <button class="checkout-btn" onclick="openCart()">Checkout</button>
   </div>
 
   <script>
+    // Config and Firebase setup remains same
     const firebaseConfig = {
       apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
       authDomain: "shopp-wholesale.firebaseapp.com",
@@ -160,15 +155,15 @@
     let allItems = [];
     let cart = {};
 
-    async function start() {
+    async function loadProducts() {
       const snap = await db.collection("items").get();
       allItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      render(allItems);
+      renderUI(allItems);
     }
 
-    function render(list) {
+    function renderUI(list) {
       document.getElementById("products").innerHTML = list.map(item => {
-        const q = cart[item.id] || 0;
+        const qty = cart[item.id] || 0;
         return `
           <div class="card">
             <div class="image-box"><img src="${item.image}" class="product-img"></div>
@@ -180,31 +175,31 @@
                 </div>
             </div>
             <div class="qty-controls">
-              <button class="qty-btn" onclick="upd('${item.id}', -1)">-</button>
-              <span class="qty-num">${q}</span>
-              <button class="qty-btn" onclick="upd('${item.id}', 1)">+</button>
+              <button class="qty-btn" onclick="updateQty('${item.id}', -1)">-</button>
+              <span class="qty-num">${qty}</span>
+              <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
             </div>
           </div>`;
       }).join('');
     }
 
-    function upd(id, n) {
-      cart[id] = (cart[id] || 0) + n;
+    function updateQty(id, change) {
+      cart[id] = (cart[id] || 0) + change;
       if (cart[id] <= 0) delete cart[id];
-      let t = 0, c = 0;
+      
+      let total = 0, count = 0;
       Object.keys(cart).forEach(k => {
-        const i = allItems.find(p => p.id === k);
-        t += i.price * cart[k]; c += cart[k];
+        const item = allItems.find(p => p.id === k);
+        total += item.price * cart[k];
+        count += cart[k];
       });
-      document.getElementById("footer-total").innerText = t;
-      document.getElementById("cart-count").innerText = c;
-      render(allItems);
+      
+      document.getElementById("footer-total").innerText = total;
+      document.getElementById("cart-count").innerText = count;
+      renderUI(allItems);
     }
 
-    document.getElementById("open-cart-btn").onclick = () => document.getElementById("cart-modal").classList.remove("hidden");
-    document.getElementById("open-cart-btn-2").onclick = () => document.getElementById("cart-modal").classList.remove("hidden");
-
-    start();
+    loadProducts();
   </script>
 </body>
 </html>
