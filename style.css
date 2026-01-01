@@ -43,10 +43,10 @@
       .product-grid { grid-template-columns: repeat(4, 1fr); }
     }
 
-    /* ⭐ IMAGE FIX: EDGE-TO-EDGE */
+    /* ⭐ IMAGE FIX: TRUE EDGE-TO-EDGE */
     .card {
       background: #fff; border-radius: 12px; 
-      padding: 0 !important; 
+      padding: 0 !important; /* Forces removal of internal white space */
       display: flex; flex-direction: column;
       border: 1px solid #eee; height: 100%; overflow: hidden;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
@@ -56,7 +56,8 @@
       width: 100% !important; 
       aspect-ratio: 1/1; 
       background: #fff;
-      margin-bottom: 0 !important; 
+      margin: 0 !important; 
+      padding: 0 !important; /* Ensure no padding around the image */
       overflow: hidden;
       display: flex; align-items: center; justify-content: center;
       border-bottom: 1px solid #f5f5f5;
@@ -65,13 +66,15 @@
     .product-img { 
       width: 100% !important; 
       height: 100% !important; 
-      object-fit: contain !important; /* Change to 'cover' if you want image to fill entire square */
+      object-fit: cover !important; /* Stretches/crops image to fill the square completely */
       display: block;
-      padding: 8px; /* Breathing room for product labels */
+      padding: 0 !important; /* Remove breathing room to force edge-to-edge */
     }
 
-    /* Padding for text content */
-    .item-name, .price-row, .qty-controls { padding: 0 12px; }
+    /* Padding for text content only (since card is 0) */
+    .item-name, .price-row, .qty-controls { 
+        padding: 0 12px !important; 
+    }
 
     .item-name {
       font-size: 13px; font-weight: 600; color: #333; margin-top: 10px;
@@ -84,7 +87,7 @@
     .mrp { font-size: 11px; color: #999; text-decoration: line-through; margin-right: 4px; }
     .sale { font-size: 16px; font-weight: 800; color: #111; display: inline-block; }
 
-    /* ⭐ QTY CONTROLS (ALWAYS VISIBLE) */
+    /* ⭐ QTY CONTROLS */
     .qty-controls {
       display: flex; align-items: center; justify-content: space-between;
       margin-top: 12px; margin-bottom: 12px;
@@ -109,7 +112,6 @@
       font-size: 14px;
     }
 
-    /* ⭐ MODAL STYLES */
     .cart-modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       z-index: 2000; display: flex; justify-content: center; align-items: flex-end;
@@ -140,8 +142,7 @@
     <input id="search" placeholder="Search for products (e.g. Rice, Oil)..." />
   </div>
 
-  <div id="products" class="product-grid">
-    </div>
+  <div id="products" class="product-grid"></div>
 
   <div class="cart-footer" id="cart-footer">
     <div>
@@ -180,14 +181,12 @@
 
   <script>
     // --- FIREBASE CONFIG ---
-    // Make sure your firebaseConfig object is present here
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     let allItems = [];
     let cart = {};
 
-    // --- INITIAL LOAD ---
     async function loadData() {
       try {
         const snap = await db.collection("items").get();
@@ -222,19 +221,12 @@
       }).join('');
     }
 
-    // --- CART LOGIC ---
     function updateCart(id, change) {
       const currentQty = cart[id] || 0;
       const newQty = currentQty + change;
-      
-      if (newQty <= 0) {
-        delete cart[id];
-      } else {
-        cart[id] = newQty;
-      }
-      
+      if (newQty <= 0) { delete cart[id]; } else { cart[id] = newQty; }
       refreshTotals();
-      renderUI(allItems); // Re-renders to show updated numbers
+      renderUI(allItems);
     }
 
     function refreshTotals() {
@@ -262,20 +254,17 @@
       document.getElementById("cart-items-list").innerHTML = cartHtml || "<p style='text-align:center;color:#999;'>Your cart is empty</p>";
     }
 
-    // --- SEARCH ---
     document.getElementById("search").oninput = (e) => {
       const query = e.target.value.toLowerCase();
       const filtered = allItems.filter(p => p.name.toLowerCase().includes(query));
       renderUI(filtered);
     };
 
-    // --- MODAL CONTROLS ---
     const modal = document.getElementById("cart-modal");
     document.getElementById("open-cart-btn").onclick = () => modal.classList.remove("hidden");
     document.getElementById("open-cart-btn-2").onclick = () => modal.classList.remove("hidden");
     document.getElementById("close-cart").onclick = () => modal.classList.add("hidden");
 
-    // --- WHATSAPP SEND ---
     document.getElementById("whatsapp-btn").onclick = () => {
       const name = document.getElementById("cust-name").value.trim();
       const phone = document.getElementById("cust-phone").value.trim();
@@ -288,11 +277,7 @@
       }
 
       let message = `*New Order - Shopp Wholesale*\n\n`;
-      message += `*Customer:* ${name}\n`;
-      message += `*Phone:* ${phone}\n`;
-      message += `*Address:* ${addr}\n`;
-      message += `*Payment:* ${pay}\n\n`;
-      message += `*Items:*\n`;
+      message += `*Customer:* ${name}\n*Phone:* ${phone}\n*Address:* ${addr}\n*Payment:* ${pay}\n\n*Items:*\n`;
 
       Object.keys(cart).forEach(id => {
         const p = allItems.find(item => item.docId === id);
@@ -300,13 +285,11 @@
       });
 
       message += `\n*Total Amount: ₹${document.getElementById("total-amount").innerText}*`;
-      
-      const waUrl = `https://wa.me/919000810084?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, "_blank");
+      window.open(`https://wa.me/919000810084?text=${encodeURIComponent(message)}`, "_blank");
     };
 
     loadData();
   </script>
 </body>
 </html>
-      
+
