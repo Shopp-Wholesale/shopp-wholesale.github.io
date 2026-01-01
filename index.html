@@ -1,22 +1,41 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+
 <meta name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <title>Shopp Wholesale</title>
 
+<!-- ================= FIREBASE v8 (REQUIRED) ================= -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
+    authDomain: "shopp-wholesale.firebaseapp.com",
+    projectId: "shopp-wholesale",
+    storageBucket: "shopp-wholesale.firebasestorage.app",
+    messagingSenderId: "811103669232",
+    appId: "1:811103669232:web:825724b3738658192b6b35"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
 <style>
-:root {
+/* ============================================================
+GLOBAL RESET + VARIABLES
+============================================================ */
+:root{
   --accent:#19a74a;
   --bg:#f4f9f4;
-  --card:#fff;
+  --card:#ffffff;
   --muted:#6f6f6f;
   --img-box:#eef8ee;
 }
-
 *{margin:0;padding:0;box-sizing:border-box}
 
 html,body{
@@ -26,11 +45,7 @@ html,body{
   font-family:Inter,system-ui,Arial;
   color:#111;
 }
-
-body.cart-open{
-  height:100vh;
-  overflow:hidden;
-}
+body.cart-open{overflow:hidden}
 
 /* HEADER */
 .site-header{
@@ -69,7 +84,6 @@ body.cart-open{
 @media(min-width:768px){
   #products{grid-template-columns:repeat(4,1fr)}
 }
-
 .card{
   background:var(--bg);
   border-radius:10px;
@@ -88,11 +102,23 @@ body.cart-open{
   height:100%;
   object-fit:cover;
 }
-.item-name{margin:6px 0 2px;font-size:13.5px;font-weight:600}
+.item-name{
+  margin:6px 0 2px;
+  font-size:13.5px;
+  font-weight:600;
+}
 .price-row{display:flex;gap:6px}
-.small-mrp{font-size:11px;text-decoration:line-through;color:#777}
-.sale{font-size:16px;font-weight:700}
+.small-mrp{
+  font-size:11px;
+  color:#777;
+  text-decoration:line-through;
+}
+.sale{
+  font-size:16px;
+  font-weight:700;
+}
 
+/* QTY */
 .qty-controls{
   margin-top:6px;
   display:flex;
@@ -193,77 +219,89 @@ body.cart-open{
 </div>
 
 <script>
-const items=[
- {name:"Toor dal 2kg",mrp:300,price:240,img:"https://i.imgur.com/6X4dF.jpg"},
- {name:"Rin 225g",mrp:22,price:19,img:"https://i.imgur.com/5Zp0k.jpg"},
- {name:"Biscuit 25g",mrp:10,price:10,img:"https://i.imgur.com/XeKpZ.jpg"},
- {name:"Sunflower Oil 1L",mrp:140,price:118,img:"https://i.imgur.com/0qM7R.jpg"}
-];
+let items = [];
+let cart = {};
 
-const cart={};
-const products=document.getElementById("products");
+function money(v){return Number(v||0).toFixed(0);}
 
-items.forEach((p,i)=>{
-  products.innerHTML+=`
-  <div class="card">
-    <div class="image-box">
-      <img class="product-img" src="${p.img}">
-    </div>
-    <div class="item-name">${p.name}</div>
-    <div class="price-row">
-      <div class="small-mrp">₹${p.mrp}</div>
-      <div class="sale">₹${p.price}</div>
-    </div>
-    <div class="qty-controls">
-      <button onclick="updateQty(${i},-1)">-</button>
-      <div class="qty-display" id="q${i}">0</div>
-      <button onclick="updateQty(${i},1)">+</button>
-    </div>
-    <button class="add-btn" onclick="add(${i})">Add to cart</button>
-  </div>`;
-});
+async function loadItems(){
+  const snap = await db.collection("items").get();
+  items=[];
+  snap.forEach(doc=>{
+    const d=doc.data();
+    items.push({
+      id:doc.id,
+      name:d.name,
+      mrp:d.mrp,
+      price:d.price,
+      image:d.image || "https://via.placeholder.com/300"
+    });
+  });
+  render();
+}
 
-function updateQty(i,d){
+function render(){
+  const box=document.getElementById("products");
+  box.innerHTML="";
+  items.forEach((p,i)=>{
+    box.innerHTML+=`
+    <div class="card">
+      <div class="image-box">
+        <img class="product-img" src="${p.image}">
+      </div>
+      <div class="item-name">${p.name}</div>
+      <div class="price-row">
+        <div class="small-mrp">₹${money(p.mrp)}</div>
+        <div class="sale">₹${money(p.price)}</div>
+      </div>
+      <div class="qty-controls">
+        <button onclick="qty(${i},-1)">-</button>
+        <div class="qty-display">${cart[i]||0}</div>
+        <button onclick="qty(${i},1)">+</button>
+      </div>
+      <button class="add-btn" onclick="add(${i})">Add to cart</button>
+    </div>`;
+  });
+  updateFooter();
+}
+
+function qty(i,d){
   cart[i]=(cart[i]||0)+d;
   if(cart[i]<0)cart[i]=0;
-  document.getElementById("q"+i).innerText=cart[i];
-  updateFooter();
+  render();
 }
-
-function add(i){
-  if(!cart[i]) cart[i]=1;
-  updateFooter();
-}
+function add(i){if(!cart[i])cart[i]=1;render();}
 
 function updateFooter(){
-  let qty=0,amt=0;
+  let q=0,a=0;
   for(let i in cart){
-    qty+=cart[i];
-    amt+=cart[i]*items[i].price;
+    q+=cart[i];
+    a+=cart[i]*items[i].price;
   }
-  cartCount.innerText=qty;
-  footerText.innerText=`${qty} items • ₹${amt}`;
+  cartCount.innerText=q;
+  footerText.innerText=`${q} items • ₹${money(a)}`;
 }
 
 function openCart(){
-  const box=document.getElementById("cartItems");
+  let box=document.getElementById("cartItems");
   box.innerHTML="";
-  let amt=0;
+  let a=0;
   for(let i in cart){
-    if(cart[i]>0){
+    if(cart[i]){
       box.innerHTML+=`${items[i].name} x ${cart[i]}<br>`;
-      amt+=cart[i]*items[i].price;
+      a+=cart[i]*items[i].price;
     }
   }
-  box.innerHTML+=`<br><b>Total: ₹${amt}</b>`;
+  box.innerHTML+=`<br><b>Total: ₹${money(a)}</b>`;
   document.body.classList.add("cart-open");
   cartModal.classList.add("show");
 }
-
 function closeCart(){
   document.body.classList.remove("cart-open");
   cartModal.classList.remove("show");
 }
+
+loadItems();
 </script>
 
 </body>
