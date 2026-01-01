@@ -32,7 +32,7 @@
       border: 1px solid #ddd; font-size: 14px; outline: none;
     }
 
-    /* ⭐ PRODUCT GRID (2 TILES MOBILE / 4 TILES WEB) */
+    /* ⭐ PRODUCT GRID */
     .product-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr); 
@@ -43,22 +43,33 @@
       .product-grid { grid-template-columns: repeat(4, 1fr); }
     }
 
-    /* ⭐ PRODUCT CARD (UPDATED FOR FULL IMAGES) */
+    /* ⭐ IMAGE FIX: FULL WIDTH & NO SIDES */
     .card {
-      background: #fff; border-radius: 12px; padding: 0; 
+      background: #fff; border-radius: 12px; 
+      padding: 0 !important; /* Force remove internal white space */
       display: flex; flex-direction: column;
       border: 1px solid #eee; height: 100%; overflow: hidden;
     }
 
     .image-box {
-      width: 100%; aspect-ratio: 1/1; background: #f9f9f9;
-      margin-bottom: 0; overflow: hidden;
+      width: 100% !important; 
+      aspect-ratio: 1/1; 
+      background: #f9f9f9;
+      margin-bottom: 0 !important; 
+      overflow: hidden;
       display: flex; align-items: center; justify-content: center;
     }
-    .product-img { width: 100%; height: 100%; object-fit: cover; }
+
+    .product-img { 
+      width: 100% !important; 
+      height: 100% !important; 
+      object-fit: cover !important; /* Stretches image to fill the entire square */
+      display: block;
+    }
+
     .no-img { color: #ccc; font-size: 10px; font-weight: bold; }
 
-    /* Padding for text content now that card padding is 0 */
+    /* Padding for text content since card padding is 0 */
     .item-name, .price-row, .qty-controls { padding: 0 10px; }
 
     .item-name {
@@ -71,7 +82,7 @@
     .mrp { font-size: 10px; color: #999; text-decoration: line-through; }
     .sale { font-size: 15px; font-weight: 700; color: #111; display: block; }
 
-    /* ⭐ BUTTONS (UPDATED: NO ADD BUTTON, JUST CONTROLS) */
+    /* ⭐ QTY CONTROLS (ALWAYS VISIBLE, NO ADD BUTTON) */
     .qty-controls {
       display: flex; align-items: center; justify-content: space-between;
       margin-top: 10px; margin-bottom: 12px;
@@ -82,6 +93,9 @@
       font-size: 18px;
     }
     .qty-num { font-weight: bold; font-size: 14px; }
+
+    /* Hide any leftover Add buttons from previous versions */
+    .add-btn { display: none !important; }
 
     /* ⭐ CART FOOTER & MODAL */
     .cart-footer {
@@ -149,7 +163,7 @@
 
   <script>
     // --- FIREBASE INITIALIZATION ---
-    // Ensure your firebaseConfig is defined here or in an external file
+    // Ensure firebaseConfig is defined in your environment
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -239,4 +253,4 @@
   </script>
 </body>
 </html>
-                
+      
