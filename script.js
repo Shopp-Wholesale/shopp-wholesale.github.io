@@ -1,5 +1,5 @@
-// script.js — FINAL STABLE RELEASE (v9.1)
-// Fixed: Function nesting syntax error resolved.
+// script.js — FINAL STABLE RELEASE (v9.2)
+// Updated: Removed redundant Add Button & Fixed Full-Width Image Logic
 
 /* ---------------- CONFIG ---------------- */
 const WHATSAPP_NUMBER = "919000810084";
@@ -57,7 +57,6 @@ function setAdminSession(flag = true) {
 }
 
 /* ---------------- SAFE IMAGE HELPER ---------------- */
-// Moved outside loadItems to fix syntax error
 function createSafeImage(src, alt = "") {
   const img = document.createElement("img");
   img.loading = "lazy";
@@ -153,16 +152,19 @@ function renderItems(list) {
     const card = document.createElement("div");
     card.className = "card";
 
+    // 1. Image Box (Full Width Container)
     const imgBox = document.createElement("div");
     imgBox.className = "image-box";
     imgBox.appendChild(createSafeImage(it.image, it.name));
     card.appendChild(imgBox);
 
+    // 2. Name
     const nm = document.createElement("div");
     nm.className = "item-name";
     nm.textContent = it.name;
     card.appendChild(nm);
 
+    // 3. Price
     const price = document.createElement("div");
     price.className = "price-row";
     price.innerHTML = `
@@ -171,45 +173,42 @@ function renderItems(list) {
     `;
     card.appendChild(price);
 
+    // 4. Stock / Admin Info
     if (it.stock <= 0) {
       const s = document.createElement("div");
+      s.className = "stock-status";
       s.style.color = "#c00";
-      s.style.fontSize = "13px";
+      s.style.fontSize = "12px";
       s.textContent = "Out of stock";
       card.appendChild(s);
     }
 
     if (isAdminSession() && it.category) {
       const c = document.createElement("div");
-      c.style.fontSize = "12px";
-      c.style.color = "#555";
-      c.textContent = "Category: " + it.category;
+      c.style.fontSize = "11px";
+      c.style.color = "#888";
+      c.style.padding = "0 10px";
+      c.textContent = "Cat: " + it.category;
       card.appendChild(c);
     }
 
+    // 5. Quantity Controls (Always visible, Add Button removed)
     const controls = document.createElement("div");
     controls.className = "qty-controls";
     const cur = cart[it.docId]?.qty || 0;
 
     controls.innerHTML = `
-      <button class="dec" data-id="${it.docId}">-</button>
+      <button class="qty-btn dec" data-id="${it.docId}">-</button>
       <div class="qty-display" id="qty-${it.docId}">${cur}</div>
-      <button class="inc" data-id="${it.docId}">+</button>
+      <button class="qty-btn inc" data-id="${it.docId}">+</button>
     `;
     card.appendChild(controls);
-
-    const btn = document.createElement("button");
-    btn.className = "add-btn";
-    btn.dataset.id = it.docId;
-    btn.textContent = it.stock <= 0 ? "Unavailable" : "Add to cart";
-    btn.disabled = it.stock <= 0;
-    card.appendChild(btn);
 
     box.appendChild(card);
   });
 
   // Attach Events
-  box.querySelectorAll(".inc, .add-btn").forEach(b => 
+  box.querySelectorAll(".inc").forEach(b => 
     b.onclick = () => changeQty(b.dataset.id, 1)
   );
   box.querySelectorAll(".dec").forEach(b => 
@@ -433,3 +432,4 @@ function showAdminBadge() {
 
   await loadItems();
 })();
+
