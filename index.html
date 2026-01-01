@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,61 +9,48 @@
 <title>Shopp Wholesale</title>
 
 <style>
-/* ============================================================
-GLOBAL RESET + VARIABLES + TYPOGRAPHY
-============================================================ */
 :root {
-  --accent: #19a74a;
-  --bg: #f4f9f4;
-  --card: #ffffff;
-  --muted: #6f6f6f;
-  --img-box: #eef8ee;
+  --accent:#19a74a;
+  --bg:#f4f9f4;
+  --card:#fff;
+  --muted:#6f6f6f;
+  --img-box:#eef8ee;
 }
 
-/* RESET */
-* { margin:0; padding:0; box-sizing:border-box }
+*{margin:0;padding:0;box-sizing:border-box}
 
-html, body {
+html,body{
   width:100%;
   overflow-x:hidden;
   background:var(--bg);
   font-family:Inter,system-ui,Arial;
   color:#111;
-  letter-spacing:-0.2px;
 }
 
-body.cart-open {
-  overflow: hidden; /* 🔒 lock background */
+body.cart-open{
+  height:100vh;
+  overflow:hidden;
 }
 
-/* ============================================================
-HEADER
-============================================================ */
+/* HEADER */
 .site-header{
-  position:sticky;
-  top:0;
-  z-index:20;
+  position:sticky;top:0;z-index:20;
   background:#fff;
   padding:14px 18px;
   display:flex;
   justify-content:space-between;
   box-shadow:0 1px 6px rgba(0,0,0,.05);
 }
-
 .brand-name{font-size:20px;font-weight:700}
 .tagline{font-size:12px;color:var(--muted)}
-
 .cart-display{
-  background:#fff;
   border:1px solid #ddd;
   padding:6px 12px;
   border-radius:6px;
   font-weight:600;
 }
 
-/* ============================================================
-SEARCH
-============================================================ */
+/* SEARCH */
 .controls{padding:12px 16px}
 .search-box{
   width:100%;
@@ -71,9 +59,7 @@ SEARCH
   border:1px solid #ccc;
 }
 
-/* ============================================================
-PRODUCT GRID
-============================================================ */
+/* PRODUCTS */
 #products{
   padding:6px 6px 120px;
   display:grid;
@@ -84,9 +70,6 @@ PRODUCT GRID
   #products{grid-template-columns:repeat(4,1fr)}
 }
 
-/* ============================================================
-PRODUCT CARD
-============================================================ */
 .card{
   background:var(--bg);
   border-radius:10px;
@@ -94,7 +77,6 @@ PRODUCT CARD
   display:flex;
   flex-direction:column;
 }
-
 .image-box{
   background:var(--img-box);
   aspect-ratio:1/1;
@@ -106,27 +88,10 @@ PRODUCT CARD
   height:100%;
   object-fit:cover;
 }
-
-.item-name{
-  margin:6px 0 2px;
-  font-size:13.5px;
-  font-weight:600;
-}
-
-.price-row{
-  display:flex;
-  gap:6px;
-  align-items:baseline;
-}
-.small-mrp{
-  font-size:11px;
-  color:#777;
-  text-decoration:line-through;
-}
-.sale{
-  font-size:16px;
-  font-weight:700;
-}
+.item-name{margin:6px 0 2px;font-size:13.5px;font-weight:600}
+.price-row{display:flex;gap:6px}
+.small-mrp{font-size:11px;text-decoration:line-through;color:#777}
+.sale{font-size:16px;font-weight:700}
 
 .qty-controls{
   margin-top:6px;
@@ -141,10 +106,7 @@ PRODUCT CARD
   background:#fff;
   font-weight:700;
 }
-.qty-display{
-  min-width:22px;
-  text-align:center;
-}
+.qty-display{min-width:22px;text-align:center}
 
 .add-btn{
   margin-top:6px;
@@ -156,9 +118,7 @@ PRODUCT CARD
   font-weight:600;
 }
 
-/* ============================================================
-CART FOOTER
-============================================================ */
+/* FOOTER */
 .cart-footer{
   position:fixed;
   bottom:0;left:0;right:0;
@@ -171,7 +131,6 @@ CART FOOTER
   box-shadow:0 -2px 6px rgba(0,0,0,.08);
   z-index:30;
 }
-
 .footer-checkout-btn{
   background:var(--accent);
   color:#fff;
@@ -181,9 +140,7 @@ CART FOOTER
   font-weight:700;
 }
 
-/* ============================================================
-CART MODAL (POPUP)
-============================================================ */
+/* CART MODAL */
 .cart-modal{
   position:fixed;
   inset:0;
@@ -193,10 +150,7 @@ CART MODAL (POPUP)
   align-items:center;
   z-index:100;
 }
-.cart-modal.show{
-  display:flex;
-}
-
+.cart-modal.show{display:flex}
 .cart-content{
   background:#fff;
   width:92%;
@@ -211,7 +165,6 @@ CART MODAL (POPUP)
 
 <body>
 
-<!-- HEADER -->
 <header class="site-header">
   <div>
     <div class="brand-name">Shopp Wholesale</div>
@@ -220,21 +173,17 @@ CART MODAL (POPUP)
   <div class="cart-display" id="cartCount">0</div>
 </header>
 
-<!-- SEARCH -->
 <div class="controls">
   <input class="search-box" placeholder="Search grocery items…" />
 </div>
 
-<!-- PRODUCTS -->
 <div id="products"></div>
 
-<!-- FOOTER -->
 <div class="cart-footer">
   <div id="footerText">0 items • ₹0</div>
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
-<!-- CART POPUP -->
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3>Your Cart</h3>
@@ -244,9 +193,6 @@ CART MODAL (POPUP)
 </div>
 
 <script>
-/* ============================================================
-DATA (demo)
-============================================================ */
 const items=[
  {name:"Toor dal 2kg",mrp:300,price:240,img:"https://i.imgur.com/6X4dF.jpg"},
  {name:"Rin 225g",mrp:22,price:19,img:"https://i.imgur.com/5Zp0k.jpg"},
@@ -257,9 +203,6 @@ const items=[
 const cart={};
 const products=document.getElementById("products");
 
-/* ============================================================
-RENDER PRODUCTS
-============================================================ */
 items.forEach((p,i)=>{
   products.innerHTML+=`
   <div class="card">
@@ -280,16 +223,17 @@ items.forEach((p,i)=>{
   </div>`;
 });
 
-/* ============================================================
-CART LOGIC
-============================================================ */
 function updateQty(i,d){
   cart[i]=(cart[i]||0)+d;
   if(cart[i]<0)cart[i]=0;
   document.getElementById("q"+i).innerText=cart[i];
+  updateFooter();
 }
 
-function add(){updateFooter()}
+function add(i){
+  if(!cart[i]) cart[i]=1;
+  updateFooter();
+}
 
 function updateFooter(){
   let qty=0,amt=0;
@@ -301,14 +245,10 @@ function updateFooter(){
   footerText.innerText=`${qty} items • ₹${amt}`;
 }
 
-/* ============================================================
-CHECKOUT POPUP
-============================================================ */
 function openCart(){
   const box=document.getElementById("cartItems");
   box.innerHTML="";
   let amt=0;
-
   for(let i in cart){
     if(cart[i]>0){
       box.innerHTML+=`${items[i].name} x ${cart[i]}<br>`;
@@ -316,7 +256,6 @@ function openCart(){
     }
   }
   box.innerHTML+=`<br><b>Total: ₹${amt}</b>`;
-
   document.body.classList.add("cart-open");
   cartModal.classList.add("show");
 }
