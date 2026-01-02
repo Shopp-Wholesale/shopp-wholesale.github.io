@@ -30,6 +30,7 @@ input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
 </style>
 
 <script>
+/* ---------------- FIREBASE INIT ---------------- */
 const firebaseConfig={
  apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
  authDomain:"shopp-wholesale.firebaseapp.com",
@@ -55,7 +56,7 @@ const db=firebase.firestore();
   </div>
 </div>
 
-<!-- DASHBOARD STATS -->
+<!-- DASHBOARD -->
 <div class="card">
   <h3>Dashboard</h3>
   <div class="grid">
@@ -64,38 +65,9 @@ const db=firebase.firestore();
     <div><b>Month Orders</b><br><span id="d-month">0</span></div>
     <div><b>Items Sold</b><br><span id="d-items">0</span></div>
     <div><b>Order Value</b><br>₹<span id="d-revenue">0</span></div>
-    <div><b>Inventory Items</b><br><span id="inv-items">0</span></div>
+    <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
     <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
   </div>
-</div>
-
-<!-- ADD / EDIT ITEM -->
-<div class="card">
-<h3>Add / Edit Item</h3>
-<form id="item-form">
-<input type="hidden" id="item-id">
-
-<label>Name</label>
-<input id="item-name" required>
-
-<label>Category</label>
-<input id="item-category">
-
-<label>MRP</label>
-<input id="item-mrp" type="number">
-
-<label>Sale Price</label>
-<input id="item-price" type="number" required>
-
-<label>Stock</label>
-<input id="item-stock" type="number">
-
-<label>Image URL</label>
-<input id="item-image">
-
-<button class="btn primary" type="submit">Save Item</button>
-<button type="button" class="btn warn hidden" id="btn-delete">Delete</button>
-</form>
 </div>
 
 <!-- PRODUCTS -->
@@ -113,76 +85,118 @@ const db=firebase.firestore();
 </div>
 
 <script>
+document.addEventListener("DOMContentLoaded",()=>{
+
+/* ---------------- HELPERS ---------------- */
+const el=id=>document.getElementById(id);
+
+/* ---------------- ELEMENTS ---------------- */
+const btnLogin=el("btn-login");
+const btnLogout=el("btn-logout");
+const adminBadge=el("admin-badge");
+
+const dToday=el("d-today");
+const dWeek=el("d-week");
+const dMonth=el("d-month");
+const dItems=el("d-items");
+const dRevenue=el("d-revenue");
+
+const invItems=el("inv-items");
+const invValue=el("inv-value");
+
+const ordersList=el("orders-list");
+const itemsList=el("items-list");
+
+/* ---------------- AUTH ---------------- */
 const ADMIN_PIN="Sreekanth@1";
 
-/* LOGIN */
-btn-login.onclick=()=>{
- if(prompt("Enter Admin PIN")===ADMIN_PIN){
+btnLogin.onclick=()=>{
+ const pin=prompt("Enter Admin PIN");
+ if(pin===ADMIN_PIN){
   sessionStorage.setItem("admin","1");
-  location.reload();
- }
+  enableAdmin();
+ }else alert("Wrong PIN");
 };
-btn-logout.onclick=()=>{
+
+btnLogout.onclick=()=>{
  sessionStorage.removeItem("admin");
  location.reload();
 };
-if(sessionStorage.getItem("admin")){
- admin-badge.classList.remove("hidden");
- btn-login.classList.add("hidden");
- btn-logout.classList.remove("hidden");
-}else{
- document.body.innerHTML="<h3 style='padding:40px'>Admin Login Required</h3>";
+
+function enableAdmin(){
+ adminBadge.classList.remove("hidden");
+ btnLogin.classList.add("hidden");
+ btnLogout.classList.remove("hidden");
+ loadStats();
+ loadInventory();
+ loadOrders();
+ loadItems();
 }
 
-/* LOAD DASHBOARD */
+if(sessionStorage.getItem("admin")) enableAdmin();
+
+/* ---------------- DASHBOARD ---------------- */
 async function loadStats(){
  const now=new Date();
- const startDay=new Date(now.setHours(0,0,0,0));
- const startWeek=new Date(); startWeek.setDate(startWeek.getDate()-7);
- const startMonth=new Date(); startMonth.setDate(1);
+ const startDay=new Date(now); startDay.setHours(0,0,0,0);
+ const startWeek=new Date(now); startWeek.setDate(startWeek.getDate()-7);
+ const startMonth=new Date(now.getFullYear(),now.getMonth(),1);
 
  let today=0,week=0,month=0,items=0,revenue=0;
 
  const snap=await db.collection("orders").get();
- snap.forEach(d=>{
-  const o=d.data();
-  const t=o.createdAt?.toDate();
-  if(!t)return;
-  if(t>=startDay)today++;
-  if(t>=startWeek)week++;
-  if(t>=startMonth)month++;
-  o.items?.forEach(i=>items+=i.qty);
-  revenue+=o.total||0;
+ snap.forEach(doc=>{
+  const o=doc.data();
+  if(!o.createdAt) return;
+  const t=o.createdAt.toDate();
+  if(t>=startDay) today++;
+  if(t>=startWeek) week++;
+  if(t>=startMonth) month++;
+  (o.items||[]).forEach(i=>items+=Number(i.qty||0));
+  revenue+=Number(o.total||0);
  });
 
- d-today.innerText=today;
- d-week.innerText=week;
- d-month.innerText=month;
- d-items.innerText=items;
- d-revenue.innerText=revenue;
+ dToday.innerText=today;
+ dWeek.innerText=week;
+ dMonth.innerText=month;
+ dItems.innerText=items;
+ dRevenue.innerText=revenue;
 }
 
-/* INVENTORY */
+/* ---------------- INVENTORY ---------------- */
 async function loadInventory(){
- let totalItems=0,totalValue=0;
+ let qty=0,val=0;
  const snap=await db.collection("items").get();
- snap.forEach(d=>{
-  const i=d.data();
-  totalItems+=Number(i.stock||0);
-  totalValue+=Number(i.stock||0)*Number(i.price||0);
+ snap.forEach(doc=>{
+  const i=doc.data();
+  qty+=Number(i.stock||0);
+  val+=Number(i.stock||0)*Number(i.price||0);
  });
- inv-items.innerText=totalItems;
- inv-value.innerText=totalValue;
+ invItems.innerText=qty;
+ invValue.innerText=val;
 }
 
-/* LOAD ORDERS */
+/* ---------------- PRODUCTS ---------------- */
+async function loadItems(){
+ itemsList.innerHTML="";
+ const snap=await db.collection("items").orderBy("name").get();
+ snap.forEach(doc=>{
+  const i=doc.data();
+  itemsList.innerHTML+=`
+   <div class="item-admin">
+    <b>${i.name}</b><br>
+    <span class="muted">₹${i.price} • Stock: ${i.stock}</span>
+   </div>`;
+ });
+}
+
+/* ---------------- ORDERS ---------------- */
 async function loadOrders(){
- const box=orders-list;
- box.innerHTML="";
+ ordersList.innerHTML="";
  const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
- snap.forEach(d=>{
-  const o=d.data();
-  box.innerHTML+=`
+ snap.forEach(doc=>{
+  const o=doc.data();
+  ordersList.innerHTML+=`
    <div class="order-row">
     <b>${o.customerName}</b><br>
     ₹${o.total} • ${o.status}
@@ -190,10 +204,7 @@ async function loadOrders(){
  });
 }
 
-/* INIT */
-loadStats();
-loadInventory();
-loadOrders();
+});
 </script>
 
 </body>
