@@ -1,157 +1,200 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Shopp Wholesale — Admin</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Shopp Wholesale — Admin</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <style>
-    /* small admin-specific tweaks (you can move to style.css) */
-    .admin-wrap { max-width:900px; margin:18px auto; padding:12px; }
-    .admin-top { display:flex; gap:10px; align-items:center; justify-content:space-between; }
-    .admin-actions { display:flex; gap:8px; }
-    .card-small { background:#fff; border-radius:10px; padding:12px; box-shadow:0 1px 2px rgba(0,0,0,0.05); margin-top:12px; }
-    label { display:block; margin:8px 0 6px; font-weight:600; }
-    input[type=text], input[type=number], textarea, select { width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; }
-    .row { display:flex; gap:8px; }
-    .col { flex:1; }
-    .items-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin-top:12px; }
-    .item-admin { padding:12px; border-radius:12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Shopp Wholesale — Admin</title>
-  <link rel="stylesheet" href="style.css">
+<style>
+body{margin:0;background:#f4f9f4;font-family:system-ui}
+.admin-wrap{max-width:1000px;margin:20px auto;padding:14px}
+.admin-top{display:flex;justify-content:space-between;align-items:center}
+.btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+.btn.primary{background:#2bb26b;color:#fff}
+.btn.secondary{background:#e5e7eb}
+.btn.warn{background:#e53e3e;color:#fff}
+.small{font-size:13px}
+.hidden{display:none}
+.card{background:#fff;border-radius:10px;padding:14px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label{font-weight:600;margin-top:8px;display:block}
+input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
+.items-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+.item-admin{background:#fff;border-radius:10px;padding:12px}
+.muted{color:#666;font-size:13px}
+.order-row{background:#fff;border-radius:8px;padding:10px;margin-bottom:8px}
+</style>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-  <style>
-    .admin-wrap { max-width:900px; margin:18px auto; padding:12px; }
-    .admin-top { display:flex; gap:10px; align-items:center; justify-content:space-between; }
-    .admin-actions { display:flex; gap:8px; }
-    .card-small { background:#fff; border-radius:10px; padding:12px; box-shadow:0 1px 2px rgba(0,0,0,0.05); margin-top:12px; }
-    label { display:block; margin:8px 0 6px; font-weight:600; }
-    input[type=text], input[type=number], textarea, select { width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; }
-    .row { display:flex; gap:8px; }
-    .col { flex:1; }
-    .items-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin-top:12px; }
-    .item-admin { padding:12px; border-radius:12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-    .muted { color:#666; font-size:13px; }
-    .btn { background:#2bb26b; color:#fff; padding:8px 12px; border-radius:10px; border:0; cursor:pointer; }
-    .btn.secondary { background:#f1f5f9; color:#333; }
-    .btn.warn { background:#e53e3e; }
-    .small { padding:6px 8px; border-radius:8px; font-size:13px; }
-    .order-row { padding:10px; border-radius:8px; background:#fff; margin-bottom:8px; }
-    .hidden { display:none; }
-    .admin-pass { margin-left:12px; font-weight:700; border-radius:8px; padding:6px 8px; background:#f8fafc; }
-  </style>
-
-  <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
-      authDomain: "shopp-wholesale.firebaseapp.com",
-      projectId: "shopp-wholesale",
-      storageBucket: "shopp-wholesale.firebasestorage.app",
-      messagingSenderId: "811103669232",
-      appId: "1:811103669232:web:825724b3738658192b6b35"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
+<script>
+const firebaseConfig={
+ apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
+ authDomain:"shopp-wholesale.firebaseapp.com",
+ projectId:"shopp-wholesale",
+ appId:"1:811103669232:web:825724b3738658192b6b35"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+</script>
 </head>
 
 <body>
 
-  <div class="admin-wrap">
-    <div class="admin-top">
-      <h2>Shopp Wholesale — Admin</h2>
-      <div class="admin-actions">
-        <div id="admin-badge" class="admin-pass hidden">Admin</div>
-        <button id="btn-login" class="btn secondary small">Admin Login</button>
-        <button id="btn-logout" class="btn secondary small hidden">Logout</button>
-      </div>
-    </div>
+<div class="admin-wrap">
 
-    <!-- Add item -->
-    <div class="card-small" id="add-section">
-      <h3>Add / Edit Item</h3>
-
-      <form id="item-form">
-        <input type="hidden" id="item-docid" value="">
-
-        <div class="row">
-          <div class="col">
-            <label>Name</label>
-            <input id="item-name" type="text" placeholder="e.g. Sunflower Oil 1L" required>
-          </div>
-          <div class="col">
-            <label>Category (optional)</label>
-            <input id="item-category" type="text" placeholder="e.g. Oils">
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col">
-            <label>MRP (₹)</label>
-            <input id="item-mrp" type="number" min="0" step="1" value="0">
-          </div>
-          <div class="col">
-            <label>Sale Price (₹)</label>
-            <input id="item-price" type="number" min="0" step="1" value="0" required>
-          </div>
-          <div class="col">
-            <label>Stock</label>
-            <input id="item-stock" type="number" min="0" step="1" value="0">
-          </div>
-        </div>
-
-        <!-- ⭐ UPDATED IMAGE UPLOAD SECTION -->
-        <label>Image URL</label>
-
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <input id="item-image" type="text" class="input" placeholder="https://...image.jpg" style="flex:1;">
-          <button type="button" onclick="pickImage()" class="btn" 
-                  style="padding:6px 10px;background:#4CAF50;color:#fff;border-radius:5px;">
-              Select Image
-          </button>
-        </div>
-
-        <!-- FIXED: Removed capture="environment" -->
-        <input type="file" id="imagePicker" accept="image/*" style="display:none;">
-
-        <img id="imagePreview" 
-             style="width:60px;height:60px;border-radius:6px;object-fit:cover;display:none;margin-bottom:8px;">
-
-        <label>Description (optional)</label>
-        <textarea id="item-desc" rows="2"></textarea>
-
-        <div style="margin-top:10px; display:flex; gap:8px;">
-          <button type="submit" class="btn">Save Item</button>
-          <button id="btn-clear" type="button" class="btn secondary">Clear</button>
-          <button id="btn-delete" type="button" class="btn warn hidden">Delete</button>
-        </div>
-      </form>
-    </div>
-
-    <h3 style="margin-top:14px;">Products</h3>
-    <div id="items-list" class="items-grid"></div>
-
-    <h3 style="margin-top:18px;">Orders</h3>
-    <div id="orders-list"></div>
-
+<!-- HEADER -->
+<div class="admin-top">
+  <h2>Shopp Wholesale — Admin</h2>
+  <div>
+    <span id="admin-badge" class="hidden"><b>ADMIN</b></span>
+    <button id="btn-login" class="btn secondary small">Login</button>
+    <button id="btn-logout" class="btn secondary small hidden">Logout</button>
   </div>
+</div>
 
-  <script src="admin-script.js"></script>
+<!-- DASHBOARD STATS -->
+<div class="card">
+  <h3>Dashboard</h3>
+  <div class="grid">
+    <div><b>Today Orders</b><br><span id="d-today">0</span></div>
+    <div><b>Week Orders</b><br><span id="d-week">0</span></div>
+    <div><b>Month Orders</b><br><span id="d-month">0</span></div>
+    <div><b>Items Sold</b><br><span id="d-items">0</span></div>
+    <div><b>Order Value</b><br>₹<span id="d-revenue">0</span></div>
+    <div><b>Inventory Items</b><br><span id="inv-items">0</span></div>
+    <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
+  </div>
+</div>
+
+<!-- ADD / EDIT ITEM -->
+<div class="card">
+<h3>Add / Edit Item</h3>
+<form id="item-form">
+<input type="hidden" id="item-id">
+
+<label>Name</label>
+<input id="item-name" required>
+
+<label>Category</label>
+<input id="item-category">
+
+<label>MRP</label>
+<input id="item-mrp" type="number">
+
+<label>Sale Price</label>
+<input id="item-price" type="number" required>
+
+<label>Stock</label>
+<input id="item-stock" type="number">
+
+<label>Image URL</label>
+<input id="item-image">
+
+<button class="btn primary" type="submit">Save Item</button>
+<button type="button" class="btn warn hidden" id="btn-delete">Delete</button>
+</form>
+</div>
+
+<!-- PRODUCTS -->
+<div class="card">
+<h3>Products</h3>
+<div id="items-list" class="items-grid"></div>
+</div>
+
+<!-- ORDERS -->
+<div class="card">
+<h3>Orders</h3>
+<div id="orders-list"></div>
+</div>
+
+</div>
+
+<script>
+const ADMIN_PIN="Sreekanth@1";
+
+/* LOGIN */
+btn-login.onclick=()=>{
+ if(prompt("Enter Admin PIN")===ADMIN_PIN){
+  sessionStorage.setItem("admin","1");
+  location.reload();
+ }
+};
+btn-logout.onclick=()=>{
+ sessionStorage.removeItem("admin");
+ location.reload();
+};
+if(sessionStorage.getItem("admin")){
+ admin-badge.classList.remove("hidden");
+ btn-login.classList.add("hidden");
+ btn-logout.classList.remove("hidden");
+}else{
+ document.body.innerHTML="<h3 style='padding:40px'>Admin Login Required</h3>";
+}
+
+/* LOAD DASHBOARD */
+async function loadStats(){
+ const now=new Date();
+ const startDay=new Date(now.setHours(0,0,0,0));
+ const startWeek=new Date(); startWeek.setDate(startWeek.getDate()-7);
+ const startMonth=new Date(); startMonth.setDate(1);
+
+ let today=0,week=0,month=0,items=0,revenue=0;
+
+ const snap=await db.collection("orders").get();
+ snap.forEach(d=>{
+  const o=d.data();
+  const t=o.createdAt?.toDate();
+  if(!t)return;
+  if(t>=startDay)today++;
+  if(t>=startWeek)week++;
+  if(t>=startMonth)month++;
+  o.items?.forEach(i=>items+=i.qty);
+  revenue+=o.total||0;
+ });
+
+ d-today.innerText=today;
+ d-week.innerText=week;
+ d-month.innerText=month;
+ d-items.innerText=items;
+ d-revenue.innerText=revenue;
+}
+
+/* INVENTORY */
+async function loadInventory(){
+ let totalItems=0,totalValue=0;
+ const snap=await db.collection("items").get();
+ snap.forEach(d=>{
+  const i=d.data();
+  totalItems+=Number(i.stock||0);
+  totalValue+=Number(i.stock||0)*Number(i.price||0);
+ });
+ inv-items.innerText=totalItems;
+ inv-value.innerText=totalValue;
+}
+
+/* LOAD ORDERS */
+async function loadOrders(){
+ const box=orders-list;
+ box.innerHTML="";
+ const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
+ snap.forEach(d=>{
+  const o=d.data();
+  box.innerHTML+=`
+   <div class="order-row">
+    <b>${o.customerName}</b><br>
+    ₹${o.total} • ${o.status}
+   </div>`;
+ });
+}
+
+/* INIT */
+loadStats();
+loadInventory();
+loadOrders();
+</script>
+
 </body>
 </html>
