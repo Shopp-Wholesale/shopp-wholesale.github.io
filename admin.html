@@ -27,17 +27,16 @@ input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
 .item-admin{background:#fff;border-radius:10px;padding:12px}
 .muted{color:#666;font-size:13px}
 .order-row{background:#fff;border-radius:8px;padding:10px;margin-bottom:8px}
+img.preview{width:80px;height:80px;border-radius:8px;object-fit:cover;margin-top:6px}
 </style>
 
 <script>
-/* ---------------- FIREBASE INIT ---------------- */
-const firebaseConfig={
+/* FIREBASE */
+firebase.initializeApp({
  apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
  authDomain:"shopp-wholesale.firebaseapp.com",
- projectId:"shopp-wholesale",
- appId:"1:811103669232:web:825724b3738658192b6b35"
-};
-firebase.initializeApp(firebaseConfig);
+ projectId:"shopp-wholesale"
+});
 const db=firebase.firestore();
 </script>
 </head>
@@ -58,21 +57,22 @@ const db=firebase.firestore();
 
 <!-- DASHBOARD -->
 <div class="card">
-  <h3>Dashboard</h3>
-  <div class="grid">
-    <div><b>Today Orders</b><br><span id="d-today">0</span></div>
-    <div><b>Week Orders</b><br><span id="d-week">0</span></div>
-    <div><b>Month Orders</b><br><span id="d-month">0</span></div>
-    <div><b>Items Sold</b><br><span id="d-items">0</span></div>
-    <div><b>Order Value</b><br>₹<span id="d-revenue">0</span></div>
-    <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
-    <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
-  </div>
+<h3>Dashboard</h3>
+<div class="grid">
+ <div><b>Today Orders</b><br><span id="d-today">0</span></div>
+ <div><b>Week Orders</b><br><span id="d-week">0</span></div>
+ <div><b>Month Orders</b><br><span id="d-month">0</span></div>
+ <div><b>Items Sold</b><br><span id="d-items">0</span></div>
+ <div><b>Order Value</b><br>₹<span id="d-revenue">0</span></div>
+ <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
+ <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
+</div>
 </div>
 
 <!-- ADD / EDIT ITEM -->
 <div class="card">
 <h3>Add / Edit Item</h3>
+
 <form id="item-form">
 <input type="hidden" id="item-id">
 
@@ -93,6 +93,10 @@ const db=firebase.firestore();
 
 <label>Image URL</label>
 <input id="item-image">
+
+<button type="button" class="btn secondary small" onclick="pickImage()">Select Image</button>
+<input type="file" id="imagePicker" accept="image/*" class="hidden">
+<img id="imagePreview" class="preview hidden">
 
 <div style="margin-top:10px;display:flex;gap:8px">
 <button class="btn primary" type="submit">Save Item</button>
@@ -116,165 +120,130 @@ const db=firebase.firestore();
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded",()=>{
-
 const el=id=>document.getElementById(id);
 const ADMIN_PIN="Sreekanth@1";
 
-/* ELEMENTS */
-const btnLogin=el("btn-login");
-const btnLogout=el("btn-logout");
-const adminBadge=el("admin-badge");
-
-const dToday=el("d-today");
-const dWeek=el("d-week");
-const dMonth=el("d-month");
-const dItems=el("d-items");
-const dRevenue=el("d-revenue");
-
-const invItems=el("inv-items");
-const invValue=el("inv-value");
-
-const ordersList=el("orders-list");
-const itemsList=el("items-list");
-
 /* LOGIN */
-btnLogin.onclick=()=>{
+btn-login.onclick=()=>{
  if(prompt("Enter Admin PIN")===ADMIN_PIN){
   sessionStorage.setItem("admin","1");
-  enableAdmin();
- }else alert("Wrong PIN");
+  location.reload();
+ }
+};
+btn-logout.onclick=()=>{sessionStorage.clear();location.reload()};
+if(sessionStorage.getItem("admin")){
+ admin-badge.classList.remove("hidden");
+ btn-login.classList.add("hidden");
+ btn-logout.classList.remove("hidden");
+ loadAll();
+}
+
+/* IMAGE PICKER */
+function pickImage(){ el("imagePicker").click(); }
+imagePicker.onchange=()=>{
+ const f=imagePicker.files[0];
+ if(!f)return;
+ const r=new FileReader();
+ r.onload=e=>{
+  imagePreview.src=e.target.result;
+  imagePreview.classList.remove("hidden");
+  item-image.value=e.target.result; // base64
+ };
+ r.readAsDataURL(f);
 };
 
-btnLogout.onclick=()=>{
- sessionStorage.removeItem("admin");
+/* SAVE ITEM */
+item-form.onsubmit=async e=>{
+ e.preventDefault();
+ const id=item-id.value;
+ const data={
+  name:item-name.value,
+  category:item-category.value,
+  mrp:+item-mrp.value||0,
+  price:+item-price.value,
+  stock:+item-stock.value||0,
+  image:item-image.value
+ };
+ id?await db.collection("items").doc(id).update(data)
+   :await db.collection("items").add(data);
  location.reload();
 };
 
-function enableAdmin(){
- adminBadge.classList.remove("hidden");
- btnLogin.classList.add("hidden");
- btnLogout.classList.remove("hidden");
- loadStats(); loadInventory(); loadOrders(); loadItems();
+/* DELETE */
+btn-delete.onclick=async()=>{
+ if(confirm("Delete item?")){
+  await db.collection("items").doc(item-id.value).delete();
+  location.reload();
+ }
+};
+
+/* LOAD ALL */
+async function loadAll(){
+ loadStats(); loadInventory(); loadItems(); loadOrders();
 }
 
-if(sessionStorage.getItem("admin")) enableAdmin();
-
-/* DASHBOARD */
+/* DASHBOARD + INVENTORY */
 async function loadStats(){
- let today=0,week=0,month=0,items=0,revenue=0;
+ let t=0,w=0,m=0,i=0,r=0;
  const now=new Date();
  const d0=new Date(now.setHours(0,0,0,0));
  const w0=new Date(); w0.setDate(w0.getDate()-7);
  const m0=new Date(new Date().getFullYear(),new Date().getMonth(),1);
-
- const snap=await db.collection("orders").get();
- snap.forEach(doc=>{
-  const o=doc.data();
-  if(!o.createdAt) return;
-  const t=o.createdAt.toDate();
-  if(t>=d0)today++;
-  if(t>=w0)week++;
-  if(t>=m0)month++;
-  (o.items||[]).forEach(i=>items+=Number(i.qty||0));
-  revenue+=Number(o.total||0);
+ const s=await db.collection("orders").get();
+ s.forEach(d=>{
+  const o=d.data(); if(!o.createdAt)return;
+  const dt=o.createdAt.toDate();
+  if(dt>=d0)t++; if(dt>=w0)w++; if(dt>=m0)m++;
+  (o.items||[]).forEach(x=>i+=x.qty);
+  r+=o.total||0;
  });
-
- dToday.innerText=today;
- dWeek.innerText=week;
- dMonth.innerText=month;
- dItems.innerText=items;
- dRevenue.innerText=revenue;
+ d-today.innerText=t; d-week.innerText=w; d-month.innerText=m;
+ d-items.innerText=i; d-revenue.innerText=r;
 }
-
-/* INVENTORY */
 async function loadInventory(){
- let qty=0,val=0;
- const snap=await db.collection("items").get();
- snap.forEach(doc=>{
-  const i=doc.data();
-  qty+=Number(i.stock||0);
-  val+=Number(i.stock||0)*Number(i.price||0);
- });
- invItems.innerText=qty;
- invValue.innerText=val;
+ let q=0,v=0;
+ const s=await db.collection("items").get();
+ s.forEach(d=>{q+=d.data().stock||0;v+=(d.data().stock||0)*(d.data().price||0)});
+ inv-items.innerText=q; inv-value.innerText=v;
 }
-
-/* ADD / UPDATE ITEM */
-el("item-form").onsubmit=async e=>{
- e.preventDefault();
- const id=el("item-id").value;
- const data={
-  name:el("item-name").value,
-  category:el("item-category").value,
-  mrp:Number(el("item-mrp").value||0),
-  price:Number(el("item-price").value||0),
-  stock:Number(el("item-stock").value||0),
-  image:el("item-image").value
- };
- if(id) await db.collection("items").doc(id).update(data);
- else await db.collection("items").add(data);
-
- e.target.reset();
- el("item-id").value="";
- el("btn-delete").classList.add("hidden");
- loadItems(); loadInventory();
-};
-
-/* DELETE */
-el("btn-delete").onclick=async()=>{
- const id=el("item-id").value;
- if(!id||!confirm("Delete item?"))return;
- await db.collection("items").doc(id).delete();
- el("item-form").reset();
- el("item-id").value="";
- el("btn-delete").classList.add("hidden");
- loadItems(); loadInventory();
-};
 
 /* PRODUCTS */
 async function loadItems(){
- itemsList.innerHTML="";
- const snap=await db.collection("items").orderBy("name").get();
- snap.forEach(doc=>{
-  const i=doc.data();
-  const d=document.createElement("div");
-  d.className="item-admin";
-  d.innerHTML=`
-   <b>${i.name}</b><br>
-   <span class="muted">₹${i.price} • Stock: ${i.stock}</span><br>
-   <button class="btn secondary small">Edit</button>
-  `;
-  d.querySelector("button").onclick=()=>{
-   el("item-id").value=doc.id;
-   el("item-name").value=i.name;
-   el("item-category").value=i.category||"";
-   el("item-mrp").value=i.mrp||0;
-   el("item-price").value=i.price||0;
-   el("item-stock").value=i.stock||0;
-   el("item-image").value=i.image||"";
-   el("btn-delete").classList.remove("hidden");
+ const s=await db.collection("items").orderBy("name").get();
+ s.forEach(d=>{
+  const i=d.data();
+  const c=document.createElement("div");
+  c.className="item-admin";
+  c.innerHTML=`<img src="${i.image}" class="preview"><b>${i.name}</b><br>
+   ₹${i.price} • Stock ${i.stock}<br>
+   <button class="btn secondary small">Edit</button>`;
+  c.querySelector("button").onclick=()=>{
+   item-id.value=d.id;
+   item-name.value=i.name;
+   item-category.value=i.category||"";
+   item-mrp.value=i.mrp||0;
+   item-price.value=i.price;
+   item-stock.value=i.stock;
+   item-image.value=i.image;
+   imagePreview.src=i.image;
+   imagePreview.classList.remove("hidden");
+   btn-delete.classList.remove("hidden");
    window.scrollTo({top:0,behavior:"smooth"});
   };
-  itemsList.appendChild(d);
+  items-list.appendChild(c);
  });
 }
 
 /* ORDERS */
 async function loadOrders(){
- ordersList.innerHTML="";
- const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
- snap.forEach(doc=>{
-  const o=doc.data();
-  ordersList.innerHTML+=`
-   <div class="order-row">
-    <b>${o.customerName}</b><br>
-    ₹${o.total} • ${o.status}
-   </div>`;
+ const s=await db.collection("orders").orderBy("createdAt","desc").limit(20).get();
+ s.forEach(d=>{
+  const o=d.data();
+  orders-list.innerHTML+=`<div class="order-row">
+   <b>${o.customerName}</b><br>₹${o.total} • ${o.status}
+  </div>`;
  });
 }
-
-});
 </script>
 
 </body>
