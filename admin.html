@@ -30,15 +30,14 @@ input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
 </style>
 
 <script>
-/* ---------------- FIREBASE INIT ---------------- */
-const firebaseConfig={
+/* ---------- FIREBASE INIT ---------- */
+firebase.initializeApp({
   apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
   authDomain:"shopp-wholesale.firebaseapp.com",
   projectId:"shopp-wholesale",
   appId:"1:811103669232:web:825724b3738658192b6b35"
-};
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
+});
+const db = firebase.firestore();
 </script>
 </head>
 
@@ -46,7 +45,6 @@ const db=firebase.firestore();
 
 <div class="admin-wrap">
 
-<!-- HEADER -->
 <div class="admin-top">
   <h2>Shopp Wholesale — Admin</h2>
   <div>
@@ -60,9 +58,6 @@ const db=firebase.firestore();
 <div class="card">
 <h3>Dashboard</h3>
 <div class="grid">
- <div><b>Today Orders</b><br><span id="d-today">0</span></div>
- <div><b>Week Orders</b><br><span id="d-week">0</span></div>
- <div><b>Month Orders</b><br><span id="d-month">0</span></div>
  <div><b>Items Sold</b><br><span id="d-items">0</span></div>
  <div><b>Order Value</b><br>₹<span id="d-revenue">0</span></div>
  <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
@@ -107,219 +102,168 @@ const db=firebase.firestore();
 </form>
 </div>
 
-<!-- PRODUCTS -->
 <div class="card">
 <h3>Products</h3>
 <div id="items-list" class="items-grid"></div>
 </div>
 
-<!-- ORDERS -->
-<div class="card">
-<h3>Orders</h3>
-<div id="orders-list"></div>
-</div>
-
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded",()=>{
+const el = id => document.getElementById(id);
+const ADMIN_PIN = "Sreekanth@1";
+const IMGBB_KEY = "a70f2274f5053512d046cb5878c63041";
 
-/* ---------------- HELPERS ---------------- */
-const el=id=>document.getElementById(id);
-
-/* ---------------- CONFIG ---------------- */
-const ADMIN_PIN="Sreekanth@1";
-const IMGBB_KEY="a70f2274f5053512d046cb5878c63041";
-
-/* ---------------- LOGIN ---------------- */
-el("btn-login").onclick=()=>{
- const pin=prompt("Enter Admin PIN");
- if(pin===ADMIN_PIN){
-   sessionStorage.setItem("admin","1");
-   enableAdmin();
- } else alert("Wrong PIN");
+/* ---------- LOGIN ---------- */
+el("btn-login").onclick = () => {
+  const pin = prompt("Enter Admin PIN");
+  if (pin === ADMIN_PIN) {
+    sessionStorage.setItem("admin","1");
+    enableAdmin();
+  } else alert("Wrong PIN");
 };
 
-el("btn-logout").onclick=()=>{
- sessionStorage.removeItem("admin");
- location.reload();
+el("btn-logout").onclick = () => {
+  sessionStorage.removeItem("admin");
+  location.reload();
 };
 
 function enableAdmin(){
- el("admin-badge").classList.remove("hidden");
- el("btn-login").classList.add("hidden");
- el("btn-logout").classList.remove("hidden");
- loadStats();
- loadInventory();
- loadItems();
- loadOrders();
+  el("admin-badge").classList.remove("hidden");
+  el("btn-login").classList.add("hidden");
+  el("btn-logout").classList.remove("hidden");
+  loadStats(); loadInventory(); loadItems();
 }
 
 if(sessionStorage.getItem("admin")==="1") enableAdmin();
 
-/* ---------------- IMAGE UPLOAD (IMGBB) ---------------- */
-el("imagePicker").addEventListener("change",()=>{
- const file=el("imagePicker").files[0];
- if(!file) return;
+/* ---------- IMAGE UPLOAD ---------- */
+el("imagePicker").addEventListener("change", async ()=>{
+  const file = imagePicker.files[0];
+  if(!file) return;
 
- el("imagePreview").src=URL.createObjectURL(file);
- el("imagePreview").style.display="block";
- el("item-image").value="Uploading...";
+  imagePreview.src = URL.createObjectURL(file);
+  imagePreview.style.display="block";
+  item-image.value = "Uploading...";
 
- const reader=new FileReader();
- reader.onload=async()=>{
-   const base64=reader.result.split(",")[1];
-   const form=new FormData();
-   form.append("image",base64);
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    const base64 = reader.result.split(",")[1];
+    const form = new FormData();
+    form.append("image", base64);
 
-   try{
-     const res=await fetch(
-       `https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,
-       {method:"POST",body:form}
-     );
-     const json=await res.json();
-     if(!json.success) throw "fail";
-     el("item-image").value=json.data.display_url;
-   }catch{
-     alert("Image upload failed");
-     el("item-image").value="";
-   }
- };
- reader.readAsDataURL(file);
+    try{
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{
+        method:"POST", body:form
+      });
+      const json = await res.json();
+      if(!json.success) throw "fail";
+      item-image.value = json.data.display_url;
+    }catch{
+      alert("Image upload failed");
+      item-image.value="";
+    }
+  };
+  reader.readAsDataURL(file);
 });
 
-/* ---------------- SAVE ITEM (FIXED) ---------------- */
-el("item-form").onsubmit=async e=>{
- e.preventDefault();
+/* ---------- SAVE ITEM (FINAL FIX) ---------- */
+el("item-form").onsubmit = async e=>{
+  e.preventDefault();
 
- if(sessionStorage.getItem("admin")!=="1"){
-   alert("Admin login required");
-   return;
- }
+  if(item-image.value==="Uploading..."){
+    alert("Please wait for image upload");
+    return;
+  }
 
- const id=el("item-id").value.trim();
+  const data = {
+    name: item-name.value.trim(),
+    category: item-category.value.trim(),
+    mrp: Number(item-mrp.value||0),
+    price: Number(item-price.value||0),
+    stock: Number(item-stock.value||0),
+    image: item-image.value.trim()
+  };
 
- const data={
-  name:el("item-name").value.trim(),
-  category:el("item-category").value.trim(),
-  mrp:Number(el("item-mrp").value||0),
-  price:Number(el("item-price").value||0),
-  stock:Number(el("item-stock").value||0),
-  image:el("item-image").value.trim()
- };
-
- if(!data.name || data.price<=0){
-   alert("Name & price required");
-   return;
- }
-
- try{
-   if(id){
-     await db.collection("items").doc(id).update(data);
-     alert("Item updated");
-   }else{
-     await db.collection("items").add(data);
-     alert("Item saved");
-   }
-   clearForm();
-   loadItems();
-   loadInventory();
- }catch(err){
-   alert("Save failed");
-   console.error(err);
- }
+  try{
+    if(item-id.value){
+      await db.collection("items").doc(item-id.value).update(data);
+      alert("Item updated");
+    }else{
+      await db.collection("items").add(data);
+      alert("Item saved");
+    }
+    clearForm(); loadItems(); loadInventory();
+  }catch(err){
+    console.error(err);
+    alert("Save failed");
+  }
 };
 
-el("btn-delete").onclick=async()=>{
- const id=el("item-id").value;
- if(!id) return;
- if(confirm("Delete item?")){
-   await db.collection("items").doc(id).delete();
-   clearForm();
-   loadItems();
-   loadInventory();
- }
+el("btn-delete").onclick = async ()=>{
+  if(!item-id.value) return;
+  if(confirm("Delete item?")){
+    await db.collection("items").doc(item-id.value).delete();
+    clearForm(); loadItems(); loadInventory();
+  }
 };
 
 function clearForm(){
- ["item-id","item-name","item-category","item-mrp","item-price","item-stock","item-image"]
- .forEach(i=>el(i).value="");
- el("imagePreview").style.display="none";
- el("btn-delete").classList.add("hidden");
+  ["item-id","item-name","item-category","item-mrp","item-price","item-stock","item-image"]
+  .forEach(i=>el(i).value="");
+  imagePreview.style.display="none";
+  btn-delete.classList.add("hidden");
 }
 
-/* ---------------- PRODUCTS ---------------- */
+/* ---------- LOAD PRODUCTS ---------- */
 async function loadItems(){
- el("items-list").innerHTML="";
- const snap=await db.collection("items").orderBy("name").get();
- snap.forEach(doc=>{
-  const i=doc.data();
-  const d=document.createElement("div");
-  d.className="item-admin";
-  d.innerHTML=`<b>${i.name}</b><br><span class="muted">₹${i.price} • Stock: ${i.stock}</span>`;
-  d.onclick=()=>{
-    el("item-id").value=doc.id;
-    el("item-name").value=i.name;
-    el("item-category").value=i.category||"";
-    el("item-mrp").value=i.mrp||0;
-    el("item-price").value=i.price||0;
-    el("item-stock").value=i.stock||0;
-    el("item-image").value=i.image||"";
-    if(i.image){
-      el("imagePreview").src=i.image;
-      el("imagePreview").style.display="block";
-    }
-    el("btn-delete").classList.remove("hidden");
-    window.scrollTo({top:0,behavior:"smooth"});
-  };
-  el("items-list").appendChild(d);
- });
+  items-list.innerHTML="";
+  const snap = await db.collection("items").orderBy("name").get();
+  snap.forEach(doc=>{
+    const i=doc.data();
+    const d=document.createElement("div");
+    d.className="item-admin";
+    d.innerHTML=`<b>${i.name}</b><br><span class="muted">₹${i.price} • Stock: ${i.stock}</span>`;
+    d.onclick=()=>{
+      item-id.value=doc.id;
+      item-name.value=i.name;
+      item-category.value=i.category||"";
+      item-mrp.value=i.mrp||0;
+      item-price.value=i.price||0;
+      item-stock.value=i.stock||0;
+      item-image.value=i.image||"";
+      if(i.image){imagePreview.src=i.image;imagePreview.style.display="block";}
+      btn-delete.classList.remove("hidden");
+      window.scrollTo({top:0,behavior:"smooth"});
+    };
+    items-list.appendChild(d);
+  });
 }
 
-/* ---------------- DASHBOARD ---------------- */
+/* ---------- STATS ---------- */
 async function loadStats(){
- let items=0,revenue=0;
- const snap=await db.collection("orders").get();
- snap.forEach(d=>{
-  const o=d.data();
-  (o.items||[]).forEach(i=>items+=Number(i.qty||0));
-  revenue+=Number(o.total||0);
- });
- el("d-items").innerText=items;
- el("d-revenue").innerText=revenue;
+  let sold=0,revenue=0;
+  const snap=await db.collection("orders").get();
+  snap.forEach(d=>{
+    const o=d.data();
+    (o.items||[]).forEach(i=>sold+=Number(i.qty||0));
+    revenue+=Number(o.total||0);
+  });
+  d-items.innerText=sold;
+  d-revenue.innerText=revenue;
 }
 
-/* ---------------- INVENTORY ---------------- */
 async function loadInventory(){
- let qty=0,val=0;
- const snap=await db.collection("items").get();
- snap.forEach(d=>{
-  const i=d.data();
-  qty+=Number(i.stock||0);
-  val+=Number(i.stock||0)*Number(i.price||0);
- });
- el("inv-items").innerText=qty;
- el("inv-value").innerText=val;
+  let qty=0,val=0;
+  const snap=await db.collection("items").get();
+  snap.forEach(d=>{
+    const i=d.data();
+    qty+=Number(i.stock||0);
+    val+=Number(i.stock||0)*Number(i.price||0);
+  });
+  inv-items.innerText=qty;
+  inv-value.innerText=val;
 }
-
-/* ---------------- ORDERS ---------------- */
-async function loadOrders(){
- el("orders-list").innerHTML="";
- const snap=await db.collection("orders")
-   .orderBy("createdAt","desc")
-   .limit(50)
-   .get();
- snap.forEach(d=>{
-  const o=d.data();
-  el("orders-list").innerHTML+=`
-   <div class="order-row">
-    <b>${o.customerName}</b><br>
-    ₹${o.total}
-   </div>`;
- });
-}
-
-});
 </script>
 
 </body>
