@@ -401,4 +401,60 @@ if (isAdmin()) {
   setAdminState(true);
   loadAllItems();
   loadOrders();
-                 }
+  loadDashboardStats();   // ⭐ ADD THIS LINE
+}
+/* ----------------------------------------------
+   DASHBOARD STATS (ORDERS + INVENTORY)
+------------------------------------------------*/
+async function loadDashboardStats() {
+  const now = new Date();
+
+  const startToday = new Date(now);
+  startToday.setHours(0,0,0,0);
+
+  const startWeek = new Date(now);
+  startWeek.setDate(startWeek.getDate() - 7);
+
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let today = 0, week = 0, month = 0;
+  let itemsSold = 0, revenue = 0;
+
+  const ordersSnap = await db.collection("orders").get();
+
+  ordersSnap.forEach(doc => {
+    const o = doc.data();
+    if (!o.createdAt) return;
+
+    const t = o.createdAt.toDate();
+
+    if (t >= startToday) today++;
+    if (t >= startWeek) week++;
+    if (t >= startMonth) month++;
+
+    (o.items || []).forEach(i => {
+      itemsSold += Number(i.qty || 0);
+    });
+
+    revenue += Number(o.total || 0);
+  });
+
+  el("stat-today").innerText = today;
+  el("stat-week").innerText = week;
+  el("stat-month").innerText = month;
+  el("stat-items").innerText = itemsSold;
+  el("stat-revenue").innerText = revenue;
+
+  /* INVENTORY */
+  let invQty = 0, invValue = 0;
+  const itemsSnap = await db.collection("items").get();
+
+  itemsSnap.forEach(doc => {
+    const i = doc.data();
+    invQty += Number(i.stock || 0);
+    invValue += Number(i.stock || 0) * Number(i.price || 0);
+  });
+
+  el("stat-inv-qty").innerText = invQty;
+  el("stat-inv-value").innerText = invValue;
+}
