@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <title>Shopp Wholesale</title>
 
-<!-- ================= FIREBASE v8 (REQUIRED) ================= -->
+<!-- ================= FIREBASE v8 ================= -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
@@ -26,13 +24,10 @@
 </script>
 
 <style>
-/* ============================================================
-GLOBAL RESET + VARIABLES
-============================================================ */
 :root{
   --accent:#19a74a;
   --bg:#f4f9f4;
-  --card:#ffffff;
+  --card:#fff;
   --muted:#6f6f6f;
   --img-box:#eef8ee;
 }
@@ -45,6 +40,7 @@ html,body{
   font-family:Inter,system-ui,Arial;
   color:#111;
 }
+
 body.cart-open{overflow:hidden}
 
 /* HEADER */
@@ -222,75 +218,90 @@ body.cart-open{overflow:hidden}
 let items = [];
 let cart = {};
 
-function money(v){return Number(v||0).toFixed(0);}
+function money(v){ return Number(v||0).toFixed(0); }
 
+/* LOAD FROM FIRESTORE */
 async function loadItems(){
   const snap = await db.collection("items").get();
-  items=[];
+  items = [];
   snap.forEach(doc=>{
-    const d=doc.data();
+    const d = doc.data();
     items.push({
-      id:doc.id,
-      name:d.name,
-      mrp:d.mrp,
-      price:d.price,
-      image:d.image || "https://via.placeholder.com/300"
+      id: doc.id,
+      name: d.name,
+      mrp: d.mrp,
+      price: d.price,
+      image: d.image || "https://via.placeholder.com/300"
     });
   });
   render();
 }
 
+/* RENDER */
 function render(){
-  const box=document.getElementById("products");
-  box.innerHTML="";
-  items.forEach((p,i)=>{
-    box.innerHTML+=`
-    <div class="card">
-      <div class="image-box">
-        <img class="product-img" src="${p.image}">
+  const box = document.getElementById("products");
+  box.innerHTML = "";
+
+  items.forEach(p=>{
+    const qty = cart[p.id] || 0;
+    box.innerHTML += `
+      <div class="card">
+        <div class="image-box">
+          <img class="product-img" src="${p.image}">
+        </div>
+        <div class="item-name">${p.name}</div>
+        <div class="price-row">
+          <div class="small-mrp">₹${money(p.mrp)}</div>
+          <div class="sale">₹${money(p.price)}</div>
+        </div>
+        <div class="qty-controls">
+          <button onclick="changeQty('${p.id}',-1)">-</button>
+          <div class="qty-display">${qty}</div>
+          <button onclick="changeQty('${p.id}',1)">+</button>
+        </div>
+        <button class="add-btn" onclick="add('${p.id}')">Add to cart</button>
       </div>
-      <div class="item-name">${p.name}</div>
-      <div class="price-row">
-        <div class="small-mrp">₹${money(p.mrp)}</div>
-        <div class="sale">₹${money(p.price)}</div>
-      </div>
-      <div class="qty-controls">
-        <button onclick="qty(${i},-1)">-</button>
-        <div class="qty-display">${cart[i]||0}</div>
-        <button onclick="qty(${i},1)">+</button>
-      </div>
-      <button class="add-btn" onclick="add(${i})">Add to cart</button>
-    </div>`;
+    `;
   });
+
   updateFooter();
 }
 
-function qty(i,d){
-  cart[i]=(cart[i]||0)+d;
-  if(cart[i]<0)cart[i]=0;
+/* CART */
+function changeQty(id,d){
+  cart[id]=(cart[id]||0)+d;
+  if(cart[id]<0)cart[id]=0;
   render();
 }
-function add(i){if(!cart[i])cart[i]=1;render();}
+function add(id){
+  if(!cart[id])cart[id]=1;
+  render();
+}
 
+/* FOOTER */
 function updateFooter(){
   let q=0,a=0;
-  for(let i in cart){
-    q+=cart[i];
-    a+=cart[i]*items[i].price;
+  for(let id in cart){
+    const it=items.find(x=>x.id===id);
+    if(!it)continue;
+    q+=cart[id];
+    a+=cart[id]*it.price;
   }
   cartCount.innerText=q;
   footerText.innerText=`${q} items • ₹${money(a)}`;
 }
 
+/* CHECKOUT POPUP */
 function openCart(){
-  let box=document.getElementById("cartItems");
+  const box=document.getElementById("cartItems");
   box.innerHTML="";
   let a=0;
-  for(let i in cart){
-    if(cart[i]){
-      box.innerHTML+=`${items[i].name} x ${cart[i]}<br>`;
-      a+=cart[i]*items[i].price;
-    }
+
+  for(let id in cart){
+    const it=items.find(x=>x.id===id);
+    if(!it)continue;
+    box.innerHTML+=`${it.name} x ${cart[id]}<br>`;
+    a+=cart[id]*it.price;
   }
   box.innerHTML+=`<br><b>Total: ₹${money(a)}</b>`;
   document.body.classList.add("cart-open");
