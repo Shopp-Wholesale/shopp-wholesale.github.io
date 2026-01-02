@@ -70,6 +70,37 @@ const db=firebase.firestore();
   </div>
 </div>
 
+<!-- ADD / EDIT ITEM -->
+<div class="card">
+<h3>Add / Edit Item</h3>
+<form id="item-form">
+<input type="hidden" id="item-id">
+
+<label>Name</label>
+<input id="item-name" required>
+
+<label>Category</label>
+<input id="item-category">
+
+<label>MRP</label>
+<input id="item-mrp" type="number">
+
+<label>Sale Price</label>
+<input id="item-price" type="number" required>
+
+<label>Stock</label>
+<input id="item-stock" type="number">
+
+<label>Image URL</label>
+<input id="item-image">
+
+<div style="margin-top:10px;display:flex;gap:8px">
+<button class="btn primary" type="submit">Save Item</button>
+<button type="button" class="btn warn hidden" id="btn-delete">Delete</button>
+</div>
+</form>
+</div>
+
 <!-- PRODUCTS -->
 <div class="card">
 <h3>Products</h3>
@@ -87,10 +118,10 @@ const db=firebase.firestore();
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
 
-/* ---------------- HELPERS ---------------- */
 const el=id=>document.getElementById(id);
+const ADMIN_PIN="Sreekanth@1";
 
-/* ---------------- ELEMENTS ---------------- */
+/* ELEMENTS */
 const btnLogin=el("btn-login");
 const btnLogout=el("btn-logout");
 const adminBadge=el("admin-badge");
@@ -107,12 +138,9 @@ const invValue=el("inv-value");
 const ordersList=el("orders-list");
 const itemsList=el("items-list");
 
-/* ---------------- AUTH ---------------- */
-const ADMIN_PIN="Sreekanth@1";
-
+/* LOGIN */
 btnLogin.onclick=()=>{
- const pin=prompt("Enter Admin PIN");
- if(pin===ADMIN_PIN){
+ if(prompt("Enter Admin PIN")===ADMIN_PIN){
   sessionStorage.setItem("admin","1");
   enableAdmin();
  }else alert("Wrong PIN");
@@ -127,31 +155,27 @@ function enableAdmin(){
  adminBadge.classList.remove("hidden");
  btnLogin.classList.add("hidden");
  btnLogout.classList.remove("hidden");
- loadStats();
- loadInventory();
- loadOrders();
- loadItems();
+ loadStats(); loadInventory(); loadOrders(); loadItems();
 }
 
 if(sessionStorage.getItem("admin")) enableAdmin();
 
-/* ---------------- DASHBOARD ---------------- */
+/* DASHBOARD */
 async function loadStats(){
- const now=new Date();
- const startDay=new Date(now); startDay.setHours(0,0,0,0);
- const startWeek=new Date(now); startWeek.setDate(startWeek.getDate()-7);
- const startMonth=new Date(now.getFullYear(),now.getMonth(),1);
-
  let today=0,week=0,month=0,items=0,revenue=0;
+ const now=new Date();
+ const d0=new Date(now.setHours(0,0,0,0));
+ const w0=new Date(); w0.setDate(w0.getDate()-7);
+ const m0=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 
  const snap=await db.collection("orders").get();
  snap.forEach(doc=>{
   const o=doc.data();
   if(!o.createdAt) return;
   const t=o.createdAt.toDate();
-  if(t>=startDay) today++;
-  if(t>=startWeek) week++;
-  if(t>=startMonth) month++;
+  if(t>=d0)today++;
+  if(t>=w0)week++;
+  if(t>=m0)month++;
   (o.items||[]).forEach(i=>items+=Number(i.qty||0));
   revenue+=Number(o.total||0);
  });
@@ -163,7 +187,7 @@ async function loadStats(){
  dRevenue.innerText=revenue;
 }
 
-/* ---------------- INVENTORY ---------------- */
+/* INVENTORY */
 async function loadInventory(){
  let qty=0,val=0;
  const snap=await db.collection("items").get();
@@ -176,21 +200,67 @@ async function loadInventory(){
  invValue.innerText=val;
 }
 
-/* ---------------- PRODUCTS ---------------- */
+/* ADD / UPDATE ITEM */
+el("item-form").onsubmit=async e=>{
+ e.preventDefault();
+ const id=el("item-id").value;
+ const data={
+  name:el("item-name").value,
+  category:el("item-category").value,
+  mrp:Number(el("item-mrp").value||0),
+  price:Number(el("item-price").value||0),
+  stock:Number(el("item-stock").value||0),
+  image:el("item-image").value
+ };
+ if(id) await db.collection("items").doc(id).update(data);
+ else await db.collection("items").add(data);
+
+ e.target.reset();
+ el("item-id").value="";
+ el("btn-delete").classList.add("hidden");
+ loadItems(); loadInventory();
+};
+
+/* DELETE */
+el("btn-delete").onclick=async()=>{
+ const id=el("item-id").value;
+ if(!id||!confirm("Delete item?"))return;
+ await db.collection("items").doc(id).delete();
+ el("item-form").reset();
+ el("item-id").value="";
+ el("btn-delete").classList.add("hidden");
+ loadItems(); loadInventory();
+};
+
+/* PRODUCTS */
 async function loadItems(){
  itemsList.innerHTML="";
  const snap=await db.collection("items").orderBy("name").get();
  snap.forEach(doc=>{
   const i=doc.data();
-  itemsList.innerHTML+=`
-   <div class="item-admin">
-    <b>${i.name}</b><br>
-    <span class="muted">₹${i.price} • Stock: ${i.stock}</span>
-   </div>`;
+  const d=document.createElement("div");
+  d.className="item-admin";
+  d.innerHTML=`
+   <b>${i.name}</b><br>
+   <span class="muted">₹${i.price} • Stock: ${i.stock}</span><br>
+   <button class="btn secondary small">Edit</button>
+  `;
+  d.querySelector("button").onclick=()=>{
+   el("item-id").value=doc.id;
+   el("item-name").value=i.name;
+   el("item-category").value=i.category||"";
+   el("item-mrp").value=i.mrp||0;
+   el("item-price").value=i.price||0;
+   el("item-stock").value=i.stock||0;
+   el("item-image").value=i.image||"";
+   el("btn-delete").classList.remove("hidden");
+   window.scrollTo({top:0,behavior:"smooth"});
+  };
+  itemsList.appendChild(d);
  });
 }
 
-/* ---------------- ORDERS ---------------- */
+/* ORDERS */
 async function loadOrders(){
  ordersList.innerHTML="";
  const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
