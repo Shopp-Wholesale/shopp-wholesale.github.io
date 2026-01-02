@@ -19,7 +19,7 @@ const db = firebase.firestore();
 </script>
 
 <style>
-/* ✅ UNCHANGED UI */
+/* UI UNCHANGED */
 :root{--accent:#19a74a;--bg:#f4f9f4;--card:#fff;--muted:#6f6f6f;--img-box:#eef8ee}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Inter,system-ui,Arial;background:var(--bg)}
@@ -49,6 +49,7 @@ body.cart-open{overflow:hidden}
 .qty-display{min-width:22px;text-align:center}
 
 .add-btn{margin-top:6px;height:34px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-weight:600}
+.add-btn[disabled]{opacity:.4}
 
 .cart-footer{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 6px rgba(0,0,0,.08)}
 .footer-checkout-btn{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;border:none;font-weight:700}
@@ -81,19 +82,14 @@ body.cart-open{overflow:hidden}
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
-<!-- CART POPUP -->
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3>Your Cart</h3>
     <div id="cartItems"></div>
-
     <input id="custName" placeholder="Your Name">
     <input id="custPhone" placeholder="Phone Number">
     <textarea id="custAddress" placeholder="Delivery Address"></textarea>
-
-    <button class="footer-checkout-btn" onclick="placeWhatsAppOrder()">
-      Place WhatsApp Order
-    </button>
+    <button class="footer-checkout-btn" onclick="placeWhatsAppOrder()">Place WhatsApp Order</button>
     <br><br>
     <button onclick="closeCart()">Close</button>
   </div>
@@ -117,36 +113,40 @@ function render(){
   box.innerHTML="";
   items.forEach(p=>{
     const q=cart[p.id]||0;
+    const out=p.stock<=0;
     box.innerHTML+=`
-      <div class="card">
-        <div class="image-box">
-          <img class="product-img" src="${p.image}">
-        </div>
-        <div class="item-name">${p.name}</div>
-        <div class="price-row">
-          <div class="small-mrp">₹${money(p.mrp)}</div>
-          <div class="sale">₹${money(p.price)}</div>
-        </div>
-        <div class="qty-controls">
-          <button onclick="qty('${p.id}',-1)">-</button>
-          <div class="qty-display">${q}</div>
-          <button onclick="qty('${p.id}',1)">+</button>
-        </div>
-        <button class="add-btn" onclick="add('${p.id}')">Add to cart</button>
+    <div class="card">
+      <div class="image-box"><img class="product-img" src="${p.image}"></div>
+      <div class="item-name">${p.name}</div>
+      <div class="price-row">
+        <div class="small-mrp">₹${money(p.mrp)}</div>
+        <div class="sale">₹${money(p.price)}</div>
       </div>
-    `;
+      <div class="qty-controls">
+        <button onclick="qty('${p.id}',-1)">-</button>
+        <div class="qty-display">${q}</div>
+        <button onclick="qty('${p.id}',1)" ${out?"disabled":""}>+</button>
+      </div>
+      <button class="add-btn" ${out?"disabled":""} onclick="add('${p.id}')">
+        ${out?"Out of Stock":"Add to cart"}
+      </button>
+    </div>`;
   });
   updateFooter();
 }
 
 function qty(id,d){
+  const it=items.find(x=>x.id===id);
   cart[id]=(cart[id]||0)+d;
   if(cart[id]<0) cart[id]=0;
+  if(cart[id]>it.stock) cart[id]=it.stock;
   render();
 }
 
 function add(id){
-  cart[id]=(cart[id]||1);
+  const it=items.find(x=>x.id===id);
+  if(it.stock<=0) return;
+  cart[id]=Math.min((cart[id]||0)+1,it.stock);
   render();
 }
 
@@ -157,12 +157,11 @@ function updateFooter(){
     q+=cart[id];
     a+=cart[id]*it.price;
   }
-  document.getElementById("cartCount").innerText=q;
-  document.getElementById("footerText").innerText=`${q} items • ₹${money(a)}`;
+  cartCount.innerText=q;
+  footerText.innerText=`${q} items • ₹${money(a)}`;
 }
 
 function openCart(){
-  const modal=document.getElementById("cartModal");
   const box=document.getElementById("cartItems");
   let a=0;
   box.innerHTML="";
@@ -172,32 +171,49 @@ function openCart(){
     a+=cart[id]*it.price;
   }
   box.innerHTML+=`<br><b>Total: ₹${money(a)}</b>`;
-  modal.classList.add("show");
+  cartModal.classList.add("show");
 }
 
 function closeCart(){
-  document.getElementById("cartModal").classList.remove("show");
+  cartModal.classList.remove("show");
 }
 
-function placeWhatsAppOrder(){
-  const name=custName.value;
-  const phone=custPhone.value;
-  const address=custAddress.value;
-  if(!name||!phone||!address){
-    alert("Fill all details");
-    return;
-  }
+async function placeWhatsAppOrder(){
+  const name=custName.value.trim();
+  const phone=custPhone.value.trim();
+  const address=custAddress.value.trim();
+  if(!name||!phone||!address){alert("Fill all details");return;}
 
-  let msg="🛒 *New Order – Shopp Wholesale*\n\n";
-  let total=0;
+  let total=0,orderItems=[];
   for(let id in cart){
     const it=items.find(x=>x.id===id);
-    msg+=`${it.name} x ${cart[id]} = ₹${cart[id]*it.price}\n`;
+    if(cart[id]>it.stock){alert(it.name+" out of stock");return;}
     total+=cart[id]*it.price;
+    orderItems.push({itemId:id,name:it.name,price:it.price,qty:cart[id]});
   }
+
+  await db.collection("orders").add({
+    customerName:name,phone,address,items:orderItems,total,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  const batch=db.batch();
+  orderItems.forEach(o=>{
+    batch.update(db.collection("items").doc(o.itemId),{
+      stock:firebase.firestore.FieldValue.increment(-o.qty)
+    });
+  });
+  await batch.commit();
+
+  let msg="🛒 *New Order – Shopp Wholesale*\n\n";
+  orderItems.forEach(i=>msg+=`${i.name} x ${i.qty} = ₹${i.qty*i.price}\n`);
   msg+=`\nTotal: ₹${total}\nName: ${name}\nPhone: ${phone}\nAddress: ${address}`;
 
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+
+  cart={};
+  closeCart();
+  loadItems();
 }
 
 loadItems();
