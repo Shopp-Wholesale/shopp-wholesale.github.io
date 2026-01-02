@@ -30,12 +30,12 @@ input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
 </style>
 
 <script>
-/* ---------- FIREBASE INIT ---------- */
+/* ---------------- FIREBASE INIT ---------------- */
 const firebaseConfig={
- apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
- authDomain:"shopp-wholesale.firebaseapp.com",
- projectId:"shopp-wholesale",
- appId:"1:811103669232:web:825724b3738658192b6b35"
+  apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
+  authDomain:"shopp-wholesale.firebaseapp.com",
+  projectId:"shopp-wholesale",
+  appId:"1:811103669232:web:825724b3738658192b6b35"
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
@@ -46,6 +46,7 @@ const db=firebase.firestore();
 
 <div class="admin-wrap">
 
+<!-- HEADER -->
 <div class="admin-top">
   <h2>Shopp Wholesale — Admin</h2>
   <div>
@@ -55,6 +56,7 @@ const db=firebase.firestore();
   </div>
 </div>
 
+<!-- DASHBOARD -->
 <div class="card">
 <h3>Dashboard</h3>
 <div class="grid">
@@ -68,9 +70,11 @@ const db=firebase.firestore();
 </div>
 </div>
 
+<!-- ADD / EDIT ITEM -->
 <div class="card">
 <h3>Add / Edit Item</h3>
 <form id="item-form">
+
 <input type="hidden" id="item-id">
 
 <label>Name</label>
@@ -88,25 +92,28 @@ const db=firebase.firestore();
 <label>Stock</label>
 <input id="item-stock" type="number">
 
-<label>Image</label>
+<label>Product Image</label>
 <input type="file" id="imagePicker" accept="image/*">
 
 <img id="imagePreview" style="width:80px;height:80px;border-radius:8px;display:none;margin:8px 0">
 
-<input id="item-image" placeholder="Image URL" readonly>
+<input id="item-image" placeholder="Image URL (auto)" readonly>
 
 <div style="margin-top:10px;display:flex;gap:8px">
  <button class="btn primary" type="submit">Save Item</button>
  <button type="button" id="btn-delete" class="btn warn hidden">Delete</button>
 </div>
+
 </form>
 </div>
 
+<!-- PRODUCTS -->
 <div class="card">
 <h3>Products</h3>
 <div id="items-list" class="items-grid"></div>
 </div>
 
+<!-- ORDERS -->
 <div class="card">
 <h3>Orders</h3>
 <div id="orders-list"></div>
@@ -117,15 +124,19 @@ const db=firebase.firestore();
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
 
+/* ---------------- HELPERS ---------------- */
 const el=id=>document.getElementById(id);
-const ADMIN_PIN="Sreekanth@1";
 
-/* LOGIN */
+/* ---------------- CONFIG ---------------- */
+const ADMIN_PIN="Sreekanth@1";
+const IMGBB_KEY="a70f2274f5053512d046cb5878c63041";
+
+/* ---------------- LOGIN ---------------- */
 el("btn-login").onclick=()=>{
  const pin=prompt("Enter Admin PIN");
  if(pin===ADMIN_PIN){
-  sessionStorage.setItem("admin","1");
-  enableAdmin();
+   sessionStorage.setItem("admin","1");
+   enableAdmin();
  } else alert("Wrong PIN");
 };
 
@@ -138,12 +149,134 @@ function enableAdmin(){
  el("admin-badge").classList.remove("hidden");
  el("btn-login").classList.add("hidden");
  el("btn-logout").classList.remove("hidden");
- loadStats(); loadInventory(); loadItems(); loadOrders();
+ loadStats();
+ loadInventory();
+ loadItems();
+ loadOrders();
 }
 
 if(sessionStorage.getItem("admin")==="1") enableAdmin();
 
-/* DASHBOARD */
+/* ---------------- IMAGE UPLOAD (IMGBB) ---------------- */
+el("imagePicker").addEventListener("change",()=>{
+ const file=el("imagePicker").files[0];
+ if(!file) return;
+
+ el("imagePreview").src=URL.createObjectURL(file);
+ el("imagePreview").style.display="block";
+ el("item-image").value="Uploading...";
+
+ const reader=new FileReader();
+ reader.onload=async()=>{
+   const base64=reader.result.split(",")[1];
+   const form=new FormData();
+   form.append("image",base64);
+
+   try{
+     const res=await fetch(
+       `https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,
+       {method:"POST",body:form}
+     );
+     const json=await res.json();
+     if(!json.success) throw "fail";
+     el("item-image").value=json.data.display_url;
+   }catch{
+     alert("Image upload failed");
+     el("item-image").value="";
+   }
+ };
+ reader.readAsDataURL(file);
+});
+
+/* ---------------- SAVE ITEM (FIXED) ---------------- */
+el("item-form").onsubmit=async e=>{
+ e.preventDefault();
+
+ if(sessionStorage.getItem("admin")!=="1"){
+   alert("Admin login required");
+   return;
+ }
+
+ const id=el("item-id").value.trim();
+
+ const data={
+  name:el("item-name").value.trim(),
+  category:el("item-category").value.trim(),
+  mrp:Number(el("item-mrp").value||0),
+  price:Number(el("item-price").value||0),
+  stock:Number(el("item-stock").value||0),
+  image:el("item-image").value.trim()
+ };
+
+ if(!data.name || data.price<=0){
+   alert("Name & price required");
+   return;
+ }
+
+ try{
+   if(id){
+     await db.collection("items").doc(id).update(data);
+     alert("Item updated");
+   }else{
+     await db.collection("items").add(data);
+     alert("Item saved");
+   }
+   clearForm();
+   loadItems();
+   loadInventory();
+ }catch(err){
+   alert("Save failed");
+   console.error(err);
+ }
+};
+
+el("btn-delete").onclick=async()=>{
+ const id=el("item-id").value;
+ if(!id) return;
+ if(confirm("Delete item?")){
+   await db.collection("items").doc(id).delete();
+   clearForm();
+   loadItems();
+   loadInventory();
+ }
+};
+
+function clearForm(){
+ ["item-id","item-name","item-category","item-mrp","item-price","item-stock","item-image"]
+ .forEach(i=>el(i).value="");
+ el("imagePreview").style.display="none";
+ el("btn-delete").classList.add("hidden");
+}
+
+/* ---------------- PRODUCTS ---------------- */
+async function loadItems(){
+ el("items-list").innerHTML="";
+ const snap=await db.collection("items").orderBy("name").get();
+ snap.forEach(doc=>{
+  const i=doc.data();
+  const d=document.createElement("div");
+  d.className="item-admin";
+  d.innerHTML=`<b>${i.name}</b><br><span class="muted">₹${i.price} • Stock: ${i.stock}</span>`;
+  d.onclick=()=>{
+    el("item-id").value=doc.id;
+    el("item-name").value=i.name;
+    el("item-category").value=i.category||"";
+    el("item-mrp").value=i.mrp||0;
+    el("item-price").value=i.price||0;
+    el("item-stock").value=i.stock||0;
+    el("item-image").value=i.image||"";
+    if(i.image){
+      el("imagePreview").src=i.image;
+      el("imagePreview").style.display="block";
+    }
+    el("btn-delete").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  };
+  el("items-list").appendChild(d);
+ });
+}
+
+/* ---------------- DASHBOARD ---------------- */
 async function loadStats(){
  let items=0,revenue=0;
  const snap=await db.collection("orders").get();
@@ -156,7 +289,7 @@ async function loadStats(){
  el("d-revenue").innerText=revenue;
 }
 
-/* INVENTORY */
+/* ---------------- INVENTORY ---------------- */
 async function loadInventory(){
  let qty=0,val=0;
  const snap=await db.collection("items").get();
@@ -169,67 +302,13 @@ async function loadInventory(){
  el("inv-value").innerText=val;
 }
 
-/* SAVE ITEM */
-el("item-form").onsubmit=async e=>{
- e.preventDefault();
- const id=el("item-id").value;
- const data={
-  name:el("item-name").value,
-  category:el("item-category").value,
-  mrp:Number(el("item-mrp").value||0),
-  price:Number(el("item-price").value||0),
-  stock:Number(el("item-stock").value||0),
-  image:el("item-image").value
- };
- if(id) await db.collection("items").doc(id).update(data);
- else await db.collection("items").add(data);
- clearForm(); loadItems(); loadInventory();
-};
-
-el("btn-delete").onclick=async()=>{
- const id=el("item-id").value;
- if(!id) return;
- if(confirm("Delete item?")){
-  await db.collection("items").doc(id).delete();
-  clearForm(); loadItems(); loadInventory();
- }
-};
-
-function clearForm(){
- ["item-id","item-name","item-category","item-mrp","item-price","item-stock","item-image"]
- .forEach(id=>el(id).value="");
- el("imagePreview").style.display="none";
- el("btn-delete").classList.add("hidden");
-}
-
-/* PRODUCTS */
-async function loadItems(){
- el("items-list").innerHTML="";
- const snap=await db.collection("items").orderBy("name").get();
- snap.forEach(doc=>{
-  const i=doc.data();
-  const d=document.createElement("div");
-  d.className="item-admin";
-  d.innerHTML=`<b>${i.name}</b><br><span class="muted">₹${i.price} • Stock: ${i.stock}</span>`;
-  d.onclick=()=>{
-   el("item-id").value=doc.id;
-   el("item-name").value=i.name;
-   el("item-category").value=i.category||"";
-   el("item-mrp").value=i.mrp||0;
-   el("item-price").value=i.price||0;
-   el("item-stock").value=i.stock||0;
-   el("item-image").value=i.image||"";
-   el("btn-delete").classList.remove("hidden");
-   window.scrollTo({top:0,behavior:"smooth"});
-  };
-  el("items-list").appendChild(d);
- });
-}
-
-/* ORDERS */
+/* ---------------- ORDERS ---------------- */
 async function loadOrders(){
  el("orders-list").innerHTML="";
- const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
+ const snap=await db.collection("orders")
+   .orderBy("createdAt","desc")
+   .limit(50)
+   .get();
  snap.forEach(d=>{
   const o=d.data();
   el("orders-list").innerHTML+=`
