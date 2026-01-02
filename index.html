@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Shopp Wholesale</title>
 
 <!-- Firebase v8 -->
@@ -19,39 +19,88 @@ const db = firebase.firestore();
 </script>
 
 <style>
-body{margin:0;font-family:system-ui;background:#f4f9f4}
-.header{padding:14px;background:#fff;display:flex;justify-content:space-between}
-.cart{font-weight:bold}
-#products{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:8px}
-.card{background:#fff;border-radius:8px;padding:8px}
-.card img{width:100%;aspect-ratio:1/1;object-fit:cover}
-.out{color:red;font-weight:bold;font-size:13px}
-button{padding:6px 10px}
-.disabled{opacity:.4;pointer-events:none}
+/* ✅ UNCHANGED UI */
+:root{--accent:#19a74a;--bg:#f4f9f4;--card:#fff;--muted:#6f6f6f;--img-box:#eef8ee}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,system-ui,Arial;background:var(--bg)}
+body.cart-open{overflow:hidden}
+
+.site-header{position:sticky;top:0;background:#fff;padding:14px 18px;display:flex;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.brand-name{font-size:20px;font-weight:700}
+.tagline{font-size:12px;color:var(--muted)}
+.cart-display{border:1px solid #ddd;padding:6px 12px;border-radius:6px;font-weight:600}
+
+.controls{padding:12px 16px}
+.search-box{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
+
+#products{padding:6px 6px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+@media(min-width:768px){#products{grid-template-columns:repeat(4,1fr)}}
+
+.card{background:var(--bg);border-radius:10px;padding:6px;display:flex;flex-direction:column}
+.image-box{background:var(--img-box);aspect-ratio:1/1;border-radius:6px;overflow:hidden}
+.product-img{width:100%;height:100%;object-fit:cover}
+.item-name{margin:6px 0 2px;font-size:13.5px;font-weight:600}
+.price-row{display:flex;gap:6px}
+.small-mrp{font-size:11px;text-decoration:line-through;color:#777}
+.sale{font-size:16px;font-weight:700}
+
+.qty-controls{margin-top:6px;display:flex;gap:6px;align-items:center}
+.qty-controls button{width:28px;height:28px;border-radius:6px;border:1px solid #ccc;background:#fff;font-weight:700}
+.qty-display{min-width:22px;text-align:center}
+
+.add-btn{margin-top:6px;height:34px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-weight:600}
+
+.cart-footer{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 6px rgba(0,0,0,.08)}
+.footer-checkout-btn{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;border:none;font-weight:700}
+
+.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center;z-index:100}
+.cart-modal.show{display:flex}
+.cart-content{background:#fff;width:92%;max-width:420px;border-radius:14px;padding:16px}
+.cart-content input,.cart-content textarea{width:100%;padding:8px;margin:6px 0}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <div>Shopp Wholesale</div>
-  <div class="cart" id="cartCount">0</div>
+<header class="site-header">
+  <div>
+    <div class="brand-name">Shopp Wholesale</div>
+    <div class="tagline">Fast delivery • 3 km radius</div>
+  </div>
+  <div class="cart-display" id="cartCount">0</div>
+</header>
+
+<div class="controls">
+  <input class="search-box" placeholder="Search grocery items…">
 </div>
 
 <div id="products"></div>
 
-<button onclick="openCart()">Checkout</button>
+<div class="cart-footer">
+  <div id="footerText">0 items • ₹0</div>
+  <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
+</div>
 
-<div id="cartBox" style="display:none;background:#fff;padding:12px">
-  <div id="cartItems"></div>
-  <input id="custName" placeholder="Name"><br>
-  <input id="custPhone" placeholder="Phone"><br>
-  <textarea id="custAddress" placeholder="Address"></textarea><br>
-  <button onclick="placeOrder()">Place Order</button>
-  <button onclick="closeCart()">Close</button>
+<!-- CART POPUP -->
+<div class="cart-modal" id="cartModal">
+  <div class="cart-content">
+    <h3>Your Cart</h3>
+    <div id="cartItems"></div>
+
+    <input id="custName" placeholder="Your Name">
+    <input id="custPhone" placeholder="Phone Number">
+    <textarea id="custAddress" placeholder="Delivery Address"></textarea>
+
+    <button class="footer-checkout-btn" onclick="placeWhatsAppOrder()">
+      Place WhatsApp Order
+    </button>
+    <br><br>
+    <button onclick="closeCart()">Close</button>
+  </div>
 </div>
 
 <script>
+const WHATSAPP_NUMBER="919000810084";
 let items=[],cart={};
 
 function money(v){return Number(v||0).toFixed(0);}
@@ -68,97 +117,87 @@ function render(){
   box.innerHTML="";
   items.forEach(p=>{
     const q=cart[p.id]||0;
-    const out=p.stock<=0;
-
     box.innerHTML+=`
-    <div class="card">
-      <img src="${p.image}">
-      <b>${p.name}</b><br>
-      ₹${money(p.price)}<br>
-      ${out?`<div class="out">OUT OF STOCK</div>`:""}
-      <div>
-        <button ${out?"disabled":""} onclick="qty('${p.id}',-1)">-</button>
-        ${q}
-        <button ${out?"disabled":""} onclick="qty('${p.id}',1)">+</button>
+      <div class="card">
+        <div class="image-box">
+          <img class="product-img" src="${p.image}">
+        </div>
+        <div class="item-name">${p.name}</div>
+        <div class="price-row">
+          <div class="small-mrp">₹${money(p.mrp)}</div>
+          <div class="sale">₹${money(p.price)}</div>
+        </div>
+        <div class="qty-controls">
+          <button onclick="qty('${p.id}',-1)">-</button>
+          <div class="qty-display">${q}</div>
+          <button onclick="qty('${p.id}',1)">+</button>
+        </div>
+        <button class="add-btn" onclick="add('${p.id}')">Add to cart</button>
       </div>
-      <button class="${out?"disabled":""}" onclick="add('${p.id}')">Add</button>
-    </div>`;
+    `;
   });
-  updateCart();
+  updateFooter();
 }
 
 function qty(id,d){
-  const it=items.find(x=>x.id===id);
-  if(!it || it.stock<=0) return;
   cart[id]=(cart[id]||0)+d;
   if(cart[id]<0) cart[id]=0;
-  if(cart[id]>it.stock) cart[id]=it.stock;
   render();
 }
 
 function add(id){
-  const it=items.find(x=>x.id===id);
-  if(it.stock<=0) return;
-  cart[id]=(cart[id]||0)+1;
-  if(cart[id]>it.stock) cart[id]=it.stock;
+  cart[id]=(cart[id]||1);
   render();
 }
 
-function updateCart(){
-  let q=0;
-  for(let id in cart) q+=cart[id];
-  cartCount.innerText=q;
+function updateFooter(){
+  let q=0,a=0;
+  for(let id in cart){
+    const it=items.find(x=>x.id===id);
+    q+=cart[id];
+    a+=cart[id]*it.price;
+  }
+  document.getElementById("cartCount").innerText=q;
+  document.getElementById("footerText").innerText=`${q} items • ₹${money(a)}`;
 }
 
 function openCart(){
-  let box=document.getElementById("cartItems"),t=0;
+  const modal=document.getElementById("cartModal");
+  const box=document.getElementById("cartItems");
+  let a=0;
   box.innerHTML="";
   for(let id in cart){
     const it=items.find(x=>x.id===id);
     box.innerHTML+=`${it.name} x ${cart[id]}<br>`;
-    t+=cart[id]*it.price;
+    a+=cart[id]*it.price;
   }
-  box.innerHTML+=`<b>Total ₹${t}</b>`;
-  cartBox.style.display="block";
+  box.innerHTML+=`<br><b>Total: ₹${money(a)}</b>`;
+  modal.classList.add("show");
 }
 
-function closeCart(){cartBox.style.display="none";}
+function closeCart(){
+  document.getElementById("cartModal").classList.remove("show");
+}
 
-async function placeOrder(){
-  const name=custName.value,phone=custPhone.value,address=custAddress.value;
-  if(!name||!phone||!address) return alert("Fill all");
-
-  const batch=db.batch();
-  const orderItems=[];
-  let total=0;
-
-  for(let id in cart){
-    const it=items.find(x=>x.id===id);
-    if(cart[id]>it.stock) return alert("Stock changed. Refresh.");
-
-    const ref=db.collection("items").doc(id);
-    batch.update(ref,{stock:it.stock-cart[id]});
-
-    orderItems.push({id,name:it.name,qty:cart[id],price:it.price});
-    total+=cart[id]*it.price;
+function placeWhatsAppOrder(){
+  const name=custName.value;
+  const phone=custPhone.value;
+  const address=custAddress.value;
+  if(!name||!phone||!address){
+    alert("Fill all details");
+    return;
   }
 
-  const orderRef=db.collection("orders").doc();
-  batch.set(orderRef,{
-    customerName:name,
-    customerPhone:phone,
-    customerAddress:address,
-    items:orderItems,
-    total:total,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-    status:"new"
-  });
+  let msg="🛒 *New Order – Shopp Wholesale*\n\n";
+  let total=0;
+  for(let id in cart){
+    const it=items.find(x=>x.id===id);
+    msg+=`${it.name} x ${cart[id]} = ₹${cart[id]*it.price}\n`;
+    total+=cart[id]*it.price;
+  }
+  msg+=`\nTotal: ₹${total}\nName: ${name}\nPhone: ${phone}\nAddress: ${address}`;
 
-  await batch.commit();
-  alert("Order placed");
-  cart={};
-  closeCart();
-  loadItems();
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
 }
 
 loadItems();
