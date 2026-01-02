@@ -1,269 +1,280 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Shopp Wholesale — Admin</title>
-
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<style>
-body{margin:0;background:#f4f9f4;font-family:system-ui}
-.admin-wrap{max-width:1100px;margin:20px auto;padding:14px}
-.admin-top{display:flex;justify-content:space-between;align-items:center}
-.btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
-.btn.primary{background:#2bb26b;color:#fff}
-.btn.secondary{background:#e5e7eb}
-.btn.warn{background:#e53e3e;color:#fff}
-.small{font-size:13px}
-.hidden{display:none}
-.card{background:#fff;border-radius:10px;padding:14px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-label{font-weight:600;margin-top:8px;display:block}
-input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
-.items-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
-.item-admin{background:#fff;border-radius:10px;padding:12px;border:1px solid #eee}
-.muted{color:#666;font-size:13px}
-.order-row{background:#fff;border-radius:8px;padding:10px;margin-bottom:8px}
-</style>
-
-<script>
-/* ---------- FIREBASE INIT ---------- */
-const firebaseConfig={
- apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
- authDomain:"shopp-wholesale.firebaseapp.com",
- projectId:"shopp-wholesale",
- appId:"1:811103669232:web:825724b3738658192b6b35"
-};
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-</script>
-</head>
-
-<body>
-
-<div class="admin-wrap">
-
-<!-- HEADER -->
-<div class="admin-top">
-  <h2>Shopp Wholesale — Admin</h2>
-  <div>
-    <span id="admin-badge" class="hidden"><b>ADMIN</b></span>
-    <button id="btn-login" class="btn secondary small">Login</button>
-    <button id="btn-logout" class="btn secondary small hidden">Logout</button>
-  </div>
-</div>
-
-<!-- DASHBOARD -->
-<div class="card">
-<h3>Dashboard</h3>
-<div class="grid">
- <div><b>Today Orders</b><br><span id="d-today">0</span></div>
- <div><b>Week Orders</b><br><span id="d-week">0</span></div>
- <div><b>Month Orders</b><br><span id="d-month">0</span></div>
- <div><b>Items Sold</b><br><span id="d-items">0</span></div>
- <div><b>Order Value</b><br>₹<span id="d-revenue">0</span></div>
- <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
- <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
-</div>
-</div>
-
-<!-- ADD / EDIT ITEM -->
-<div class="card">
-<h3>Add / Edit Item</h3>
-<form id="item-form">
-<input type="hidden" id="item-id">
-
-<label>Name</label>
-<input id="item-name" required>
-
-<label>Category</label>
-<input id="item-category">
-
-<label>MRP</label>
-<input id="item-mrp" type="number">
-
-<label>Sale Price</label>
-<input id="item-price" type="number" required>
-
-<label>Stock</label>
-<input id="item-stock" type="number">
-
-<label>Image URL</label>
-<input id="item-image">
-
-<div style="margin-top:10px;display:flex;gap:8px">
- <button class="btn primary" type="submit">Save Item</button>
- <button type="button" id="btn-delete" class="btn warn hidden">Delete</button>
-</div>
-</form>
-</div>
-
-<!-- PRODUCTS -->
-<div class="card">
-<h3>Products</h3>
-<div id="items-list" class="items-grid"></div>
-</div>
-
-<!-- ORDERS -->
-<div class="card">
-<h3>Orders</h3>
-<div id="orders-list"></div>
-</div>
-
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded",()=>{
-
-const el=id=>document.getElementById(id);
-const ADMIN_PIN="Sreekanth@1";
-
-/* ---------- LOGIN ---------- */
-el("btn-login").onclick=()=>{
- const pin=prompt("Enter Admin PIN");
- if(pin===ADMIN_PIN){
-  sessionStorage.setItem("admin","1");
-  enableAdmin();
- } else alert("Wrong PIN");
-};
-
-el("btn-logout").onclick=()=>{
- sessionStorage.removeItem("admin");
- location.reload();
-};
-
-function enableAdmin(){
- el("admin-badge").classList.remove("hidden");
- el("btn-login").classList.add("hidden");
- el("btn-logout").classList.remove("hidden");
- loadStats(); loadInventory(); loadItems(); loadOrders();
+/* ============================================================
+GLOBAL RESET + VARIABLES + TYPOGRAPHY
+============================================================ */
+:root {
+  --accent: #19a74a;
+  --accent-dark: #12853a;
+  --bg: #f4f9f4;
+  --card: #ffffff;
+  --muted: #6f6f6f;
+  --danger: #d9534f;
+  --img-box: #eef8ee;
 }
 
-if(sessionStorage.getItem("admin")==="1") enableAdmin();
-
-/* ---------- DASHBOARD ---------- */
-async function loadStats(){
- const now=new Date();
- const startDay=new Date(now); startDay.setHours(0,0,0,0);
- const startWeek=new Date(now); startWeek.setDate(startWeek.getDate()-7);
- const startMonth=new Date(now.getFullYear(),now.getMonth(),1);
-
- let today=0,week=0,month=0,items=0,revenue=0;
-
- const snap=await db.collection("orders").get();
- snap.forEach(d=>{
-  const o=d.data(); if(!o.createdAt) return;
-  const t=o.createdAt.toDate();
-  if(t>=startDay)today++;
-  if(t>=startWeek)week++;
-  if(t>=startMonth)month++;
-  (o.items||[]).forEach(i=>items+=Number(i.qty||0));
-  revenue+=Number(o.total||0);
- });
-
- el("d-today").innerText=today;
- el("d-week").innerText=week;
- el("d-month").innerText=month;
- el("d-items").innerText=items;
- el("d-revenue").innerText=revenue;
+/* 🔥 HARD RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ---------- INVENTORY ---------- */
-async function loadInventory(){
- let qty=0,val=0;
- const snap=await db.collection("items").get();
- snap.forEach(d=>{
-  const i=d.data();
-  qty+=Number(i.stock||0);
-  val+=Number(i.stock||0)*Number(i.price||0);
- });
- el("inv-items").innerText=qty;
- el("inv-value").innerText=val;
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  background: var(--bg);
+  font-family: Inter, system-ui, -apple-system, Roboto, Arial;
+  color: #111;
+  letter-spacing: -0.2px;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- ADD / EDIT ---------- */
-el("item-form").onsubmit=async e=>{
- e.preventDefault();
- const id=el("item-id").value;
- const data={
-  name:el("item-name").value,
-  category:el("item-category").value,
-  mrp:Number(el("item-mrp").value||0),
-  price:Number(el("item-price").value||0),
-  stock:Number(el("item-stock").value||0),
-  image:el("item-image").value
- };
- if(id) await db.collection("items").doc(id).update(data);
- else await db.collection("items").add(data);
- clearForm(); loadItems(); loadInventory();
-};
-
-el("btn-delete").onclick=async()=>{
- const id=el("item-id").value;
- if(!id) return;
- if(confirm("Delete item?")){
-  await db.collection("items").doc(id).delete();
-  clearForm(); loadItems(); loadInventory();
- }
-};
-
-function clearForm(){
- el("item-id").value="";
- el("item-name").value="";
- el("item-category").value="";
- el("item-mrp").value="";
- el("item-price").value="";
- el("item-stock").value="";
- el("item-image").value="";
- el("btn-delete").classList.add("hidden");
+body {
+  touch-action: manipulation;
 }
 
-/* ---------- PRODUCTS ---------- */
-async function loadItems(){
- el("items-list").innerHTML="";
- const snap=await db.collection("items").orderBy("name").get();
- snap.forEach(doc=>{
-  const i=doc.data();
-  const div=document.createElement("div");
-  div.className="item-admin";
-  div.innerHTML=`
-   <b>${i.name}</b><br>
-   <span class="muted">₹${i.price} • Stock: ${i.stock}</span>
-  `;
-  div.onclick=()=>{
-   el("item-id").value=doc.id;
-   el("item-name").value=i.name;
-   el("item-category").value=i.category||"";
-   el("item-mrp").value=i.mrp||0;
-   el("item-price").value=i.price||0;
-   el("item-stock").value=i.stock||0;
-   el("item-image").value=i.image||"";
-   el("btn-delete").classList.remove("hidden");
-   window.scrollTo({top:0,behavior:"smooth"});
-  };
-  el("items-list").appendChild(div);
- });
+/* lock background when cart opens */
+body.cart-open {
+  overflow: hidden;
 }
 
-/* ---------- ORDERS ---------- */
-async function loadOrders(){
- el("orders-list").innerHTML="";
- const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
- snap.forEach(d=>{
-  const o=d.data();
-  el("orders-list").innerHTML+=`
-   <div class="order-row">
-    <b>${o.customerName}</b><br>
-    ₹${o.total} • ${o.status}
-   </div>`;
- });
+/* ============================================================
+HEADER
+============================================================ */
+.site-header {
+  background: var(--card);
+  padding: 14px 18px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-});
-</script>
+.brand-name {
+  font-size: 20px;
+  font-weight: 700;
+}
 
-</body>
-</html>
+.tagline {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cart-display {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 650;
+}
+
+/* ============================================================
+SEARCH BAR
+============================================================ */
+.controls {
+  padding: 12px 16px;
+}
+
+.search-box {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d3d3d3;
+  font-size: 14px;
+}
+
+/* ============================================================
+PRODUCT GRID — LOCKED (NO ZOOM / NO JUMP)
+============================================================ */
+#products {
+  width: 100%;
+  padding: 6px 6px 120px; /* space for footer */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+@media (min-width: 768px) {
+  #products {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ============================================================
+PRODUCT CARD
+============================================================ */
+.card {
+  background: var(--bg);
+  padding: 6px 6px 10px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+}
+
+/* ============================================================
+IMAGE BOX — BLINKIT STYLE
+============================================================ */
+.image-box {
+  background: var(--img-box);
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ============================================================
+PRODUCT INFO
+============================================================ */
+.item-name {
+  margin: 8px 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.32;
+}
+
+.price-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.small-mrp {
+  font-size: 11.3px;
+  color: #7b7b7b;
+  text-decoration: line-through;
+}
+
+.sale {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ============================================================
+QUANTITY CONTROLS
+============================================================ */
+.qty-controls {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.qty-controls button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.qty-display {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ============================================================
+ADD TO CART
+============================================================ */
+.add-btn {
+  margin-top: 8px;
+  padding: 8px 0;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ============================================================
+CART FOOTER (BOTTOM BAR)
+============================================================ */
+.cart-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+
+  background: var(--card);
+  padding: 10px 14px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+  z-index: 30;
+}
+
+.footer-checkout-btn {
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 650;
+  font-size: 15px;
+}
+
+/* ============================================================
+CART MODAL (POPUP)
+============================================================ */
+.cart-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.cart-modal.show {
+  display: flex;
+}
+
+.cart-content {
+  background: #fff;
+  width: 92%;
+  max-width: 420px;
+  border-radius: 14px;
+  padding: 16px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* ============================================================
+HARD BLOCK — PREVENT CART / ADMIN LEAK BELOW PAGE
+============================================================ */
+#cart,
+#orders,
+#admin,
+#adminPanel,
+#ordersPanel {
+  display: none !important;
+}
