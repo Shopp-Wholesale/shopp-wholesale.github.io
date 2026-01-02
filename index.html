@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
 <title>Shopp Wholesale</title>
 
 <!-- ================= FIREBASE v8 ================= -->
@@ -11,177 +10,52 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
-  var firebaseConfig = {
+  firebase.initializeApp({
     apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
     authDomain: "shopp-wholesale.firebaseapp.com",
-    projectId: "shopp-wholesale",
-    storageBucket: "shopp-wholesale.firebasestorage.app",
-    messagingSenderId: "811103669232",
-    appId: "1:811103669232:web:825724b3738658192b6b35"
-  };
-  firebase.initializeApp(firebaseConfig);
+    projectId: "shopp-wholesale"
+  });
   const db = firebase.firestore();
 </script>
 
 <style>
-:root{
-  --accent:#19a74a;
-  --bg:#f4f9f4;
-  --card:#fff;
-  --muted:#6f6f6f;
-  --img-box:#eef8ee;
-}
+:root{--accent:#19a74a;--bg:#f4f9f4;--card:#fff;--muted:#6f6f6f;--img-box:#eef8ee}
 *{margin:0;padding:0;box-sizing:border-box}
-
-html,body{
-  width:100%;
-  overflow-x:hidden;
-  background:var(--bg);
-  font-family:Inter,system-ui,Arial;
-  color:#111;
-}
-
+body{font-family:Inter,system-ui,Arial;background:var(--bg)}
 body.cart-open{overflow:hidden}
 
-/* HEADER */
-.site-header{
-  position:sticky;top:0;z-index:20;
-  background:#fff;
-  padding:14px 18px;
-  display:flex;
-  justify-content:space-between;
-  box-shadow:0 1px 6px rgba(0,0,0,.05);
-}
+.site-header{position:sticky;top:0;background:#fff;padding:14px 18px;display:flex;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .brand-name{font-size:20px;font-weight:700}
 .tagline{font-size:12px;color:var(--muted)}
-.cart-display{
-  border:1px solid #ddd;
-  padding:6px 12px;
-  border-radius:6px;
-  font-weight:600;
-}
+.cart-display{border:1px solid #ddd;padding:6px 12px;border-radius:6px;font-weight:600}
 
-/* SEARCH */
 .controls{padding:12px 16px}
-.search-box{
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ccc;
-}
+.search-box{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
 
-/* PRODUCTS */
-#products{
-  padding:6px 6px 120px;
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:6px;
-}
-@media(min-width:768px){
-  #products{grid-template-columns:repeat(4,1fr)}
-}
-.card{
-  background:var(--bg);
-  border-radius:10px;
-  padding:6px;
-  display:flex;
-  flex-direction:column;
-}
-.image-box{
-  background:var(--img-box);
-  aspect-ratio:1/1;
-  border-radius:6px;
-  overflow:hidden;
-}
-.product-img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-.item-name{
-  margin:6px 0 2px;
-  font-size:13.5px;
-  font-weight:600;
-}
+#products{padding:6px 6px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+@media(min-width:768px){#products{grid-template-columns:repeat(4,1fr)}}
+
+.card{background:var(--bg);border-radius:10px;padding:6px;display:flex;flex-direction:column}
+.image-box{background:var(--img-box);aspect-ratio:1/1;border-radius:6px;overflow:hidden}
+.product-img{width:100%;height:100%;object-fit:cover}
+.item-name{margin:6px 0 2px;font-size:13.5px;font-weight:600}
 .price-row{display:flex;gap:6px}
-.small-mrp{
-  font-size:11px;
-  color:#777;
-  text-decoration:line-through;
-}
-.sale{
-  font-size:16px;
-  font-weight:700;
-}
+.small-mrp{font-size:11px;text-decoration:line-through;color:#777}
+.sale{font-size:16px;font-weight:700}
 
-/* QTY */
-.qty-controls{
-  margin-top:6px;
-  display:flex;
-  gap:6px;
-  align-items:center;
-}
-.qty-controls button{
-  width:28px;height:28px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  background:#fff;
-  font-weight:700;
-}
+.qty-controls{margin-top:6px;display:flex;gap:6px;align-items:center}
+.qty-controls button{width:28px;height:28px;border-radius:6px;border:1px solid #ccc;background:#fff;font-weight:700}
 .qty-display{min-width:22px;text-align:center}
 
-.add-btn{
-  margin-top:6px;
-  height:34px;
-  border-radius:6px;
-  border:1px solid var(--accent);
-  background:#fff;
-  color:var(--accent);
-  font-weight:600;
-}
+.add-btn{margin-top:6px;height:34px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-weight:600}
 
-/* FOOTER */
-.cart-footer{
-  position:fixed;
-  bottom:0;left:0;right:0;
-  height:56px;
-  background:#fff;
-  padding:10px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  box-shadow:0 -2px 6px rgba(0,0,0,.08);
-  z-index:30;
-}
-.footer-checkout-btn{
-  background:var(--accent);
-  color:#fff;
-  padding:10px 16px;
-  border-radius:10px;
-  border:none;
-  font-weight:700;
-}
+.cart-footer{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 6px rgba(0,0,0,.08)}
+.footer-checkout-btn{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;border:none;font-weight:700}
 
-/* CART MODAL */
-.cart-modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.35);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:100;
-}
+.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center;z-index:100}
 .cart-modal.show{display:flex}
-.cart-content{
-  background:#fff;
-  width:92%;
-  max-width:420px;
-  border-radius:14px;
-  padding:16px;
-  max-height:85vh;
-  overflow-y:auto;
-}
+.cart-content{background:#fff;width:92%;max-width:420px;border-radius:14px;padding:16px}
+.cart-content input,.cart-content textarea{width:100%;padding:8px;margin:6px 0}
 </style>
 </head>
 
@@ -196,7 +70,7 @@ body.cart-open{overflow:hidden}
 </header>
 
 <div class="controls">
-  <input class="search-box" placeholder="Search grocery items…" />
+  <input class="search-box" placeholder="Search grocery items…">
 </div>
 
 <div id="products"></div>
@@ -206,100 +80,79 @@ body.cart-open{overflow:hidden}
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
+<!-- CART POPUP -->
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3>Your Cart</h3>
-    <div id="cartItems" style="margin:10px 0"></div>
+    <div id="cartItems"></div>
+
+    <input id="custName" placeholder="Your Name">
+    <input id="custPhone" placeholder="Phone Number">
+    <textarea id="custAddress" placeholder="Delivery Address"></textarea>
+
+    <button class="footer-checkout-btn" onclick="placeWhatsAppOrder()">
+      Place WhatsApp Order
+    </button>
+    <br><br>
     <button onclick="closeCart()">Close</button>
   </div>
 </div>
 
 <script>
-let items = [];
-let cart = {};
+const WHATSAPP_NUMBER="919000810084";
+let items=[],cart={};
 
-function money(v){ return Number(v||0).toFixed(0); }
+function money(v){return Number(v||0).toFixed(0);}
 
-/* LOAD FROM FIRESTORE */
 async function loadItems(){
-  const snap = await db.collection("items").get();
-  items = [];
-  snap.forEach(doc=>{
-    const d = doc.data();
-    items.push({
-      id: doc.id,
-      name: d.name,
-      mrp: d.mrp,
-      price: d.price,
-      image: d.image || "https://via.placeholder.com/300"
-    });
-  });
+  const snap=await db.collection("items").get();
+  items=[];
+  snap.forEach(d=>items.push({...d.data(),id:d.id}));
   render();
 }
 
-/* RENDER */
 function render(){
-  const box = document.getElementById("products");
-  box.innerHTML = "";
-
+  const box=document.getElementById("products");
+  box.innerHTML="";
   items.forEach(p=>{
-    const qty = cart[p.id] || 0;
-    box.innerHTML += `
-      <div class="card">
-        <div class="image-box">
-          <img class="product-img" src="${p.image}">
-        </div>
-        <div class="item-name">${p.name}</div>
-        <div class="price-row">
-          <div class="small-mrp">₹${money(p.mrp)}</div>
-          <div class="sale">₹${money(p.price)}</div>
-        </div>
-        <div class="qty-controls">
-          <button onclick="changeQty('${p.id}',-1)">-</button>
-          <div class="qty-display">${qty}</div>
-          <button onclick="changeQty('${p.id}',1)">+</button>
-        </div>
-        <button class="add-btn" onclick="add('${p.id}')">Add to cart</button>
+    const q=cart[p.id]||0;
+    box.innerHTML+=`
+    <div class="card">
+      <div class="image-box"><img class="product-img" src="${p.image}"></div>
+      <div class="item-name">${p.name}</div>
+      <div class="price-row">
+        <div class="small-mrp">₹${money(p.mrp)}</div>
+        <div class="sale">₹${money(p.price)}</div>
       </div>
-    `;
+      <div class="qty-controls">
+        <button onclick="qty('${p.id}',-1)">-</button>
+        <div class="qty-display">${q}</div>
+        <button onclick="qty('${p.id}',1)">+</button>
+      </div>
+      <button class="add-btn" onclick="add('${p.id}')">Add to cart</button>
+    </div>`;
   });
-
   updateFooter();
 }
 
-/* CART */
-function changeQty(id,d){
-  cart[id]=(cart[id]||0)+d;
-  if(cart[id]<0)cart[id]=0;
-  render();
-}
-function add(id){
-  if(!cart[id])cart[id]=1;
-  render();
-}
+function qty(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<0)cart[id]=0;render()}
+function add(id){cart[id]=cart[id]||1;render()}
 
-/* FOOTER */
 function updateFooter(){
   let q=0,a=0;
   for(let id in cart){
     const it=items.find(x=>x.id===id);
-    if(!it)continue;
-    q+=cart[id];
-    a+=cart[id]*it.price;
+    q+=cart[id];a+=cart[id]*it.price;
   }
   cartCount.innerText=q;
   footerText.innerText=`${q} items • ₹${money(a)}`;
 }
 
-/* CHECKOUT POPUP */
 function openCart(){
-  const box=document.getElementById("cartItems");
+  let box=document.getElementById("cartItems"),a=0;
   box.innerHTML="";
-  let a=0;
-
   for(let id in cart){
     const it=items.find(x=>x.id===id);
-    if(!it)continue;
     box.innerHTML+=`${it.name} x ${cart[id]}<br>`;
     a+=cart[id]*it.price;
   }
@@ -307,9 +160,24 @@ function openCart(){
   document.body.classList.add("cart-open");
   cartModal.classList.add("show");
 }
+
 function closeCart(){
   document.body.classList.remove("cart-open");
   cartModal.classList.remove("show");
+}
+
+function placeWhatsAppOrder(){
+  let name=custName.value,phone=custPhone.value,address=custAddress.value;
+  if(!name||!phone||!address){alert("Fill all details");return;}
+
+  let msg="🛒 *New Order – Shopp Wholesale*\n\n",total=0;
+  for(let id in cart){
+    const it=items.find(x=>x.id===id);
+    msg+=`${it.name} x ${cart[id]} = ₹${cart[id]*it.price}\n`;
+    total+=cart[id]*it.price;
+  }
+  msg+=`\nTotal: ₹${total}\nName: ${name}\nPhone: ${phone}\nAddress: ${address}`;
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
 }
 
 loadItems();
