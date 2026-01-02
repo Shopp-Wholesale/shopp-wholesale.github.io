@@ -107,8 +107,10 @@ const db = firebase.firestore();
 
 <script>
 const el=id=>document.getElementById(id);
-const ADMIN_PIN="Sreekanth@1";
-const IMGBB_KEY="a70f2274f5053512d046cb5878c63041";
+
+const ADMIN_PIN = "Sreekanth@1";
+const ADMIN_KEY = "letmein123";   // 🔑 MUST MATCH FIRESTORE RULE
+const IMGBB_KEY = "a70f2274f5053512d046cb5878c63041";
 
 /* LOGIN */
 el("btn-login").onclick=()=>{
@@ -116,7 +118,7 @@ el("btn-login").onclick=()=>{
  if(pin===ADMIN_PIN){
   localStorage.setItem("admin","1");
   enableAdmin();
- }else alert("Wrong PIN");
+ } else alert("Wrong PIN");
 };
 el("btn-logout").onclick=()=>{
  localStorage.removeItem("admin");
@@ -135,6 +137,7 @@ if(localStorage.getItem("admin")==="1") enableAdmin();
 el("imagePicker").addEventListener("change",()=>{
  const file=el("imagePicker").files[0];
  if(!file) return;
+
  el("imagePreview").src=URL.createObjectURL(file);
  el("imagePreview").style.display="block";
  el("item-image").value="Uploading...";
@@ -144,21 +147,26 @@ el("imagePicker").addEventListener("change",()=>{
   const base64=r.result.split(",")[1];
   const fd=new FormData(); fd.append("image",base64);
   try{
-   const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:"POST",body:fd});
+   const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{
+     method:"POST", body:fd
+   });
    const j=await res.json();
    el("item-image").value=j.data.display_url;
-  }catch{ alert("Image upload failed"); el("item-image").value=""; }
+  }catch{
+   alert("Image upload failed");
+   el("item-image").value="";
+  }
  };
  r.readAsDataURL(file);
 });
 
-/* SAVE ITEM */
+/* SAVE ITEM — FIXED */
 el("item-form").onsubmit=async e=>{
  e.preventDefault();
- if(localStorage.getItem("admin")!=="1") return alert("Login required");
  if(el("item-image").value==="Uploading...") return alert("Wait for image upload");
 
  const data={
+  adminKey: ADMIN_KEY,   // 🔥 REQUIRED
   name:el("item-name").value.trim(),
   category:el("item-category").value.trim(),
   mrp:+el("item-mrp").value||0,
@@ -167,17 +175,26 @@ el("item-form").onsubmit=async e=>{
   image:el("item-image").value.trim()
  };
 
- if(el("item-id").value)
-  await db.collection("items").doc(el("item-id").value).update(data);
- else
-  await db.collection("items").add(data);
+ try{
+  if(el("item-id").value)
+   await db.collection("items").doc(el("item-id").value).update(data);
+  else
+   await db.collection("items").add(data);
 
- clearForm(); loadItems(); loadInventory();
+  alert("Item saved");
+  clearForm(); loadItems(); loadInventory();
+ }catch(err){
+  console.error(err);
+  alert("Save failed (check rules)");
+ }
 };
 
 el("btn-delete").onclick=async()=>{
+ if(!el("item-id").value) return;
  if(confirm("Delete item?")){
-  await db.collection("items").doc(el("item-id").value).delete();
+  await db.collection("items").doc(el("item-id").value).delete({
+    adminKey: ADMIN_KEY
+  });
   clearForm(); loadItems(); loadInventory();
  }
 };
