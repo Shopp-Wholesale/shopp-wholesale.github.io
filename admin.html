@@ -24,7 +24,7 @@ body{margin:0;background:#f4f9f4;font-family:system-ui}
 label{font-weight:600;margin-top:8px;display:block}
 input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
 .items-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
-.item-admin{background:#fff;border-radius:10px;padding:12px;border:1px solid #eee}
+.item-admin{background:#fff;border-radius:10px;padding:12px;border:1px solid #eee;cursor:pointer}
 .muted{color:#666;font-size:13px}
 .order-row{background:#fff;border-radius:8px;padding:10px;margin-bottom:8px}
 </style>
@@ -91,8 +91,14 @@ const db=firebase.firestore();
 <label>Stock</label>
 <input id="item-stock" type="number">
 
-<label>Image URL</label>
-<input id="item-image">
+<label>Product Image</label>
+<input type="file" id="imagePicker" accept="image/*">
+
+<img id="imagePreview"
+     style="width:80px;height:80px;border-radius:8px;
+            object-fit:cover;display:none;margin:8px 0">
+
+<input id="item-image" placeholder="Image URL (auto)" readonly>
 
 <div style="margin-top:10px;display:flex;gap:8px">
  <button class="btn primary" type="submit">Save Item</button>
@@ -120,6 +126,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 const el=id=>document.getElementById(id);
 const ADMIN_PIN="Sreekanth@1";
+const IMGBB_KEY="a70f2274f5053512d046cb5878c63041";
 
 /* ---------- LOGIN ---------- */
 el("btn-login").onclick=()=>{
@@ -144,6 +151,37 @@ function enableAdmin(){
 
 if(sessionStorage.getItem("admin")==="1") enableAdmin();
 
+/* ---------- IMAGE UPLOAD ---------- */
+el("imagePicker").addEventListener("change",()=>{
+ const file=imagePicker.files[0];
+ if(!file) return;
+
+ imagePreview.src=URL.createObjectURL(file);
+ imagePreview.style.display="block";
+
+ const reader=new FileReader();
+ reader.onload=async()=>{
+  const base64=reader.result.split(",")[1];
+  item-image.value="Uploading...";
+  const form=new FormData();
+  form.append("image",base64);
+
+  try{
+   const res=await fetch(
+    `https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,
+    {method:"POST",body:form}
+   );
+   const data=await res.json();
+   if(!data.success) throw "fail";
+   item-image.value=data.data.display_url;
+  }catch{
+   alert("Image upload failed");
+   item-image.value="";
+  }
+ };
+ reader.readAsDataURL(file);
+});
+
 /* ---------- DASHBOARD ---------- */
 async function loadStats(){
  const now=new Date();
@@ -152,8 +190,8 @@ async function loadStats(){
  const startMonth=new Date(now.getFullYear(),now.getMonth(),1);
 
  let today=0,week=0,month=0,items=0,revenue=0;
-
  const snap=await db.collection("orders").get();
+
  snap.forEach(d=>{
   const o=d.data(); if(!o.createdAt) return;
   const t=o.createdAt.toDate();
@@ -184,17 +222,17 @@ async function loadInventory(){
  el("inv-value").innerText=val;
 }
 
-/* ---------- ADD / EDIT ---------- */
+/* ---------- SAVE ITEM ---------- */
 el("item-form").onsubmit=async e=>{
  e.preventDefault();
- const id=el("item-id").value;
+ const id=item-id.value;
  const data={
-  name:el("item-name").value,
-  category:el("item-category").value,
-  mrp:Number(el("item-mrp").value||0),
-  price:Number(el("item-price").value||0),
-  stock:Number(el("item-stock").value||0),
-  image:el("item-image").value
+  name:item-name.value,
+  category:item-category.value,
+  mrp:Number(item-mrp.value||0),
+  price:Number(item-price.value||0),
+  stock:Number(item-stock.value||0),
+  image:item-image.value
  };
  if(id) await db.collection("items").doc(id).update(data);
  else await db.collection("items").add(data);
@@ -202,59 +240,57 @@ el("item-form").onsubmit=async e=>{
 };
 
 el("btn-delete").onclick=async()=>{
- const id=el("item-id").value;
- if(!id) return;
+ if(!item-id.value) return;
  if(confirm("Delete item?")){
-  await db.collection("items").doc(id).delete();
+  await db.collection("items").doc(item-id.value).delete();
   clearForm(); loadItems(); loadInventory();
  }
 };
 
 function clearForm(){
- el("item-id").value="";
- el("item-name").value="";
- el("item-category").value="";
- el("item-mrp").value="";
- el("item-price").value="";
- el("item-stock").value="";
- el("item-image").value="";
- el("btn-delete").classList.add("hidden");
+ item-id.value="";
+ item-name.value="";
+ item-category.value="";
+ item-mrp.value="";
+ item-price.value="";
+ item-stock.value="";
+ item-image.value="";
+ imagePreview.style.display="none";
+ btn-delete.classList.add("hidden");
 }
 
 /* ---------- PRODUCTS ---------- */
 async function loadItems(){
- el("items-list").innerHTML="";
+ items-list.innerHTML="";
  const snap=await db.collection("items").orderBy("name").get();
  snap.forEach(doc=>{
   const i=doc.data();
-  const div=document.createElement("div");
-  div.className="item-admin";
-  div.innerHTML=`
-   <b>${i.name}</b><br>
-   <span class="muted">₹${i.price} • Stock: ${i.stock}</span>
-  `;
-  div.onclick=()=>{
-   el("item-id").value=doc.id;
-   el("item-name").value=i.name;
-   el("item-category").value=i.category||"";
-   el("item-mrp").value=i.mrp||0;
-   el("item-price").value=i.price||0;
-   el("item-stock").value=i.stock||0;
-   el("item-image").value=i.image||"";
-   el("btn-delete").classList.remove("hidden");
+  const d=document.createElement("div");
+  d.className="item-admin";
+  d.innerHTML=`<b>${i.name}</b><br><span class="muted">₹${i.price} • Stock: ${i.stock}</span>`;
+  d.onclick=()=>{
+   item-id.value=doc.id;
+   item-name.value=i.name;
+   item-category.value=i.category||"";
+   item-mrp.value=i.mrp||0;
+   item-price.value=i.price||0;
+   item-stock.value=i.stock||0;
+   item-image.value=i.image||"";
+   if(i.image){imagePreview.src=i.image;imagePreview.style.display="block";}
+   btn-delete.classList.remove("hidden");
    window.scrollTo({top:0,behavior:"smooth"});
   };
-  el("items-list").appendChild(div);
+  items-list.appendChild(d);
  });
 }
 
 /* ---------- ORDERS ---------- */
 async function loadOrders(){
- el("orders-list").innerHTML="";
+ orders-list.innerHTML="";
  const snap=await db.collection("orders").orderBy("createdAt","desc").limit(50).get();
  snap.forEach(d=>{
   const o=d.data();
-  el("orders-list").innerHTML+=`
+  orders-list.innerHTML+=`
    <div class="order-row">
     <b>${o.customerName}</b><br>
     ₹${o.total} • ${o.status}
