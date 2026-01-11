@@ -1,16 +1,29 @@
 // -----------------------------------------------------
-// Shopp Wholesale — Admin Panel (FINAL WORKING VERSION)
+// Shopp Wholesale — Admin Panel (UPDATED WITH VARIANTS)
 // + imgbb IMAGE UPLOAD + COMPRESSION + GUARDED DOM
 // -----------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* ===== ORIGINAL CODE STARTS HERE ===== */
-
   const PASSCODE_ADMIN = "letmein123";
   const ADMIN_SESSION_KEY = "shopp_admin_key";
 
   const el = id => document.getElementById(id);
+
+  /* ✅ 1️⃣ ADDED VARIANT PARSER HELPER */
+  function parseVariantsInput() {
+    const raw = el("item-variants")?.value?.trim();
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) throw new Error("Variants must be array");
+      return parsed;
+    } catch (e) {
+      alert("Invalid Variants JSON format. Please ensure it is a valid [Array].");
+      throw e;
+    }
+  }
 
   /* ----------------------------------------------
      ADMIN LOGIN STATE
@@ -35,9 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return sessionStorage.getItem(ADMIN_SESSION_KEY) === PASSCODE_ADMIN;
   }
 
-  /* ----------------------------------------------
-     LOGIN (FIX 3: CRITICAL UPDATE)
-  ------------------------------------------------*/
   if (el("btn-login")) {
     el("btn-login").addEventListener("click", () => {
       const p = prompt("Enter admin passcode:");
@@ -53,9 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ----------------------------------------------
-     LOGOUT
-  ------------------------------------------------*/
   if (el("btn-logout")) {
     el("btn-logout").addEventListener("click", () => {
       setAdminState(false);
@@ -63,9 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ----------------------------------------------
-     CLEAR FORM (FIX 2: GUARDED)
-  ------------------------------------------------*/
   if (el("btn-clear")) {
     el("btn-clear").addEventListener("click", clearForm);
   }
@@ -79,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el("item-stock")) el("item-stock").value = 0;
     if (el("item-image")) el("item-image").value = "";
     if (el("item-desc")) el("item-desc").value = "";
+    if (el("item-variants")) el("item-variants").value = ""; // Clear variants
 
     const preview = el("imagePreview");
     if (preview) {
@@ -92,18 +97,8 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===============================================================
      ⭐ IMAGE PICKER + PREVIEW + COMPRESSION + IMGBB UPLOAD
   ================================================================*/
-
   const IMGBB_API_KEY = "a70f2274f5053512d046cb5878c63041";
 
-  function pickImage() {
-    const picker = el("imagePicker");
-    if (picker) {
-      picker.value = "";
-      picker.click();
-    }
-  }
-
-  // FIX 2: GUARDED IMAGE PICKER
   if (el("imagePicker")) {
     el("imagePicker").addEventListener("change", async function () {
       const file = this.files[0];
@@ -179,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----------------------------------------------
-     CREATE / UPDATE ITEM
+     ✅ 2️⃣ CREATE / UPDATE ITEM (MODIFIED LOGIC)
   ------------------------------------------------*/
   if (el("item-form")) {
     el("item-form").addEventListener("submit", async (ev) => {
@@ -188,13 +183,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const docId = el("item-docid").value;
 
+      // Handle variants parsing
+      let variants = null;
+      try {
+        variants = parseVariantsInput();
+      } catch {
+        return; // stop save if JSON invalid
+      }
+
       const data = {
         adminKey: PASSCODE_ADMIN,
         name: el("item-name").value.trim(),
         category: el("item-category").value.trim(),
+
+        // Single-item values (ignored when variants exist)
         mrp: Number(el("item-mrp").value || 0),
         price: Number(el("item-price").value || 0),
         stock: Number(el("item-stock").value || 0),
+
+        // ✅ Save as Array
+        variants: variants,
+
         image: el("item-image").value.trim(),
         description: el("item-desc").value.trim()
       };
@@ -217,33 +226,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----------------------------------------------
-     DELETE ITEM (FIX 2: GUARDED)
+     DELETE ITEM
   ------------------------------------------------*/
   if (el("btn-delete")) {
     el("btn-delete").addEventListener("click", async () => {
       if (!isAdmin()) return alert("Admin only!");
-
       const docId = el("item-docid").value;
       if (!docId) return alert("No item selected");
-
       if (!confirm("Delete permanently?")) return;
 
       try {
-        await db.collection("items").doc(docId).delete({
-          adminKey: PASSCODE_ADMIN
-        });
+        await db.collection("items").doc(docId).delete({ adminKey: PASSCODE_ADMIN });
         alert("Item deleted");
         clearForm();
         loadAllItems();
-      } catch (err) {
-        console.error(err);
-        alert("Delete failed");
-      }
+      } catch (err) { alert("Delete failed"); }
     });
   }
 
   /* ----------------------------------------------
-     LOAD ITEMS
+     LOAD ITEMS (WITH ✅ 3️⃣ VARIANT LOAD LOGIC)
   ------------------------------------------------*/
   async function loadAllItems() {
     const list = el("items-list");
@@ -286,14 +288,17 @@ document.addEventListener("DOMContentLoaded", () => {
           el("item-image").value = d.image || "";
           el("item-desc").value = d.description || "";
 
+          // ✅ LOAD VARIANTS BACK WHEN EDITING
+          if (el("item-variants")) {
+            el("item-variants").value = d.variants
+              ? JSON.stringify(d.variants, null, 2)
+              : "";
+          }
+
           const preview = el("imagePreview");
           if (preview) {
-            if (d.image) {
-              preview.src = d.image;
-              preview.style.display = "block";
-            } else {
-              preview.style.display = "none";
-            }
+            preview.src = d.image || "";
+            preview.style.display = d.image ? "block" : "none";
           }
           if (el("btn-delete")) el("btn-delete").classList.remove("hidden");
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -320,13 +325,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----------------------------------------------
-     LOAD ORDERS
+     LOAD ORDERS & DASHBOARD STATS
   ------------------------------------------------*/
   async function loadOrders() {
     const out = el("orders-list");
     if (!out) return;
     out.innerHTML = "<div class='muted'>Loading...</div>";
-
     try {
       const snap = await db.collection("orders").orderBy("createdAt", "desc").limit(50).get();
       out.innerHTML = "";
@@ -347,15 +351,11 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         out.appendChild(row);
       });
-      if (snap.empty) out.innerHTML = "<div class='muted'>No orders found</div>";
     } catch (err) { out.innerHTML = "<div class='muted'>Failed loading orders</div>"; }
   }
 
-  /* ----------------------------------------------
-     DASHBOARD STATS
-  ------------------------------------------------*/
   async function loadDashboardStats() {
-    if (!el("stat-today")) return; // Prevent crash if stats UI missing
+    if (!el("stat-today")) return;
     const now = new Date();
     const startToday = new Date(now.setHours(0,0,0,0));
     const startWeek = new Date(new Date().setDate(new Date().getDate() - 7));
@@ -392,16 +392,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el("stat-inv-value")) el("stat-inv-value").innerText = invValue;
   }
 
-  /* ----------------------------------------------
-     AUTO LOGIN
-  ------------------------------------------------*/
   if (isAdmin()) {
     setAdminState(true);
     loadAllItems();
     loadOrders();
     loadDashboardStats();
   }
-
-  /* ===== ORIGINAL CODE ENDS HERE ===== */
 });
-
