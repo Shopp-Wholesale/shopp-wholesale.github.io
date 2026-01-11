@@ -112,7 +112,9 @@ function money(v){return Number(v||0).toFixed(0);}
 
 function getVariantPrice(v, qty){
   let p=v.price;
-  (v.deals||[]).forEach(d=>{ if(qty>=d.qty) p=d.price; });
+  (v.deals||[]).forEach(d=>{
+    if(qty>=d.qty) p=d.price;
+  });
   return p;
 }
 
@@ -144,7 +146,13 @@ function render(){
 
       ${hasVariants?`
         <select class="variant-select" onchange="changeVariant('${p.id}',this.value)">
-          ${p.variants.map((x,i)=>`<option value="${i}">${x.label}</option>`).join("")}
+          ${p.variants.map((x,i)=>{
+            let text = `${x.label} – 1 qty ₹${money(x.price)}`;
+            (x.deals||[]).forEach(d=>{
+              text += ` | ${d.qty} qty ₹${money(d.price)}`;
+            });
+            return `<option value="${i}">${text}</option>`;
+          }).join("")}
         </select>`:""}
 
       <div class="price-row">
