@@ -5,7 +5,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  const PASSCODE_ADMIN = "letmein123";
+  const PASSCODE_ADMIN = "Sreekanth@1";
   const ADMIN_SESSION_KEY = "shopp_admin_key";
 
   const el = id => document.getElementById(id);
