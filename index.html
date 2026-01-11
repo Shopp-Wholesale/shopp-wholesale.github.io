@@ -19,11 +19,11 @@ const db = firebase.firestore();
 </script>
 
 <style>
-:root{--accent:#19a74a;--bg:#f4f9f4;--card:#fff;--muted:#6f6f6f;--img-box:#eef8ee}
+:root{--accent:#19a74a;--bg:#f4f9f4;--muted:#6f6f6f;--img:#eef8ee}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Inter,system-ui,Arial;background:var(--bg)}
+body{font-family:system-ui,Arial;background:var(--bg)}
 
-.site-header{position:sticky;top:0;background:#fff;padding:14px 18px;display:flex;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.site-header{position:sticky;top:0;background:#fff;padding:14px 18px;display:flex;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.05);z-index:5}
 .brand-name{font-size:20px;font-weight:700}
 .tagline{font-size:12px;color:var(--muted)}
 .cart-display{border:1px solid #ddd;padding:6px 12px;border-radius:6px;font-weight:600}
@@ -31,56 +31,88 @@ body{font-family:Inter,system-ui,Arial;background:var(--bg)}
 .controls{padding:12px 16px}
 .search-box{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
 
-#products{padding:6px 6px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+#products{padding:6px 6px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 @media(min-width:768px){#products{grid-template-columns:repeat(4,1fr)}}
 
-.card{background:var(--bg);border-radius:10px;padding:6px;display:flex;flex-direction:column}
-.image-box{background:var(--img-box);aspect-ratio:1/1;border-radius:6px;overflow:hidden}
+.card{background:#f7fbf7;border-radius:12px;padding:8px;display:flex;flex-direction:column}
+.image-box{background:var(--img);aspect-ratio:1/1;border-radius:8px;overflow:hidden}
 .product-img{width:100%;height:100%;object-fit:cover}
 
-.item-name{margin:6px 0 2px;font-size:13.5px;font-weight:600}
+.item-name{margin:6px 0 2px;font-size:14px;font-weight:600}
+.price{font-size:16px;font-weight:700;margin:4px 0}
 
-.variant-select{
+.add-btn{
+  margin-top:auto;
+  height:36px;
+  border-radius:8px;
+  border:1px solid var(--accent);
+  background:#fff;
+  color:var(--accent);
+  font-weight:700;
+}
+
+.cart-footer{
+  position:fixed;bottom:0;left:0;right:0;
+  height:56px;background:#fff;
+  padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 -2px 6px rgba(0,0,0,.08)
+}
+.footer-checkout-btn{
+  background:var(--accent);color:#fff;
+  padding:10px 16px;border-radius:10px;border:none;font-weight:700
+}
+
+/* ---------- VARIANT MODAL ---------- */
+.variant-modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;align-items:flex-end;
+  z-index:999;
+}
+.variant-modal.show{display:flex}
+
+.variant-sheet{
+  background:#fff;
   width:100%;
-  padding:8px;
-  margin:6px 0;
-  border-radius:8px;
-  border:1px solid #ccc;
-  font-size:13px;
+  max-height:80%;
+  border-radius:16px 16px 0 0;
+  padding:16px;
+  overflow:auto;
 }
 
-.deals-box{
+.variant-header{
   display:flex;
-  flex-direction:column;
-  gap:6px;
-  margin:6px 0;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+  font-size:16px;
+  font-weight:700;
 }
 
-.deal-btn{
-  padding:8px 10px;
+.variant-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 0;
+  border-bottom:1px solid #eee;
+}
+
+.variant-info{font-size:14px}
+.variant-price{font-weight:700;margin-top:2px}
+
+.variant-btn{
+  padding:6px 14px;
   border-radius:8px;
-  border:1px solid #19a74a;
-  background:#eafff1;
-  color:#12853a;
-  font-size:13px;
-  text-align:left;
+  border:1px solid var(--accent);
+  background:#fff;
+  color:var(--accent);
+  font-weight:700;
 }
+.variant-btn[disabled]{opacity:.4}
 
-.price-row{display:flex;gap:6px;align-items:center}
-.small-mrp{font-size:11px;text-decoration:line-through;color:#777}
-.sale{font-size:16px;font-weight:700}
-
-.qty-controls{margin-top:6px;display:flex;gap:6px;align-items:center}
-.qty-controls button{width:28px;height:28px;border-radius:6px;border:1px solid #ccc;background:#fff;font-weight:700}
-.qty-display{min-width:22px;text-align:center}
-
-.add-btn{margin-top:6px;height:34px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-weight:600}
-.add-btn[disabled]{opacity:.4}
-
-.cart-footer{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 6px rgba(0,0,0,.08)}
-.footer-checkout-btn{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;border:none;font-weight:700}
-
-.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center}
+/* ---------- CART MODAL ---------- */
+.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center;z-index:1000}
 .cart-modal.show{display:flex}
 .cart-content{background:#fff;width:92%;max-width:420px;border-radius:14px;padding:16px}
 .cart-content input,.cart-content textarea{width:100%;padding:8px;margin:6px 0}
@@ -108,6 +140,18 @@ body{font-family:Inter,system-ui,Arial;background:var(--bg)}
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
+<!-- VARIANT MODAL -->
+<div class="variant-modal" id="variantModal">
+  <div class="variant-sheet">
+    <div class="variant-header">
+      <span id="vmName"></span>
+      <button onclick="closeVariant()">✕</button>
+    </div>
+    <div id="variantList"></div>
+  </div>
+</div>
+
+<!-- CART MODAL -->
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3>Your Cart</h3>
@@ -123,17 +167,9 @@ body{font-family:Inter,system-ui,Arial;background:var(--bg)}
 
 <script>
 const WHATSAPP_NUMBER="919000810084";
-let items=[], cart={}, selectedVariant={};
+let items=[], cart={}, selectedVariant={}, activeProduct=null;
 
 function money(v){return Number(v||0).toFixed(0);}
-
-function getPriceByQty(v, qty){
-  let price = v.price;
-  (v.deals||[]).forEach(d=>{
-    if(qty >= d.qty) price = d.price;
-  });
-  return price;
-}
 
 async function loadItems(){
   const snap = await db.collection("items").get();
@@ -145,98 +181,66 @@ async function loadItems(){
 function render(){
   const box=document.getElementById("products");
   box.innerHTML="";
-
   items.forEach(p=>{
-    const hasVariants = Array.isArray(p.variants)&&p.variants.length;
-    if(hasVariants && selectedVariant[p.id]==null) selectedVariant[p.id]=0;
-
-    const v = hasVariants ? p.variants[selectedVariant[p.id]] : null;
-    const qty = cart[p.id]?.qty || 0;
-    const stock = v ? v.stock : p.stock;
-    const price = v ? getPriceByQty(v,qty||1) : p.price;
-
-    box.innerHTML += `
-    <div class="card">
-      <div class="image-box">
-        <img class="product-img" src="${p.image||'images/placeholder.png'}">
-      </div>
-
-      <div class="item-name">${p.name}</div>
-
-      ${hasVariants ? `
-        <select class="variant-select" onchange="changeVariant('${p.id}',this.value)">
-          ${p.variants.map((x,i)=>`<option value="${i}">${x.label}</option>`).join("")}
-        </select>
-      `:""}
-
-      ${v && v.stock > 0 ? `
-        <div class="deals-box" data-variant="${selectedVariant[p.id]}">
-          <button class="deal-btn" onclick="setQty('${p.id}',1)">
-            1 qty – ₹${money(v.price)}
-          </button>
-          ${(v.deals||[]).map(d=>`
-            <button class="deal-btn" onclick="setQty('${p.id}',${d.qty})">
-              ${d.qty} qty – ₹${money(d.price)}
-            </button>
-          `).join("")}
+    const price = p.variants?.length ? p.variants[0].price : p.price;
+    box.innerHTML+=`
+      <div class="card">
+        <div class="image-box">
+          <img class="product-img" src="${p.image||'images/placeholder.png'}">
         </div>
-      `:""}
-
-      <div class="price-row">
-        ${v?.mrp ? `<div class="small-mrp">₹${money(v.mrp)}</div>`:""}
-        <div class="sale">₹${money(price)}</div>
-      </div>
-
-      <div class="qty-controls">
-        <button onclick="qty('${p.id}',-1)">-</button>
-        <div class="qty-display">${qty}</div>
-        <button onclick="qty('${p.id}',1)" ${stock<=0?"disabled":""}>+</button>
-      </div>
-
-      <button class="add-btn" ${stock<=0?"disabled":""} onclick="qty('${p.id}',1)">
-        ${stock<=0?"Out of Stock":"Add to cart"}
-      </button>
-    </div>`;
+        <div class="item-name">${p.name}</div>
+        <div class="price">₹${money(price)}</div>
+        <button class="add-btn" onclick="openVariant('${p.id}')">Add</button>
+      </div>`;
   });
-
   updateFooter();
 }
 
-function changeVariant(id,idx){
-  selectedVariant[id]=Number(idx);
-  delete cart[id];
-  render();
+/* ---------- VARIANT FLOW ---------- */
+function openVariant(id){
+  activeProduct = items.find(p=>p.id===id);
+  vmName.innerText = activeProduct.name;
+  renderVariantList();
+  variantModal.classList.add("show");
 }
 
-function setQty(id,qty){
-  const p = items.find(x=>x.id===id);
-  const v = p.variants ? p.variants[selectedVariant[id]] : null;
-  if(!v) return;
-
-  cart[id] = { qty: Math.min(qty, v.stock) };
-  render();
+function closeVariant(){
+  variantModal.classList.remove("show");
 }
 
-function qty(id,d){
-  const p=items.find(x=>x.id===id);
-  const v=p.variants?p.variants[selectedVariant[id]]:null;
-  const max=v?v.stock:p.stock;
-
-  cart[id]=cart[id]||{qty:0};
-  cart[id].qty+=d;
-  if(cart[id].qty<0) cart[id].qty=0;
-  if(cart[id].qty>max) cart[id].qty=max;
-  render();
+function renderVariantList(){
+  const box=document.getElementById("variantList");
+  box.innerHTML="";
+  activeProduct.variants.forEach((v,i)=>{
+    box.innerHTML+=`
+      <div class="variant-row">
+        <div class="variant-info">
+          <div>${v.label}</div>
+          <div class="variant-price">₹${money(v.price)}</div>
+        </div>
+        <button class="variant-btn" ${v.stock<=0?"disabled":""}
+          onclick="addVariant('${activeProduct.id}',${i})">
+          ${v.stock<=0?"Notify":"Add"}
+        </button>
+      </div>`;
+  });
 }
 
+function addVariant(pid,vidx){
+  selectedVariant[pid]=vidx;
+  cart[pid]={qty:1};
+  closeVariant();
+  updateFooter();
+}
+
+/* ---------- CART ---------- */
 function updateFooter(){
   let q=0,a=0;
   Object.keys(cart).forEach(id=>{
     const p=items.find(x=>x.id===id);
-    const v=p.variants?p.variants[selectedVariant[id]]:null;
-    const price=v?getPriceByQty(v,cart[id].qty):p.price;
+    const v=p.variants[selectedVariant[id]];
     q+=cart[id].qty;
-    a+=cart[id].qty*price;
+    a+=cart[id].qty*v.price;
   });
   cartCount.innerText=q;
   footerText.innerText=`${q} items • ₹${money(a)}`;
@@ -246,38 +250,28 @@ function openCart(){
   const box=document.getElementById("cartItems");
   box.innerHTML="";
   let total=0;
-
   Object.keys(cart).forEach(id=>{
     const p=items.find(x=>x.id===id);
-    const v=p.variants?p.variants[selectedVariant[id]]:null;
-    const price=v?getPriceByQty(v,cart[id].qty):p.price;
-    box.innerHTML+=`${p.name} ${v?`(${v.label})`:""} x ${cart[id].qty} = ₹${cart[id].qty*price}<br>`;
-    total+=cart[id].qty*price;
+    const v=p.variants[selectedVariant[id]];
+    box.innerHTML+=`${p.name} (${v.label}) x ${cart[id].qty} = ₹${cart[id].qty*v.price}<br>`;
+    total+=cart[id].qty*v.price;
   });
-
   box.innerHTML+=`<br><b>Total: ₹${money(total)}</b>`;
   cartModal.classList.add("show");
 }
 
 function closeCart(){cartModal.classList.remove("show");}
 
-async function placeWhatsAppOrder(){
-  const name=custName.value.trim();
-  const phone=custPhone.value.trim();
-  const address=custAddress.value.trim();
-  if(!name||!phone||!address){alert("Fill all details");return;}
-
-  let msg="🛒 *New Order – Shopp Wholesale*\n\n";
-  let total=0;
-
+function placeWhatsAppOrder(){
+  const name=custName.value, phone=custPhone.value, address=custAddress.value;
+  if(!name||!phone||!address) return alert("Fill all details");
+  let msg="🛒 *New Order – Shopp Wholesale*\n\n", total=0;
   Object.keys(cart).forEach(id=>{
     const p=items.find(x=>x.id===id);
-    const v=p.variants?p.variants[selectedVariant[id]]:null;
-    const price=v?getPriceByQty(v,cart[id].qty):p.price;
-    msg+=`${p.name} ${v?`(${v.label})`:""} x ${cart[id].qty} = ₹${cart[id].qty*price}\n`;
-    total+=cart[id].qty*price;
+    const v=p.variants[selectedVariant[id]];
+    msg+=`${p.name} (${v.label}) x ${cart[id].qty} = ₹${cart[id].qty*v.price}\n`;
+    total+=cart[id].qty*v.price;
   });
-
   msg+=`\nTotal: ₹${money(total)}\nName: ${name}\nPhone: ${phone}\nAddress: ${address}`;
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
 }
