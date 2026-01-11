@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const el = id => document.getElementById(id);
 
-  /* ✅ ADDED VARIANT PARSER HELPER */
+  /* ✅ VARIANT PARSER HELPER */
   function parseVariantsInput() {
     const raw = el("item-variants")?.value?.trim();
     if (!raw) return null;
@@ -194,16 +194,19 @@ document.addEventListener("DOMContentLoaded", () => {
         adminKey: PASSCODE_ADMIN,
         name: el("item-name").value.trim(),
         category: el("item-category").value.trim(),
-        mrp: Number(el("item-mrp").value || 0),
-        price: Number(el("item-price").value || 0),
-        stock: Number(el("item-stock").value || 0),
         image: el("item-image").value.trim(),
         description: el("item-desc").value.trim()
       };
 
-      // ✅ FIX 1: ONLY SAVE variants IF PRESENT
+      // ✅ FIX 1: BRANCHING LOGIC FOR VARIANTS VS SIMPLE ITEM
       if (Array.isArray(variants) && variants.length) {
         data.variants = variants;
+        // Optionally set price/mrp/stock to null or first variant data on the root 
+        // if your schema requires it, but keeping it clean here.
+      } else {
+        data.mrp = Number(el("item-mrp").value || 0);
+        data.price = Number(el("item-price").value || 0);
+        data.stock = Number(el("item-stock").value || 0);
       }
 
       try {
@@ -259,8 +262,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const card = document.createElement("div");
         card.className = "item-admin";
         
-        // ✅ FIX 2: Check for variants to avoid showing ₹0 or 0 Stock
-        const infoHtml = Array.isArray(d.variants) && d.variants.length > 0
+        const isVariantItem = Array.isArray(d.variants) && d.variants.length > 0;
+
+        const infoHtml = isVariantItem
           ? `• ${d.variants.length} variants`
           : `• ₹${d.price} • Stock: ${d.stock}`;
 
@@ -274,11 +278,12 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="muted">${d.category || ''} ${infoHtml}</div>
             </div>
           </div>
-          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end; align-items: center;">
             <button class="btn secondary small edit-btn" data-id="${doc.id}">Edit</button>
-            <button class="btn small stock-btn" data-id="${doc.id}" data-stock="${d.stock}" data-name="${d.name}">
-              Update Stock
-            </button>
+            ${isVariantItem 
+              ? `<span class="muted" style="font-size: 11px;">Edit variants to update stock</span>`
+              : `<button class="btn small stock-btn" data-id="${doc.id}" data-stock="${d.stock}" data-name="${d.name}">Update Stock</button>`
+            }
           </div>
         `;
 
@@ -307,20 +312,23 @@ document.addEventListener("DOMContentLoaded", () => {
           window.scrollTo({ top: 0, behavior: "smooth" });
         });
 
-        card.querySelector(".stock-btn").addEventListener("click", async ev => {
-          const itemId = ev.target.dataset.id;
-          const oldStock = Number(ev.target.dataset.stock);
-          const name = ev.target.dataset.name;
-          const newStock = prompt(`New stock for ${name}?`, oldStock);
-          if (newStock === null) return;
-          const n = Number(newStock);
-          if (isNaN(n) || n < 0) return alert("Invalid number");
-          try {
-            await db.collection("items").doc(itemId).update({ adminKey: PASSCODE_ADMIN, stock: n });
-            alert("Stock updated");
-            loadAllItems();
-          } catch (err) { alert("Update failed"); }
-        });
+        const stockBtn = card.querySelector(".stock-btn");
+        if(stockBtn) {
+          stockBtn.addEventListener("click", async ev => {
+            const itemId = ev.target.dataset.id;
+            const oldStock = Number(ev.target.dataset.stock);
+            const name = ev.target.dataset.name;
+            const newStock = prompt(`New stock for ${name}?`, oldStock);
+            if (newStock === null) return;
+            const n = Number(newStock);
+            if (isNaN(n) || n < 0) return alert("Invalid number");
+            try {
+              await db.collection("items").doc(itemId).update({ adminKey: PASSCODE_ADMIN, stock: n });
+              alert("Stock updated");
+              loadAllItems();
+            } catch (err) { alert("Update failed"); }
+          });
+        }
         list.appendChild(card);
       });
       if (snap.empty) list.innerHTML = "<div class='muted'>No items found</div>";
@@ -328,7 +336,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----------------------------------------------
-     LOAD ORDERS & DASHBOARD STATS
+     LOAD ORDERS & ✅ FIX 3: DASHBOARD STATS
   ------------------------------------------------*/
   async function loadOrders() {
     const out = el("orders-list");
@@ -386,11 +394,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let invQty = 0, invValue = 0;
     const itemsSnap = await db.collection("items").get();
+    
+    // ✅ FIX 3: ACCOUNT FOR VARIANTS IN TOTALS
     itemsSnap.forEach(doc => {
       const i = doc.data();
-      invQty += Number(i.stock || 0);
-      invValue += Number(i.stock || 0) * Number(i.price || 0);
+      if (Array.isArray(i.variants) && i.variants.length) {
+        i.variants.forEach(v => {
+          invQty += Number(v.stock || 0);
+          invValue += Number(v.stock || 0) * Number(v.price || 0);
+        });
+      } else {
+        invQty += Number(i.stock || 0);
+        invValue += Number(i.stock || 0) * Number(i.price || 0);
+      }
     });
+
     if (el("stat-inv-qty")) el("stat-inv-qty").innerText = invQty;
     if (el("stat-inv-value")) el("stat-inv-value").innerText = invValue;
   }
@@ -402,4 +420,3 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDashboardStats();
   }
 });
-                      
