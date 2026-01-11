@@ -1,9 +1,28 @@
 [
   {
-    "id": 1,
-    "name": "Sunflower Oil 1l",
-    "mrp": 140,
-    "salePrice": 118,
-    "image": "images/sunflower_oil_1l.jpg"
+    "name": "Sunflower Oil",
+    "image": "images/sunflower_oil_1l.jpg",
+    "category": "Oil",
+    "variants": [
+      {
+        "label": "1 L Pouch",
+        "mrp": 140,
+        "price": 118,
+        "stock": 20,
+        "deals": [
+          { "qty": 2, "price": 116 },
+          { "qty": 4, "price": 114 }
+        ]
+      },
+      {
+        "label": "5 L Tin",
+        "mrp": 700,
+        "price": 660,
+        "stock": 10,
+        "deals": [
+          { "qty": 2, "price": 640 }
+        ]
+      }
+    ]
   }
 ]
