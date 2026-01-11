@@ -86,24 +86,7 @@ const db = firebase.firestore();
 <label>Variants (OPTIONAL JSON)</label>
 <textarea id="item-variants" rows="6"
 placeholder='Leave EMPTY for normal item.
-Paste JSON only when needed.
-
-Example:
-[
-  {
-    "label":"1 kg",
-    "mrp":75,
-    "price":70,
-    "stock":50,
-    "deals":[{"qty":2,"price":68}]
-  },
-  {
-    "label":"5 kg",
-    "mrp":360,
-    "price":335,
-    "stock":20
-  }
-]'></textarea>
+Paste JSON only when needed.'></textarea>
 
 <label>Product Image</label>
 <input type="file" id="imagePicker" accept="image/*">
@@ -126,19 +109,24 @@ Example:
 </div>
 
 <script>
-const el=id=>document.getElementById(id);
-const ADMIN_PIN="Sreekanth@1";
-const IMGBB_KEY="a70f2274f5053512d046cb5878c63041";
+const el = id => document.getElementById(id);
+
+const ADMIN_PIN = "Sreekanth@1";
+const ADMIN_KEY = "letmein123"; // 🔥 MUST MATCH FIRESTORE RULE
+const IMGBB_KEY = "a70f2274f5053512d046cb5878c63041";
 
 /* LOGIN */
-el("btn-login").onclick=()=>{
- if(prompt("Enter Admin PIN")===ADMIN_PIN){
+el("btn-login").onclick = () => {
+ if (prompt("Enter Admin PIN") === ADMIN_PIN) {
   localStorage.setItem("admin","1");
   enableAdmin();
  } else alert("Wrong PIN");
 };
-el("btn-logout").onclick=()=>{localStorage.removeItem("admin");location.reload()};
-if(localStorage.getItem("admin")==="1") enableAdmin();
+el("btn-logout").onclick = () => {
+ localStorage.removeItem("admin");
+ location.reload();
+};
+if (localStorage.getItem("admin") === "1") enableAdmin();
 
 function enableAdmin(){
  el("admin-badge").classList.remove("hidden");
@@ -149,67 +137,73 @@ function enableAdmin(){
 
 /* IMAGE UPLOAD */
 el("imagePicker").addEventListener("change",()=>{
- const file=el("imagePicker").files[0];
+ const file = el("imagePicker").files[0];
  if(!file) return;
- el("imagePreview").src=URL.createObjectURL(file);
- el("imagePreview").style.display="block";
- el("item-image").value="Uploading...";
- const r=new FileReader();
- r.onload=async()=>{
-  const fd=new FormData();
-  fd.append("image",r.result.split(",")[1]);
-  const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:"POST",body:fd});
-  const j=await res.json();
-  el("item-image").value=j.data.display_url;
+ el("imagePreview").src = URL.createObjectURL(file);
+ el("imagePreview").style.display = "block";
+ el("item-image").value = "Uploading...";
+ const r = new FileReader();
+ r.onload = async () => {
+  const fd = new FormData();
+  fd.append("image", r.result.split(",")[1]);
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:"POST",body:fd});
+  const j = await res.json();
+  el("item-image").value = j.data.display_url;
  };
  r.readAsDataURL(file);
 });
 
-/* SAVE ITEM (SAFE VERSION) */
-el("item-form").onsubmit=async e=>{
+/* SAVE ITEM — FINAL FIX */
+el("item-form").onsubmit = async e => {
  e.preventDefault();
 
- let variants=[];
- const raw=el("item-variants").value.trim();
+ let variants = [];
+ const raw = el("item-variants").value.trim();
 
- if(raw){
-  try{
-   variants=JSON.parse(raw);
-   if(!Array.isArray(variants)) throw 1;
-  }catch{
-   alert("Variants must be valid JSON array.\n\nClear this box if item has no variants.");
+ if (raw) {
+  try {
+   variants = JSON.parse(raw);
+   if (!Array.isArray(variants)) throw 1;
+  } catch {
+   alert("Variants must be valid JSON array.\nClear box for normal items.");
    return;
   }
  }
 
- const data={
-  name:el("item-name").value.trim(),
-  category:el("item-category").value.trim(),
-  image:el("item-image").value.trim()
+ const data = {
+  adminKey: ADMIN_KEY, // 🔥 REQUIRED
+  name: el("item-name").value.trim(),
+  category: el("item-category").value.trim(),
+  image: el("item-image").value.trim()
  };
 
- if(variants.length){
-  data.variants=variants;
- }else{
-  data.mrp=+el("item-mrp").value||0;
-  data.price=+el("item-price").value||0;
-  data.stock=+el("item-stock").value||0;
+ if (variants.length) {
+  data.variants = variants;
+ } else {
+  data.mrp = +el("item-mrp").value || 0;
+  data.price = +el("item-price").value || 0;
+  data.stock = +el("item-stock").value || 0;
  }
 
- if(el("item-id").value)
-  await db.collection("items").doc(el("item-id").value).update(data);
- else
-  await db.collection("items").add(data);
+ try {
+  if (el("item-id").value)
+   await db.collection("items").doc(el("item-id").value).update(data);
+  else
+   await db.collection("items").add(data);
 
- alert("Item saved successfully");
- clearForm(); loadItems(); loadInventory();
+  alert("Item saved successfully");
+  clearForm(); loadItems(); loadInventory();
+ } catch (err) {
+  console.error(err);
+  alert("Save failed. Check Firestore rules.");
+ }
 };
 
 /* DELETE */
-el("btn-delete").onclick=async()=>{
- const id=el("item-id").value;
- if(!id) return;
- if(confirm("Delete item permanently?")){
+el("btn-delete").onclick = async () => {
+ const id = el("item-id").value;
+ if (!id) return;
+ if (confirm("Delete item permanently?")) {
   await db.collection("items").doc(id).delete();
   alert("Item deleted");
   clearForm(); loadItems(); loadInventory();
@@ -226,24 +220,22 @@ function clearForm(){
 /* LOAD ITEMS */
 async function loadItems(){
  el("items-list").innerHTML="";
- const snap=await db.collection("items").orderBy("name").get();
+ const snap = await db.collection("items").orderBy("name").get();
  snap.forEach(doc=>{
-  const i=doc.data();
-  const d=document.createElement("div");
+  const i = doc.data();
+  const d = document.createElement("div");
   d.className="item-admin";
-  d.innerHTML=`<b>${i.name}</b><br>
-    <span class="muted">
-      ${i.variants ? i.variants.length+" variants" : "₹"+i.price+" • Stock: "+i.stock}
-    </span>`;
-  d.onclick=()=>{
-   el("item-id").value=doc.id;
-   el("item-name").value=i.name;
-   el("item-category").value=i.category||"";
-   el("item-image").value=i.image||"";
-   el("item-mrp").value=i.mrp||0;
-   el("item-price").value=i.price||0;
-   el("item-stock").value=i.stock||0;
-   el("item-variants").value=i.variants?JSON.stringify(i.variants,null,2):"";
+  d.innerHTML = `<b>${i.name}</b><br>
+    <span class="muted">${i.variants ? i.variants.length+" variants" : "₹"+i.price+" • Stock: "+i.stock}</span>`;
+  d.onclick = () => {
+   el("item-id").value = doc.id;
+   el("item-name").value = i.name;
+   el("item-category").value = i.category || "";
+   el("item-image").value = i.image || "";
+   el("item-mrp").value = i.mrp || 0;
+   el("item-price").value = i.price || 0;
+   el("item-stock").value = i.stock || 0;
+   el("item-variants").value = i.variants ? JSON.stringify(i.variants,null,2) : "";
    if(i.image){el("imagePreview").src=i.image;el("imagePreview").style.display="block";}
    el("btn-delete").classList.remove("hidden");
    window.scrollTo({top:0,behavior:"smooth"});
@@ -275,7 +267,7 @@ async function loadInventory(){
     q+=+vr.stock||0;
     v+=+vr.stock*+vr.price||0;
    });
-  }else{
+  } else {
    q+=+i.stock||0;
    v+=+i.stock*+i.price||0;
   }
