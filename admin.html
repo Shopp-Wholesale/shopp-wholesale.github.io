@@ -22,10 +22,11 @@ body{margin:0;background:#f4f9f4;font-family:system-ui}
 .card{background:#fff;border-radius:10px;padding:14px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 label{font-weight:600;margin-top:8px;display:block}
-input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
+input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
 .items-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
 .item-admin{background:#fff;border-radius:10px;padding:12px;border:1px solid #eee;cursor:pointer}
 .muted{color:#666;font-size:13px}
+textarea{font-family:monospace;font-size:13px}
 </style>
 
 <script>
@@ -33,7 +34,6 @@ firebase.initializeApp({
   apiKey:"AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
   authDomain:"shopp-wholesale.firebaseapp.com",
   projectId:"shopp-wholesale",
-  appId:"1:811103669232:web:825724b3738658192b6b35"
 });
 const db = firebase.firestore();
 </script>
@@ -53,16 +53,6 @@ const db = firebase.firestore();
 </div>
 
 <div class="card">
-<h3>Dashboard</h3>
-<div class="grid">
- <div><b>Items Sold</b><br><span id="d-items">0</span></div>
- <div><b>Revenue</b><br>₹<span id="d-revenue">0</span></div>
- <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
- <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
-</div>
-</div>
-
-<div class="card">
 <h3>Add / Edit Item</h3>
 <form id="item-form">
 
@@ -74,21 +64,31 @@ const db = firebase.firestore();
 <label>Category</label>
 <input id="item-category">
 
-<label>MRP</label>
-<input id="item-mrp" type="number">
-
-<label>Sale Price</label>
-<input id="item-price" type="number" required>
-
-<label>Stock</label>
-<input id="item-stock" type="number">
-
 <label>Product Image</label>
 <input type="file" id="imagePicker" accept="image/*">
-
 <img id="imagePreview" style="width:80px;height:80px;border-radius:8px;display:none;margin:8px 0">
-
 <input id="item-image" placeholder="Image URL (auto)" readonly>
+
+<label>Variants (JSON)</label>
+<textarea id="item-variants" rows="6"
+placeholder='[
+  {
+    "label":"1 kg",
+    "mrp":75,
+    "price":70,
+    "stock":50,
+    "deals":[
+      {"qty":1,"price":70},
+      {"qty":2,"price":68}
+    ]
+  },
+  {
+    "label":"5 kg",
+    "mrp":360,
+    "price":335,
+    "stock":20
+  }
+]'></textarea>
 
 <div style="margin-top:10px;display:flex;gap:8px">
  <button class="btn primary" type="submit">Save Item</button>
@@ -107,100 +107,78 @@ const db = firebase.firestore();
 
 <script>
 const el=id=>document.getElementById(id);
-
-const ADMIN_PIN = "Sreekanth@1";
-const ADMIN_KEY = "letmein123";   // 🔑 MUST MATCH FIRESTORE RULE
-const IMGBB_KEY = "a70f2274f5053512d046cb5878c63041";
+const ADMIN_PIN="Sreekanth@1";
+const IMGBB_KEY="a70f2274f5053512d046cb5878c63041";
 
 /* LOGIN */
 el("btn-login").onclick=()=>{
- const pin=prompt("Enter Admin PIN");
- if(pin===ADMIN_PIN){
+ if(prompt("Enter Admin PIN")===ADMIN_PIN){
   localStorage.setItem("admin","1");
   enableAdmin();
  } else alert("Wrong PIN");
 };
-el("btn-logout").onclick=()=>{
- localStorage.removeItem("admin");
- location.reload();
-};
+el("btn-logout").onclick=()=>{localStorage.removeItem("admin");location.reload()};
+if(localStorage.getItem("admin")==="1") enableAdmin();
 
 function enableAdmin(){
  el("admin-badge").classList.remove("hidden");
  el("btn-login").classList.add("hidden");
  el("btn-logout").classList.remove("hidden");
- loadStats(); loadInventory(); loadItems();
+ loadItems();
 }
-if(localStorage.getItem("admin")==="1") enableAdmin();
 
 /* IMAGE UPLOAD */
 el("imagePicker").addEventListener("change",()=>{
- const file=el("imagePicker").files[0];
- if(!file) return;
-
- el("imagePreview").src=URL.createObjectURL(file);
+ const f=el("imagePicker").files[0]; if(!f) return;
+ el("imagePreview").src=URL.createObjectURL(f);
  el("imagePreview").style.display="block";
  el("item-image").value="Uploading...";
-
  const r=new FileReader();
  r.onload=async()=>{
-  const base64=r.result.split(",")[1];
-  const fd=new FormData(); fd.append("image",base64);
-  try{
-   const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{
-     method:"POST", body:fd
-   });
-   const j=await res.json();
-   el("item-image").value=j.data.display_url;
-  }catch{
-   alert("Image upload failed");
-   el("item-image").value="";
-  }
+  const fd=new FormData(); fd.append("image",r.result.split(",")[1]);
+  const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:"POST",body:fd});
+  const j=await res.json();
+  el("item-image").value=j.data.display_url;
  };
- r.readAsDataURL(file);
+ r.readAsDataURL(f);
 });
 
-/* SAVE ITEM — FIXED */
+/* SAVE */
 el("item-form").onsubmit=async e=>{
  e.preventDefault();
- if(el("item-image").value==="Uploading...") return alert("Wait for image upload");
+ let variants=[];
+ try{ variants=JSON.parse(el("item-variants").value||"[]"); }
+ catch{ return alert("Invalid variants JSON"); }
 
  const data={
-  adminKey: ADMIN_KEY,   // 🔥 REQUIRED
   name:el("item-name").value.trim(),
   category:el("item-category").value.trim(),
-  mrp:+el("item-mrp").value||0,
-  price:+el("item-price").value||0,
-  stock:+el("item-stock").value||0,
-  image:el("item-image").value.trim()
+  image:el("item-image").value.trim(),
+  variants
  };
 
- try{
-  if(el("item-id").value)
-   await db.collection("items").doc(el("item-id").value).update(data);
-  else
-   await db.collection("items").add(data);
+ if(el("item-id").value)
+  await db.collection("items").doc(el("item-id").value).update(data);
+ else
+  await db.collection("items").add(data);
 
-  alert("Item saved");
-  clearForm(); loadItems(); loadInventory();
- }catch(err){
-  console.error(err);
-  alert("Save failed (check rules)");
- }
+ alert("Item saved");
+ clearForm(); loadItems();
 };
 
+/* DELETE — FIXED */
 el("btn-delete").onclick=async()=>{
- if(!el("item-id").value) return;
- if(confirm("Delete item?")){
-  await db.collection("items").doc(el("item-id").value).delete({
-    adminKey: ADMIN_KEY
-  });
-  clearForm(); loadItems(); loadInventory();
+ const id=el("item-id").value;
+ if(!id) return;
+ if(confirm("Delete item permanently?")){
+  await db.collection("items").doc(id).delete();
+  alert("Item deleted");
+  clearForm(); loadItems();
  }
 };
 
 function clearForm(){
- ["item-id","item-name","item-category","item-mrp","item-price","item-stock","item-image"]
+ ["item-id","item-name","item-category","item-image","item-variants"]
  .forEach(i=>el(i).value="");
  el("imagePreview").style.display="none";
  el("btn-delete").classList.add("hidden");
@@ -214,46 +192,20 @@ async function loadItems(){
   const i=doc.data();
   const d=document.createElement("div");
   d.className="item-admin";
-  d.innerHTML=`<b>${i.name}</b><br><span class="muted">₹${i.price} • Stock: ${i.stock}</span>`;
+  d.innerHTML=`<b>${i.name}</b><br>
+   <span class="muted">${i.variants?.length||0} variants</span>`;
   d.onclick=()=>{
    el("item-id").value=doc.id;
    el("item-name").value=i.name;
    el("item-category").value=i.category||"";
-   el("item-mrp").value=i.mrp||0;
-   el("item-price").value=i.price||0;
-   el("item-stock").value=i.stock||0;
    el("item-image").value=i.image||"";
+   el("item-variants").value=JSON.stringify(i.variants||[],null,2);
    if(i.image){el("imagePreview").src=i.image;el("imagePreview").style.display="block";}
    el("btn-delete").classList.remove("hidden");
    window.scrollTo({top:0,behavior:"smooth"});
   };
   el("items-list").appendChild(d);
  });
-}
-
-/* STATS */
-async function loadStats(){
- let sold=0,revenue=0;
- const s=await db.collection("orders").get();
- s.forEach(d=>{
-  const o=d.data();
-  (o.items||[]).forEach(i=>sold+=+i.qty||0);
-  revenue+=+o.total||0;
- });
- el("d-items").innerText=sold;
- el("d-revenue").innerText=revenue;
-}
-
-async function loadInventory(){
- let q=0,v=0;
- const s=await db.collection("items").get();
- s.forEach(d=>{
-  const i=d.data();
-  q+=+i.stock||0;
-  v+=+i.stock*+i.price||0;
- });
- el("inv-items").innerText=q;
- el("inv-value").innerText=v;
 }
 </script>
 
