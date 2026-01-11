@@ -5,42 +5,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Shopp Wholesale</title>
 
-<!-- Firebase v8 -->
+<!-- ======================================================
+     FIREBASE SDKs (v8 – stable, production safe)
+====================================================== -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
+/* ======================================================
+   FIREBASE INITIALIZATION
+====================================================== */
 firebase.initializeApp({
   apiKey: "AIzaSyDCM_KCDiyDzEEQaqUI66TNpv-l4L8dnzo",
   authDomain: "shopp-wholesale.firebaseapp.com",
   projectId: "shopp-wholesale"
 });
+
 const db = firebase.firestore();
 </script>
 
 <style>
-:root{--accent:#19a74a;--bg:#f4f9f4;--muted:#6f6f6f;--img:#eef8ee}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,Arial;background:var(--bg)}
+/* ======================================================
+   GLOBAL THEME VARIABLES
+====================================================== */
+:root{
+  --accent:#19a74a;
+  --bg:#f4f9f4;
+  --muted:#6f6f6f;
+  --img:#eef8ee;
+}
 
-.site-header{position:sticky;top:0;background:#fff;padding:14px 18px;display:flex;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.05);z-index:5}
+/* ======================================================
+   RESET + BASE
+====================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:system-ui,Arial;
+  background:var(--bg);
+}
+
+/* ======================================================
+   HEADER
+====================================================== */
+.site-header{
+  position:sticky;
+  top:0;
+  background:#fff;
+  padding:14px 18px;
+  display:flex;
+  justify-content:space-between;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
+  z-index:5;
+}
 .brand-name{font-size:20px;font-weight:700}
 .tagline{font-size:12px;color:var(--muted)}
-.cart-display{border:1px solid #ddd;padding:6px 12px;border-radius:6px;font-weight:600}
+.cart-display{
+  border:1px solid #ddd;
+  padding:6px 12px;
+  border-radius:6px;
+  font-weight:600;
+}
 
+/* ======================================================
+   SEARCH
+====================================================== */
 .controls{padding:12px 16px}
-.search-box{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
+.search-box{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
 
-#products{padding:8px 8px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media(min-width:768px){#products{grid-template-columns:repeat(4,1fr)}}
+/* ======================================================
+   PRODUCT GRID
+====================================================== */
+#products{
+  padding:8px 8px 120px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+}
+@media(min-width:768px){
+  #products{grid-template-columns:repeat(4,1fr)}
+}
 
-.card{background:#f7fbf7;border-radius:14px;padding:8px;display:flex;flex-direction:column}
-.image-box{background:var(--img);aspect-ratio:1/1;border-radius:10px;overflow:hidden}
-.product-img{width:100%;height:100%;object-fit:cover}
+.card{
+  background:#f7fbf7;
+  border-radius:14px;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+}
+.image-box{
+  background:var(--img);
+  aspect-ratio:1/1;
+  border-radius:10px;
+  overflow:hidden;
+}
+.product-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.item-name{
+  margin:6px 0 2px;
+  font-size:14px;
+  font-weight:600;
+}
+.price{
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:6px;
+}
 
-.item-name{margin:6px 0 2px;font-size:14px;font-weight:600}
-.price{font-size:16px;font-weight:700;margin-bottom:6px}
-
+/* ======================================================
+   BUTTONS + QTY
+====================================================== */
 .add-btn{
   height:36px;
   border-radius:8px;
@@ -49,7 +130,6 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   color:var(--accent);
   font-weight:700;
 }
-
 .qty-box{
   display:flex;
   justify-content:center;
@@ -57,32 +137,49 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   gap:10px;
   margin-top:6px;
 }
-
 .qty-btn{
-  width:28px;height:28px;
+  width:28px;
+  height:28px;
   border-radius:6px;
   border:1px solid var(--accent);
   background:#fff;
   color:var(--accent);
   font-weight:700;
 }
-.qty-count{min-width:18px;text-align:center}
+.qty-count{
+  min-width:18px;
+  text-align:center;
+}
 
+/* ======================================================
+   FOOTER
+====================================================== */
 .cart-footer{
-  position:fixed;bottom:0;left:0;right:0;
-  height:56px;background:#fff;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  height:56px;
+  background:#fff;
   padding:10px 14px;
-  display:flex;justify-content:space-between;align-items:center;
-  box-shadow:0 -2px 6px rgba(0,0,0,.08)
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:0 -2px 6px rgba(0,0,0,.08);
 }
 .footer-checkout-btn{
-  background:var(--accent);color:#fff;
-  padding:10px 16px;border-radius:10px;border:none;font-weight:700
+  background:var(--accent);
+  color:#fff;
+  padding:10px 16px;
+  border-radius:10px;
+  border:none;
+  font-weight:700;
 }
 
-/* ---------- VARIANT MODAL ---------- */
+/* ======================================================
+   VARIANT MODAL
+====================================================== */
 .variant-modal{
-  position:fixed;inset:0;
+  position:fixed;
+  inset:0;
   background:rgba(0,0,0,.45);
   display:none;
   justify-content:center;
@@ -99,7 +196,6 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   padding:16px;
   overflow:auto;
 }
-
 .variant-header{
   display:flex;
   justify-content:space-between;
@@ -108,7 +204,6 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   font-size:16px;
   font-weight:700;
 }
-
 .variant-row{
   display:flex;
   justify-content:space-between;
@@ -116,20 +211,43 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   padding:12px 0;
   border-bottom:1px solid #eee;
 }
-
 .variant-info{font-size:14px}
 .variant-price{font-weight:700;margin-top:2px}
 
-/* ---------- CART MODAL ---------- */
-.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center;z-index:1000}
+/* ======================================================
+   CART MODAL
+====================================================== */
+.cart-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+}
 .cart-modal.show{display:flex}
-.cart-content{background:#fff;width:92%;max-width:420px;border-radius:14px;padding:16px}
-.cart-content input,.cart-content textarea{width:100%;padding:8px;margin:6px 0}
+.cart-content{
+  background:#fff;
+  width:92%;
+  max-width:420px;
+  border-radius:14px;
+  padding:16px;
+}
+.cart-content input,
+.cart-content textarea{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+}
 </style>
 </head>
 
 <body>
 
+<!-- ======================================================
+     HEADER
+====================================================== -->
 <header class="site-header">
   <div>
     <div class="brand-name">Shopp Wholesale</div>
@@ -149,7 +267,9 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
-<!-- VARIANT MODAL -->
+<!-- ======================================================
+     VARIANT MODAL
+====================================================== -->
 <div class="variant-modal" id="variantModal">
   <div class="variant-sheet">
     <div class="variant-header">
@@ -160,7 +280,9 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   </div>
 </div>
 
-<!-- CART MODAL -->
+<!-- ======================================================
+     CART MODAL
+====================================================== -->
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3>Your Cart</h3>
@@ -175,33 +297,49 @@ body{font-family:system-ui,Arial;background:var(--bg)}
 </div>
 
 <script>
+/* ======================================================
+   GLOBAL STATE
+====================================================== */
 const WHATSAPP_NUMBER="919000810084";
-let items=[], cart={}, activeProduct=null;
+let items = [];
+let cart  = {};
+let activeProduct = null;
 
-const money=v=>Number(v||0).toFixed(0);
-
-/* ---------- LOAD ---------- */
-async function loadItems(){
-  const snap = await db.collection("items").get();
-  items=[];
-  snap.forEach(d=>items.push({...d.data(),id:d.id}));
-  render();
+/* ======================================================
+   UTILITIES
+====================================================== */
+function money(v){
+  return Number(v || 0).toFixed(0);
 }
 
-/* ---------- PRODUCT GRID ---------- */
-function render(){
-  products.innerHTML="";
+/* ======================================================
+   LOAD PRODUCTS
+====================================================== */
+async function loadItems(){
+  const snap = await db.collection("items").get();
+  items = [];
+  snap.forEach(d=>{
+    items.push({...d.data(), id:d.id});
+  });
+  renderProducts();
+}
+
+/* ======================================================
+   RENDER PRODUCT GRID
+====================================================== */
+function renderProducts(){
+  const box = document.getElementById("products");
+  box.innerHTML = "";
+
   items.forEach(p=>{
     const hasVariants = Array.isArray(p.variants) && p.variants.length;
-    const basePrice = hasVariants ? p.variants[0].price : p.price;
-    const key = p.id;
+    const basePrice   = hasVariants ? p.variants[0].price : p.price;
+    const qty         = cart[p.id]?.count || 0;
 
-    const qty = cart[key]?.count || 0;
-
-    products.innerHTML+=`
+    box.innerHTML += `
       <div class="card">
         <div class="image-box">
-          <img class="product-img" src="${p.image||'images/placeholder.png'}">
+          <img class="product-img" src="${p.image || 'images/placeholder.png'}">
         </div>
         <div class="item-name">${p.name}</div>
         <div class="price">₹${money(basePrice)}</div>
@@ -211,101 +349,177 @@ function render(){
           ? `<button class="add-btn" onclick="openVariant('${p.id}')">⬇ Options</button>`
           : `
             <div class="qty-box">
-              <button class="qty-btn" onclick="simpleQty('${p.id}',-1)">−</button>
+              <button class="qty-btn" onclick="updateSimpleQty('${p.id}',-1)">−</button>
               <div class="qty-count">${qty}</div>
-              <button class="qty-btn" onclick="simpleQty('${p.id}',1)">+</button>
+              <button class="qty-btn" onclick="updateSimpleQty('${p.id}',1)">+</button>
             </div>
           `
         }
-      </div>`;
+      </div>
+    `;
   });
+
   updateFooter();
 }
 
-/* ---------- SIMPLE ITEMS ---------- */
-function simpleQty(id,delta){
-  cart[id]=cart[id]||{count:0,price:items.find(p=>p.id===id).price};
-  cart[id].count=Math.max(0,cart[id].count+delta);
-  render();
+/* ======================================================
+   SIMPLE PRODUCT LOGIC
+====================================================== */
+function updateSimpleQty(id,delta){
+  const product = items.find(p=>p.id===id);
+  if(!product) return;
+
+  cart[id] = cart[id] || {
+    id,
+    name: product.name,
+    price: product.price,
+    count: 0
+  };
+
+  cart[id].count = Math.max(0, cart[id].count + delta);
+
+  if(cart[id].count === 0){
+    delete cart[id];
+  }
+
+  renderProducts();
 }
 
-/* ---------- VARIANT MODAL ---------- */
+/* ======================================================
+   VARIANT MODAL LOGIC
+====================================================== */
 function openVariant(id){
-  activeProduct=items.find(p=>p.id===id);
-  vmName.innerText=activeProduct.name;
+  activeProduct = items.find(p=>p.id===id);
+  vmName.innerText = activeProduct.name;
   renderVariantList();
   variantModal.classList.add("show");
 }
-function closeVariant(){variantModal.classList.remove("show");}
+
+function closeVariant(){
+  variantModal.classList.remove("show");
+}
 
 function renderVariantList(){
-  variantList.innerHTML="";
+  const box = document.getElementById("variantList");
+  box.innerHTML = "";
+
   activeProduct.variants.forEach((v,vidx)=>{
-    const rows=[{qty:1,price:v.price},...(v.deals||[])];
+    const rows = [{qty:1,price:v.price}, ...(v.deals||[])];
+
     rows.forEach(d=>{
-      const key=`${activeProduct.id}_${vidx}_${d.qty}`;
-      const count=cart[key]?.count||0;
-      variantList.innerHTML+=`
+      const key = `${activeProduct.id}_${vidx}_${d.qty}`;
+      const count = cart[key]?.count || 0;
+
+      box.innerHTML += `
         <div class="variant-row">
           <div class="variant-info">
             <div><b>${v.label}</b></div>
             <div class="variant-price">${d.qty} qty – ₹${money(d.price)}</div>
           </div>
           <div class="qty-box">
-            <button class="qty-btn" onclick="variantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},-1)">−</button>
+            <button class="qty-btn" onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},-1)">−</button>
             <div class="qty-count">${count}</div>
-            <button class="qty-btn" onclick="variantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},1)">+</button>
+            <button class="qty-btn" onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},1)">+</button>
           </div>
-        </div>`;
+        </div>
+      `;
     });
   });
 }
 
-function variantQty(key,pid,vidx,dealQty,price,delta){
-  cart[key]=cart[key]||{pid,vidx,dealQty,price,count:0};
-  cart[key].count=Math.max(0,cart[key].count+delta);
+function updateVariantQty(key,pid,vidx,dealQty,price,delta){
+  const product = items.find(p=>p.id===pid);
+  const variant = product.variants[vidx];
+
+  cart[key] = cart[key] || {
+    key,
+    pid,
+    name: product.name + " (" + variant.label + ")",
+    price,
+    dealQty,
+    count: 0
+  };
+
+  cart[key].count = Math.max(0, cart[key].count + delta);
+
+  if(cart[key].count === 0){
+    delete cart[key];
+  }
+
   renderVariantList();
   updateFooter();
 }
 
-/* ---------- FOOTER / CART ---------- */
+/* ======================================================
+   FOOTER + CART TOTALS
+====================================================== */
 function updateFooter(){
-  let q=0,a=0;
+  let totalQty = 0;
+  let totalAmt = 0;
+
   Object.values(cart).forEach(c=>{
-    q+=c.count*(c.dealQty||1);
-    a+=c.count*(c.dealQty||1)*(c.price||0);
+    totalQty += c.count * (c.dealQty || 1);
+    totalAmt += c.count * (c.dealQty || 1) * c.price;
   });
-  cartCount.innerText=q;
-  footerText.innerText=`${q} items • ₹${money(a)}`;
+
+  cartCount.innerText = totalQty;
+  footerText.innerText = `${totalQty} items • ₹${money(totalAmt)}`;
 }
 
+/* ======================================================
+   CART VIEW
+====================================================== */
 function openCart(){
-  cartItems.innerHTML="";
-  let total=0;
+  cartItems.innerHTML = "";
+  let total = 0;
+
   Object.values(cart).forEach(c=>{
-    if(!c.count) return;
-    const p=items.find(x=>x.id===c.pid||x.id===c.id);
-    cartItems.innerHTML+=`${p.name} x ${c.count*(c.dealQty||1)} = ₹${c.count*(c.dealQty||1)*(c.price||0)}<br>`;
-    total+=c.count*(c.dealQty||1)*(c.price||0);
+    cartItems.innerHTML += `
+      ${c.name} x ${c.count*(c.dealQty||1)} = ₹${money(c.count*(c.dealQty||1)*c.price)}<br>
+    `;
+    total += c.count*(c.dealQty||1)*c.price;
   });
-  cartItems.innerHTML+=`<br><b>Total: ₹${money(total)}</b>`;
+
+  cartItems.innerHTML += `<br><b>Total: ₹${money(total)}</b>`;
   cartModal.classList.add("show");
 }
-function closeCart(){cartModal.classList.remove("show");}
 
-function placeWhatsAppOrder(){
-  if(!custName.value||!custPhone.value||!custAddress.value) return alert("Fill all details");
-  let msg="🛒 *New Order – Shopp Wholesale*\n\n",total=0;
-  Object.values(cart).forEach(c=>{
-    if(!c.count) return;
-    const p=items.find(x=>x.id===c.pid||x.id===c.id);
-    msg+=`${p.name} x ${c.count*(c.dealQty||1)} = ₹${c.count*(c.dealQty||1)*(c.price||0)}\n`;
-    total+=c.count*(c.dealQty||1)*(c.price||0);
-  });
-  msg+=`\nTotal: ₹${money(total)}\nName: ${custName.value}\nPhone: ${custPhone.value}\nAddress: ${custAddress.value}`;
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+function closeCart(){
+  cartModal.classList.remove("show");
 }
 
+/* ======================================================
+   WHATSAPP ORDER
+====================================================== */
+function placeWhatsAppOrder(){
+  if(!custName.value || !custPhone.value || !custAddress.value){
+    alert("Fill all details");
+    return;
+  }
+
+  let msg = "🛒 *New Order – Shopp Wholesale*\n\n";
+  let total = 0;
+
+  Object.values(cart).forEach(c=>{
+    msg += `${c.name} x ${c.count*(c.dealQty||1)} = ₹${money(c.count*(c.dealQty||1)*c.price)}\n`;
+    total += c.count*(c.dealQty||1)*c.price;
+  });
+
+  msg += `\nTotal: ₹${money(total)}\nName: ${custName.value}\nPhone: ${custPhone.value}\nAddress: ${custAddress.value}`;
+
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
+
+  /* ======================================================
+     FUTURE:
+     - Save order to Firestore
+     - Reduce inventory
+     - Payment integration
+  ====================================================== */
+}
+
+/* ======================================================
+   INIT
+====================================================== */
 loadItems();
 </script>
 
