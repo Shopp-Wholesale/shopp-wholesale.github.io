@@ -169,8 +169,8 @@ function render(){
         </select>
       `:""}
 
-      ${v ? `
-        <div class="deals-box">
+      ${v && v.stock > 0 ? `
+        <div class="deals-box" data-variant="${selectedVariant[p.id]}">
           <button class="deal-btn" onclick="setQty('${p.id}',1)">
             1 qty – ₹${money(v.price)}
           </button>
@@ -204,12 +204,16 @@ function render(){
 
 function changeVariant(id,idx){
   selectedVariant[id]=Number(idx);
-  cart[id]=null;
+  delete cart[id];
   render();
 }
 
 function setQty(id,qty){
-  cart[id]={qty};
+  const p = items.find(x=>x.id===id);
+  const v = p.variants ? p.variants[selectedVariant[id]] : null;
+  if(!v) return;
+
+  cart[id] = { qty: Math.min(qty, v.stock) };
   render();
 }
 
@@ -228,7 +232,6 @@ function qty(id,d){
 function updateFooter(){
   let q=0,a=0;
   Object.keys(cart).forEach(id=>{
-    if(!cart[id]) return;
     const p=items.find(x=>x.id===id);
     const v=p.variants?p.variants[selectedVariant[id]]:null;
     const price=v?getPriceByQty(v,cart[id].qty):p.price;
