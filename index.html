@@ -49,7 +49,24 @@ body{font-family:Inter,system-ui,Arial;background:var(--bg)}
   font-size:13px;
 }
 
-.price-row{display:flex;gap:6px}
+.deals-box{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin:6px 0;
+}
+
+.deal-btn{
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #19a74a;
+  background:#eafff1;
+  color:#12853a;
+  font-size:13px;
+  text-align:left;
+}
+
+.price-row{display:flex;gap:6px;align-items:center}
 .small-mrp{font-size:11px;text-decoration:line-through;color:#777}
 .sale{font-size:16px;font-weight:700}
 
@@ -110,16 +127,16 @@ let items=[], cart={}, selectedVariant={};
 
 function money(v){return Number(v||0).toFixed(0);}
 
-function getVariantPrice(v, qty){
-  let p=v.price;
+function getPriceByQty(v, qty){
+  let price = v.price;
   (v.deals||[]).forEach(d=>{
-    if(qty>=d.qty) p=d.price;
+    if(qty >= d.qty) price = d.price;
   });
-  return p;
+  return price;
 }
 
 async function loadItems(){
-  const snap=await db.collection("items").get();
+  const snap = await db.collection("items").get();
   items=[];
   snap.forEach(d=>items.push({...d.data(),id:d.id}));
   render();
@@ -130,33 +147,43 @@ function render(){
   box.innerHTML="";
 
   items.forEach(p=>{
-    const hasVariants=Array.isArray(p.variants)&&p.variants.length;
+    const hasVariants = Array.isArray(p.variants)&&p.variants.length;
     if(hasVariants && selectedVariant[p.id]==null) selectedVariant[p.id]=0;
 
-    const v=hasVariants?p.variants[selectedVariant[p.id]]:null;
-    const qty=cart[p.id]?.qty||0;
-    const stock=v?v.stock:p.stock;
-    const price=v?getVariantPrice(v,qty||1):p.price;
-    const mrp=v?v.mrp:p.mrp;
+    const v = hasVariants ? p.variants[selectedVariant[p.id]] : null;
+    const qty = cart[p.id]?.qty || 0;
+    const stock = v ? v.stock : p.stock;
+    const price = v ? getPriceByQty(v,qty||1) : p.price;
 
-    box.innerHTML+=`
+    box.innerHTML += `
     <div class="card">
-      <div class="image-box"><img class="product-img" src="${p.image||'images/placeholder.png'}"></div>
+      <div class="image-box">
+        <img class="product-img" src="${p.image||'images/placeholder.png'}">
+      </div>
+
       <div class="item-name">${p.name}</div>
 
-      ${hasVariants?`
+      ${hasVariants ? `
         <select class="variant-select" onchange="changeVariant('${p.id}',this.value)">
-          ${p.variants.map((x,i)=>{
-            let text = `${x.label} – 1 qty ₹${money(x.price)}`;
-            (x.deals||[]).forEach(d=>{
-              text += ` | ${d.qty} qty ₹${money(d.price)}`;
-            });
-            return `<option value="${i}">${text}</option>`;
-          }).join("")}
-        </select>`:""}
+          ${p.variants.map((x,i)=>`<option value="${i}">${x.label}</option>`).join("")}
+        </select>
+      `:""}
+
+      ${v ? `
+        <div class="deals-box">
+          <button class="deal-btn" onclick="setQty('${p.id}',1)">
+            1 qty – ₹${money(v.price)}
+          </button>
+          ${(v.deals||[]).map(d=>`
+            <button class="deal-btn" onclick="setQty('${p.id}',${d.qty})">
+              ${d.qty} qty – ₹${money(d.price)}
+            </button>
+          `).join("")}
+        </div>
+      `:""}
 
       <div class="price-row">
-        ${mrp?`<div class="small-mrp">₹${money(mrp)}</div>`:""}
+        ${v?.mrp ? `<div class="small-mrp">₹${money(v.mrp)}</div>`:""}
         <div class="sale">₹${money(price)}</div>
       </div>
 
@@ -181,6 +208,11 @@ function changeVariant(id,idx){
   render();
 }
 
+function setQty(id,qty){
+  cart[id]={qty};
+  render();
+}
+
 function qty(id,d){
   const p=items.find(x=>x.id===id);
   const v=p.variants?p.variants[selectedVariant[id]]:null;
@@ -199,7 +231,7 @@ function updateFooter(){
     if(!cart[id]) return;
     const p=items.find(x=>x.id===id);
     const v=p.variants?p.variants[selectedVariant[id]]:null;
-    const price=v?getVariantPrice(v,cart[id].qty):p.price;
+    const price=v?getPriceByQty(v,cart[id].qty):p.price;
     q+=cart[id].qty;
     a+=cart[id].qty*price;
   });
@@ -215,7 +247,7 @@ function openCart(){
   Object.keys(cart).forEach(id=>{
     const p=items.find(x=>x.id===id);
     const v=p.variants?p.variants[selectedVariant[id]]:null;
-    const price=v?getVariantPrice(v,cart[id].qty):p.price;
+    const price=v?getPriceByQty(v,cart[id].qty):p.price;
     box.innerHTML+=`${p.name} ${v?`(${v.label})`:""} x ${cart[id].qty} = ₹${cart[id].qty*price}<br>`;
     total+=cart[id].qty*price;
   });
@@ -238,7 +270,7 @@ async function placeWhatsAppOrder(){
   Object.keys(cart).forEach(id=>{
     const p=items.find(x=>x.id===id);
     const v=p.variants?p.variants[selectedVariant[id]]:null;
-    const price=v?getVariantPrice(v,cart[id].qty):p.price;
+    const price=v?getPriceByQty(v,cart[id].qty):p.price;
     msg+=`${p.name} ${v?`(${v.label})`:""} x ${cart[id].qty} = ₹${cart[id].qty*price}\n`;
     total+=cart[id].qty*price;
   });
