@@ -19,11 +19,9 @@ const db = firebase.firestore();
 </script>
 
 <style>
-/* UI UNCHANGED */
 :root{--accent:#19a74a;--bg:#f4f9f4;--card:#fff;--muted:#6f6f6f;--img-box:#eef8ee}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Inter,system-ui,Arial;background:var(--bg)}
-body.cart-open{overflow:hidden}
 
 .site-header{position:sticky;top:0;background:#fff;padding:14px 18px;display:flex;justify-content:space-between;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .brand-name{font-size:20px;font-weight:700}
@@ -39,7 +37,18 @@ body.cart-open{overflow:hidden}
 .card{background:var(--bg);border-radius:10px;padding:6px;display:flex;flex-direction:column}
 .image-box{background:var(--img-box);aspect-ratio:1/1;border-radius:6px;overflow:hidden}
 .product-img{width:100%;height:100%;object-fit:cover}
+
 .item-name{margin:6px 0 2px;font-size:13.5px;font-weight:600}
+
+.variant-select{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:13px;
+}
+
 .price-row{display:flex;gap:6px}
 .small-mrp{font-size:11px;text-decoration:line-through;color:#777}
 .sale{font-size:16px;font-weight:700}
@@ -54,7 +63,7 @@ body.cart-open{overflow:hidden}
 .cart-footer{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 6px rgba(0,0,0,.08)}
 .footer-checkout-btn{background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;border:none;font-weight:700}
 
-.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center;z-index:100}
+.cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center}
 .cart-modal.show{display:flex}
 .cart-content{background:#fff;width:92%;max-width:420px;border-radius:14px;padding:16px}
 .cart-content input,.cart-content textarea{width:100%;padding:8px;margin:6px 0}
@@ -97,9 +106,15 @@ body.cart-open{overflow:hidden}
 
 <script>
 const WHATSAPP_NUMBER="919000810084";
-let items=[],cart={};
+let items=[], cart={}, selectedVariant={};
 
 function money(v){return Number(v||0).toFixed(0);}
+
+function getVariantPrice(v, qty){
+  let p=v.price;
+  (v.deals||[]).forEach(d=>{ if(qty>=d.qty) p=d.price; });
+  return p;
+}
 
 async function loadItems(){
   const snap=await db.collection("items").get();
@@ -111,72 +126,97 @@ async function loadItems(){
 function render(){
   const box=document.getElementById("products");
   box.innerHTML="";
+
   items.forEach(p=>{
-    const q=cart[p.id]||0;
-    const out=p.stock<=0;
+    const hasVariants=Array.isArray(p.variants)&&p.variants.length;
+    if(hasVariants && selectedVariant[p.id]==null) selectedVariant[p.id]=0;
+
+    const v=hasVariants?p.variants[selectedVariant[p.id]]:null;
+    const qty=cart[p.id]?.qty||0;
+    const stock=v?v.stock:p.stock;
+    const price=v?getVariantPrice(v,qty||1):p.price;
+    const mrp=v?v.mrp:p.mrp;
+
     box.innerHTML+=`
     <div class="card">
-      <div class="image-box"><img class="product-img" src="${p.image}"></div>
+      <div class="image-box"><img class="product-img" src="${p.image||'images/placeholder.png'}"></div>
       <div class="item-name">${p.name}</div>
+
+      ${hasVariants?`
+        <select class="variant-select" onchange="changeVariant('${p.id}',this.value)">
+          ${p.variants.map((x,i)=>`<option value="${i}">${x.label}</option>`).join("")}
+        </select>`:""}
+
       <div class="price-row">
-        <div class="small-mrp">₹${money(p.mrp)}</div>
-        <div class="sale">₹${money(p.price)}</div>
+        ${mrp?`<div class="small-mrp">₹${money(mrp)}</div>`:""}
+        <div class="sale">₹${money(price)}</div>
       </div>
+
       <div class="qty-controls">
         <button onclick="qty('${p.id}',-1)">-</button>
-        <div class="qty-display">${q}</div>
-        <button onclick="qty('${p.id}',1)" ${out?"disabled":""}>+</button>
+        <div class="qty-display">${qty}</div>
+        <button onclick="qty('${p.id}',1)" ${stock<=0?"disabled":""}>+</button>
       </div>
-      <button class="add-btn" ${out?"disabled":""} onclick="add('${p.id}')">
-        ${out?"Out of Stock":"Add to cart"}
+
+      <button class="add-btn" ${stock<=0?"disabled":""} onclick="qty('${p.id}',1)">
+        ${stock<=0?"Out of Stock":"Add to cart"}
       </button>
     </div>`;
   });
+
   updateFooter();
 }
 
-function qty(id,d){
-  const it=items.find(x=>x.id===id);
-  cart[id]=(cart[id]||0)+d;
-  if(cart[id]<0) cart[id]=0;
-  if(cart[id]>it.stock) cart[id]=it.stock;
+function changeVariant(id,idx){
+  selectedVariant[id]=Number(idx);
+  cart[id]=null;
   render();
 }
 
-function add(id){
-  const it=items.find(x=>x.id===id);
-  if(it.stock<=0) return;
-  cart[id]=Math.min((cart[id]||0)+1,it.stock);
+function qty(id,d){
+  const p=items.find(x=>x.id===id);
+  const v=p.variants?p.variants[selectedVariant[id]]:null;
+  const max=v?v.stock:p.stock;
+
+  cart[id]=cart[id]||{qty:0};
+  cart[id].qty+=d;
+  if(cart[id].qty<0) cart[id].qty=0;
+  if(cart[id].qty>max) cart[id].qty=max;
   render();
 }
 
 function updateFooter(){
   let q=0,a=0;
-  for(let id in cart){
-    const it=items.find(x=>x.id===id);
-    q+=cart[id];
-    a+=cart[id]*it.price;
-  }
+  Object.keys(cart).forEach(id=>{
+    if(!cart[id]) return;
+    const p=items.find(x=>x.id===id);
+    const v=p.variants?p.variants[selectedVariant[id]]:null;
+    const price=v?getVariantPrice(v,cart[id].qty):p.price;
+    q+=cart[id].qty;
+    a+=cart[id].qty*price;
+  });
   cartCount.innerText=q;
   footerText.innerText=`${q} items • ₹${money(a)}`;
 }
 
 function openCart(){
   const box=document.getElementById("cartItems");
-  let a=0;
   box.innerHTML="";
-  for(let id in cart){
-    const it=items.find(x=>x.id===id);
-    box.innerHTML+=`${it.name} x ${cart[id]}<br>`;
-    a+=cart[id]*it.price;
-  }
-  box.innerHTML+=`<br><b>Total: ₹${money(a)}</b>`;
+  let total=0;
+
+  Object.keys(cart).forEach(id=>{
+    const p=items.find(x=>x.id===id);
+    const v=p.variants?p.variants[selectedVariant[id]]:null;
+    const price=v?getVariantPrice(v,cart[id].qty):p.price;
+    box.innerHTML+=`${p.name} ${v?`(${v.label})`:""} x ${cart[id].qty} = ₹${cart[id].qty*price}<br>`;
+    total+=cart[id].qty*price;
+  });
+
+  box.innerHTML+=`<br><b>Total: ₹${money(total)}</b>`;
   cartModal.classList.add("show");
 }
 
-function closeCart(){
-  cartModal.classList.remove("show");
-}
+function closeCart(){cartModal.classList.remove("show");}
 
 async function placeWhatsAppOrder(){
   const name=custName.value.trim();
@@ -184,36 +224,19 @@ async function placeWhatsAppOrder(){
   const address=custAddress.value.trim();
   if(!name||!phone||!address){alert("Fill all details");return;}
 
-  let total=0,orderItems=[];
-  for(let id in cart){
-    const it=items.find(x=>x.id===id);
-    if(cart[id]>it.stock){alert(it.name+" out of stock");return;}
-    total+=cart[id]*it.price;
-    orderItems.push({itemId:id,name:it.name,price:it.price,qty:cart[id]});
-  }
-
-  await db.collection("orders").add({
-    customerName:name,phone,address,items:orderItems,total,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  const batch=db.batch();
-  orderItems.forEach(o=>{
-    batch.update(db.collection("items").doc(o.itemId),{
-      stock:firebase.firestore.FieldValue.increment(-o.qty)
-    });
-  });
-  await batch.commit();
-
   let msg="🛒 *New Order – Shopp Wholesale*\n\n";
-  orderItems.forEach(i=>msg+=`${i.name} x ${i.qty} = ₹${i.qty*i.price}\n`);
-  msg+=`\nTotal: ₹${total}\nName: ${name}\nPhone: ${phone}\nAddress: ${address}`;
+  let total=0;
 
+  Object.keys(cart).forEach(id=>{
+    const p=items.find(x=>x.id===id);
+    const v=p.variants?p.variants[selectedVariant[id]]:null;
+    const price=v?getVariantPrice(v,cart[id].qty):p.price;
+    msg+=`${p.name} ${v?`(${v.label})`:""} x ${cart[id].qty} = ₹${cart[id].qty*price}\n`;
+    total+=cart[id].qty*price;
+  });
+
+  msg+=`\nTotal: ₹${money(total)}\nName: ${name}\nPhone: ${phone}\nAddress: ${address}`;
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
-
-  cart={};
-  closeCart();
-  loadItems();
 }
 
 loadItems();
