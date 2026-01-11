@@ -31,18 +31,17 @@ body{font-family:system-ui,Arial;background:var(--bg)}
 .controls{padding:12px 16px}
 .search-box{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc}
 
-#products{padding:6px 6px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+#products{padding:8px 8px 120px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(min-width:768px){#products{grid-template-columns:repeat(4,1fr)}}
 
-.card{background:#f7fbf7;border-radius:12px;padding:8px;display:flex;flex-direction:column}
-.image-box{background:var(--img);aspect-ratio:1/1;border-radius:8px;overflow:hidden}
+.card{background:#f7fbf7;border-radius:14px;padding:8px;display:flex;flex-direction:column}
+.image-box{background:var(--img);aspect-ratio:1/1;border-radius:10px;overflow:hidden}
 .product-img{width:100%;height:100%;object-fit:cover}
 
 .item-name{margin:6px 0 2px;font-size:14px;font-weight:600}
-.price{font-size:16px;font-weight:700;margin:4px 0}
+.price{font-size:16px;font-weight:700;margin-bottom:6px}
 
 .add-btn{
-  margin-top:auto;
   height:36px;
   border-radius:8px;
   border:1px solid var(--accent);
@@ -50,6 +49,24 @@ body{font-family:system-ui,Arial;background:var(--bg)}
   color:var(--accent);
   font-weight:700;
 }
+
+.qty-box{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-top:6px;
+}
+
+.qty-btn{
+  width:28px;height:28px;
+  border-radius:6px;
+  border:1px solid var(--accent);
+  background:#fff;
+  color:var(--accent);
+  font-weight:700;
+}
+.qty-count{min-width:18px;text-align:center}
 
 .cart-footer{
   position:fixed;bottom:0;left:0;right:0;
@@ -67,7 +84,9 @@ body{font-family:system-ui,Arial;background:var(--bg)}
 .variant-modal{
   position:fixed;inset:0;
   background:rgba(0,0,0,.45);
-  display:none;align-items:flex-end;
+  display:none;
+  justify-content:center;
+  align-items:flex-end;
   z-index:999;
 }
 .variant-modal.show{display:flex}
@@ -100,23 +119,6 @@ body{font-family:system-ui,Arial;background:var(--bg)}
 
 .variant-info{font-size:14px}
 .variant-price{font-weight:700;margin-top:2px}
-
-.qty-box{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-.qty-btn{
-  width:28px;height:28px;
-  border-radius:6px;
-  border:1px solid var(--accent);
-  background:#fff;
-  color:var(--accent);
-  font-weight:700;
-}
-
-.qty-count{min-width:18px;text-align:center}
 
 /* ---------- CART MODAL ---------- */
 .cart-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;justify-content:center;align-items:center;z-index:1000}
@@ -190,42 +192,59 @@ async function loadItems(){
 function render(){
   products.innerHTML="";
   items.forEach(p=>{
-    const price=p.variants?.[0]?.price||p.price;
+    const hasVariants = Array.isArray(p.variants) && p.variants.length;
+    const basePrice = hasVariants ? p.variants[0].price : p.price;
+    const key = p.id;
+
+    const qty = cart[key]?.count || 0;
+
     products.innerHTML+=`
       <div class="card">
         <div class="image-box">
           <img class="product-img" src="${p.image||'images/placeholder.png'}">
         </div>
         <div class="item-name">${p.name}</div>
-        <div class="price">₹${money(price)}</div>
-        <button class="add-btn" onclick="openVariant('${p.id}')">Add</button>
+        <div class="price">₹${money(basePrice)}</div>
+
+        ${
+          hasVariants
+          ? `<button class="add-btn" onclick="openVariant('${p.id}')">⬇ Options</button>`
+          : `
+            <div class="qty-box">
+              <button class="qty-btn" onclick="simpleQty('${p.id}',-1)">−</button>
+              <div class="qty-count">${qty}</div>
+              <button class="qty-btn" onclick="simpleQty('${p.id}',1)">+</button>
+            </div>
+          `
+        }
       </div>`;
   });
   updateFooter();
 }
 
+/* ---------- SIMPLE ITEMS ---------- */
+function simpleQty(id,delta){
+  cart[id]=cart[id]||{count:0,price:items.find(p=>p.id===id).price};
+  cart[id].count=Math.max(0,cart[id].count+delta);
+  render();
+}
+
 /* ---------- VARIANT MODAL ---------- */
 function openVariant(id){
-  activeProduct = items.find(p=>p.id===id);
-  vmName.innerText = activeProduct.name;
+  activeProduct=items.find(p=>p.id===id);
+  vmName.innerText=activeProduct.name;
   renderVariantList();
   variantModal.classList.add("show");
 }
-
-function closeVariant(){
-  variantModal.classList.remove("show");
-}
+function closeVariant(){variantModal.classList.remove("show");}
 
 function renderVariantList(){
   variantList.innerHTML="";
-
   activeProduct.variants.forEach((v,vidx)=>{
     const rows=[{qty:1,price:v.price},...(v.deals||[])];
-
     rows.forEach(d=>{
       const key=`${activeProduct.id}_${vidx}_${d.qty}`;
       const count=cart[key]?.count||0;
-
       variantList.innerHTML+=`
         <div class="variant-row">
           <div class="variant-info">
@@ -233,28 +252,28 @@ function renderVariantList(){
             <div class="variant-price">${d.qty} qty – ₹${money(d.price)}</div>
           </div>
           <div class="qty-box">
-            <button class="qty-btn" onclick="changeQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},-1)">−</button>
+            <button class="qty-btn" onclick="variantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},-1)">−</button>
             <div class="qty-count">${count}</div>
-            <button class="qty-btn" onclick="changeQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},1)">+</button>
+            <button class="qty-btn" onclick="variantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},1)">+</button>
           </div>
         </div>`;
     });
   });
 }
 
-function changeQty(key,pid,vidx,dealQty,price,delta){
+function variantQty(key,pid,vidx,dealQty,price,delta){
   cart[key]=cart[key]||{pid,vidx,dealQty,price,count:0};
   cart[key].count=Math.max(0,cart[key].count+delta);
   renderVariantList();
   updateFooter();
 }
 
-/* ---------- CART ---------- */
+/* ---------- FOOTER / CART ---------- */
 function updateFooter(){
   let q=0,a=0;
   Object.values(cart).forEach(c=>{
-    q+=c.count*c.dealQty;
-    a+=c.count*c.dealQty*c.price;
+    q+=c.count*(c.dealQty||1);
+    a+=c.count*(c.dealQty||1)*(c.price||0);
   });
   cartCount.innerText=q;
   footerText.innerText=`${q} items • ₹${money(a)}`;
@@ -265,32 +284,24 @@ function openCart(){
   let total=0;
   Object.values(cart).forEach(c=>{
     if(!c.count) return;
-    const p=items.find(x=>x.id===c.pid);
-    const v=p.variants[c.vidx];
-    cartItems.innerHTML+=`${p.name} (${v.label}) ${c.dealQty}×${c.count} = ₹${c.count*c.dealQty*c.price}<br>`;
-    total+=c.count*c.dealQty*c.price;
+    const p=items.find(x=>x.id===c.pid||x.id===c.id);
+    cartItems.innerHTML+=`${p.name} x ${c.count*(c.dealQty||1)} = ₹${c.count*(c.dealQty||1)*(c.price||0)}<br>`;
+    total+=c.count*(c.dealQty||1)*(c.price||0);
   });
   cartItems.innerHTML+=`<br><b>Total: ₹${money(total)}</b>`;
   cartModal.classList.add("show");
 }
-
 function closeCart(){cartModal.classList.remove("show");}
 
-/* ---------- WHATSAPP ---------- */
 function placeWhatsAppOrder(){
   if(!custName.value||!custPhone.value||!custAddress.value) return alert("Fill all details");
-
-  let msg="🛒 *New Order – Shopp Wholesale*\n\n";
-  let total=0;
-
+  let msg="🛒 *New Order – Shopp Wholesale*\n\n",total=0;
   Object.values(cart).forEach(c=>{
     if(!c.count) return;
-    const p=items.find(x=>x.id===c.pid);
-    const v=p.variants[c.vidx];
-    msg+=`${p.name} (${v.label}) ${c.dealQty}×${c.count} = ₹${c.count*c.dealQty*c.price}\n`;
-    total+=c.count*c.dealQty*c.price;
+    const p=items.find(x=>x.id===c.pid||x.id===c.id);
+    msg+=`${p.name} x ${c.count*(c.dealQty||1)} = ₹${c.count*(c.dealQty||1)*(c.price||0)}\n`;
+    total+=c.count*(c.dealQty||1)*(c.price||0);
   });
-
   msg+=`\nTotal: ₹${money(total)}\nName: ${custName.value}\nPhone: ${custPhone.value}\nAddress: ${custAddress.value}`;
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
 }
