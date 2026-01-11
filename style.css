@@ -49,7 +49,6 @@ HEADER
   position: sticky;
   top: 0;
   z-index: 20;
-
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -96,11 +95,11 @@ SEARCH BAR
 }
 
 /* ============================================================
-PRODUCT GRID — LOCKED (NO ZOOM / NO JUMP)
+PRODUCT GRID — LOCKED
 ============================================================ */
 #products {
   width: 100%;
-  padding: 6px 6px 120px; /* space for footer */
+  padding: 6px 6px 120px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
@@ -124,7 +123,7 @@ PRODUCT CARD
 }
 
 /* ============================================================
-IMAGE BOX — BLINKIT STYLE
+IMAGE BOX
 ============================================================ */
 .image-box {
   background: var(--img-box);
@@ -132,7 +131,6 @@ IMAGE BOX — BLINKIT STYLE
   aspect-ratio: 1 / 1;
   border-radius: 6px;
   overflow: hidden;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,6 +167,29 @@ PRODUCT INFO
 .sale {
   font-size: 16px;
   font-weight: 700;
+}
+
+/* ============================================================
+✅ VARIANT DROPDOWN (FIXED & VISIBLE)
+============================================================ */
+.variant-select {
+  display: block !important;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 13.5px;
+  font-weight: 500;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+}
+
+.variant-select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /* ============================================================
@@ -211,7 +232,7 @@ ADD TO CART
 }
 
 /* ============================================================
-CART FOOTER (BOTTOM BAR)
+CART FOOTER
 ============================================================ */
 .cart-footer {
   position: fixed;
@@ -219,14 +240,11 @@ CART FOOTER (BOTTOM BAR)
   left: 0;
   right: 0;
   height: 56px;
-
   background: var(--card);
   padding: 10px 14px;
-
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
   z-index: 30;
 }
@@ -242,7 +260,7 @@ CART FOOTER (BOTTOM BAR)
 }
 
 /* ============================================================
-CART MODAL (POPUP)
+CART MODAL
 ============================================================ */
 .cart-modal {
   position: fixed;
@@ -269,7 +287,7 @@ CART MODAL (POPUP)
 }
 
 /* ============================================================
-HARD BLOCK — PREVENT CART / ADMIN LEAK BELOW PAGE
+HARD BLOCK — ADMIN / CART LEAK PREVENTION
 ============================================================ */
 #cart,
 #orders,
