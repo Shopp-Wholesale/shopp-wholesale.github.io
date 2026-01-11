@@ -1,5 +1,5 @@
-// script.js — FINAL STABLE RELEASE (v9.3)
-// Fixed: Global variant selection persistence & accurate stock/deal calculation.
+// script.js — FINAL STABLE RELEASE (v9.4)
+// Fixed: Global variant selection persistence, MRP logic, and accurate Cart Math.
 
 /* ---------------- CONFIG ---------------- */
 const WHATSAPP_NUMBER = "919000810084";
@@ -61,12 +61,6 @@ function isAdminSession() {
   catch { return false; }
 }
 
-function setAdminSession(flag = true) {
-  try {
-    flag ? sessionStorage.setItem(ADMIN_SESSION_KEY, "1") : sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  } catch { }
-}
-
 /* ---------------- SAFE IMAGE HELPER ---------------- */
 function createSafeImage(src, alt = "") {
   const img = document.createElement("img");
@@ -98,7 +92,7 @@ function debounce(fn, ms = 150) {
 /* ---------------- GLOBAL STATE ---------------- */
 let items = [];
 let cart = {};
-const selectedVariantIndex = {}; // STEP 1: Global selection tracker
+const selectedVariantIndex = {}; 
 
 /* ---------------- CART LOAD / SAVE ---------------- */
 function loadCartFromStorage() {
@@ -164,7 +158,6 @@ function renderItems(list) {
 
     let activeVariant = null;
 
-    // Image & Name
     const imgBox = document.createElement("div");
     imgBox.className = "image-box";
     imgBox.appendChild(createSafeImage(it.image, it.name));
@@ -175,9 +168,8 @@ function renderItems(list) {
     nm.textContent = it.name;
     card.appendChild(nm);
 
-    // STEP 2 & 3: Variants Selection
     if (it.variants && it.variants.length) {
-      selectedVariantIndex[it.docId] = 0; // Initialize global index
+      selectedVariantIndex[it.docId] = 0; 
 
       const sel = document.createElement("select");
       sel.className = "variant-select";
@@ -196,24 +188,39 @@ function renderItems(list) {
 
       sel.onchange = () => {
         const idx = Number(sel.value);
-        selectedVariantIndex[it.docId] = idx; // Update global state
+        selectedVariantIndex[it.docId] = idx; 
         activeVariant = it.variants[idx];
         updateDisplayedPrice();
       };
     }
 
-    // Price Row
+    // FIX 1: PRICE ROW LOGIC
     const price = document.createElement("div");
     price.className = "price-row";
-    price.innerHTML = `  
-      <div class="small-mrp">MRP ₹${money(it.mrp)}</div>  
+    
+    const baseVariant = it.variants ? it.variants[0] : null;
+    const baseMrp = baseVariant ? baseVariant.mrp : it.mrp;
+    const basePrice = baseVariant ? baseVariant.price : it.salePrice;
+
+    price.innerHTML = `
+      ${baseMrp ? `<div class="small-mrp">MRP ₹${money(baseMrp)}</div>` : ""}
       <div class="sale" id="price-${it.docId}">
-        ₹${money(it.variants ? it.variants[0].price : it.salePrice)}
-      </div>  
+        ₹${money(basePrice)}
+      </div>
     `;
     card.appendChild(price);
 
-    // Stock/Admin Info
+    // FIX 2: updateDisplayedPrice()
+    function updateDisplayedPrice() {
+      const qty = cart[it.docId]?.qty || 1;
+      const priceVal = activeVariant
+        ? getVariantPrice(activeVariant, qty)
+        : (it.salePrice || it.price || 0);
+
+      const p = el(`price-${it.docId}`);
+      if (p) p.innerText = "₹" + money(priceVal);
+    }
+
     if (it.stock <= 0 && !it.variants) {
       const s = document.createElement("div");
       s.style.color = "#c00";
@@ -222,7 +229,6 @@ function renderItems(list) {
       card.appendChild(s);
     }
 
-    // Controls
     const controls = document.createElement("div");
     controls.className = "qty-controls";
     const cur = cart[it.docId]?.qty || 0;
@@ -234,17 +240,6 @@ function renderItems(list) {
     `;
     card.appendChild(controls);
 
-    // Inner Update Function
-    function updateDisplayedPrice() {
-      const qty = cart[it.docId]?.qty || 1;
-      const priceVal = activeVariant
-        ? getVariantPrice(activeVariant, qty)
-        : it.salePrice;
-
-      const p = el(`price-${it.docId}`);
-      if (p) p.innerText = "₹" + money(priceVal);
-    }
-
     const btn = document.createElement("button");
     btn.className = "add-btn";
     btn.dataset.id = it.docId;
@@ -255,7 +250,6 @@ function renderItems(list) {
     box.appendChild(card);
   });
 
-  // Attach Events
   box.querySelectorAll(".inc, .add-btn").forEach(b =>
     b.onclick = () => changeQty(b.dataset.id, 1)
   );
@@ -273,7 +267,6 @@ function changeQty(docId, delta) {
   let next = cur + delta;
   if (next < 0) next = 0;
 
-  // STEP 4: Variant-aware Stock and Price logic
   const vIdx = selectedVariantIndex[docId] ?? 0;
   const variant = it.variants ? it.variants[vIdx] : null;
   const maxStock = variant ? variant.stock : it.stock;
@@ -288,13 +281,14 @@ function changeQty(docId, delta) {
   } else {
     const finalPrice = variant
       ? getVariantPrice(variant, next)
-      : it.salePrice;
+      : (it.salePrice || it.price || 0);
 
+    // FIX 3: CART SAVE LOGIC
     cart[docId] = {
       qty: next,
       name: it.name,
       price: finalPrice,
-      mrp: it.mrp,
+      mrp: variant ? variant.mrp : it.mrp,
       variant: variant ? variant.label : null
     };
   }
@@ -302,7 +296,6 @@ function changeQty(docId, delta) {
   const d = el(`qty-${docId}`);
   if (d) d.textContent = next;
 
-  // STEP 5: Refresh UI price based on selected variant global state
   if (it.variants) {
       const pDisplay = el(`price-${docId}`);
       if(pDisplay) {
@@ -401,12 +394,21 @@ async function createOrderAndReduceStock(orderItems, customer) {
   if (!btn) return;
   btn.onclick = async () => {
     const orderItems = Object.entries(cart).map(([id, v]) => ({ docId: id, ...v }));
-    const customer = { name: el("customer-name").value.trim(), phone: el("customer-phone").value.trim(), address: el("customer-address").value.trim(), payment: el("payment-mode").value };
+    const customer = { 
+        name: el("customer-name").value.trim(), 
+        phone: el("customer-phone").value.trim(), 
+        address: el("customer-address").value.trim(), 
+        payment: el("payment-mode").value 
+    };
     if (!customer.name || !customer.phone || !customer.address) return alert("Fill all details");
     btn.disabled = true;
     const res = await createOrderAndReduceStock(orderItems, customer);
     if (!res.ok) { alert(res.error); btn.disabled = false; return; }
-    const msg = `New Order — Shopp\n` + orderItems.map(o => `• ${o.name} (${o.variant}) x ${o.qty}`).join("\n") + `\nTotal: ₹${money(calculateTotal())}`;
+    
+    const msg = `New Order — Shopp\n` + 
+                orderItems.map(o => `• ${o.name} ${o.variant ? '('+o.variant+')' : ''} x ${o.qty} = ₹${money(o.qty * o.price)}`).join("\n") + 
+                `\n\nTotal: ₹${money(calculateTotal())}\nAddress: ${customer.address}`;
+    
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
     cart = {}; saveCartToStorage(); updateCartCount();
     btn.disabled = false; el("cart-modal").classList.add("hidden");
@@ -424,4 +426,3 @@ async function createOrderAndReduceStock(orderItems, customer) {
   }
   await loadItems();
 })();
-
