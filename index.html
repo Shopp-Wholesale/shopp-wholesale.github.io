@@ -136,6 +136,7 @@ body{
   background:#fff;
   color:var(--accent);
   font-weight:700;
+  cursor: pointer;
 }
 .qty-btn:disabled {
   opacity: 0.3;
@@ -284,7 +285,6 @@ function renderProducts(){
     const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
     const basePrice = hasVariants ? p.variants[0].price : p.price;
     
-    // Total count across all variants of this product for UI display
     let qtyInCart = 0;
     Object.values(cart).forEach(c => {
         if(c.pid === p.id || c.id === p.id) qtyInCart += c.count;
@@ -343,7 +343,7 @@ function openVariant(id){
 
 function closeVariant(){ 
     document.getElementById("variantModal").classList.remove("show"); 
-    renderProducts(); // Refresh main grid to show counts
+    renderProducts();
 }
 
 function renderVariantList(){
@@ -351,7 +351,6 @@ function renderVariantList(){
   box.innerHTML = "";
 
   activeProduct.variants.forEach((v, vidx) => {
-    // Generate rows for Single unit + Bulk deals
     const rows = [{qty: 1, price: v.price}, ...(v.deals || [])];
 
     rows.forEach(d => {
@@ -367,10 +366,10 @@ function renderVariantList(){
           </div>
           <div class="qty-box">
             <button class="qty-btn" ${count <= 0 ? "disabled" : ""} 
-              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${unitPrice},-d.qty)">−</button>
+              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${unitPrice},-${d.qty})">−</button>
             <div class="qty-count">${count}</div>
-            <button class="qty-btn" ${v.stock < (count + d.qty) ? "disabled" : ""} 
-              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${unitPrice},d.qty)">+</button>
+            <button class="qty-btn" ${v.stock <= 0 ? "disabled" : ""} 
+              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${unitPrice},${d.qty})">+</button>
           </div>
         </div>
       `;
@@ -382,18 +381,16 @@ function updateVariantQty(key, pid, vidx, dealQty, price, delta){
   const product = items.find(p => p.id === pid);
   const variant = product.variants[vidx];
 
-  // FIX 1: Store Unit Price, not deal price
   cart[key] = cart[key] || { 
     key,
     pid,
     vidx,
     name: `${product.name} (${variant.label})`,
-    price: price,   // price PER UNIT
+    price: price,   
     dealQty,
-    count: 0        // count = number of UNITS
+    count: 0        
   };
 
-  // FIX 2: Increment units
   const nextQty = cart[key].count + delta;
 
   if(nextQty < 0) return;
@@ -480,9 +477,8 @@ async function placeWhatsAppOrder(){
 
   const batch = db.batch();
   
-  // FIX 3: Inventory Update (One line fix)
   Object.values(cart).forEach(c => {
-    const physicalQtyToReduce = c.count; // Already represents units
+    const physicalQtyToReduce = c.count; 
 
     if (c.pid) {
       const ref = db.collection("items").doc(c.pid);
