@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const el = id => document.getElementById(id);
 
-  /* ✅ 1️⃣ ADDED VARIANT PARSER HELPER */
+  /* ✅ ADDED VARIANT PARSER HELPER */
   function parseVariantsInput() {
     const raw = el("item-variants")?.value?.trim();
     if (!raw) return null;
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el("item-stock")) el("item-stock").value = 0;
     if (el("item-image")) el("item-image").value = "";
     if (el("item-desc")) el("item-desc").value = "";
-    if (el("item-variants")) el("item-variants").value = ""; // Clear variants
+    if (el("item-variants")) el("item-variants").value = ""; 
 
     const preview = el("imagePreview");
     if (preview) {
@@ -174,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----------------------------------------------
-     ✅ 2️⃣ CREATE / UPDATE ITEM (MODIFIED LOGIC)
+     ✅ FIX 1: CREATE / UPDATE ITEM (SAFE SAVE)
   ------------------------------------------------*/
   if (el("item-form")) {
     el("item-form").addEventListener("submit", async (ev) => {
@@ -183,30 +183,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const docId = el("item-docid").value;
 
-      // Handle variants parsing
       let variants = null;
       try {
         variants = parseVariantsInput();
       } catch {
-        return; // stop save if JSON invalid
+        return; 
       }
 
       const data = {
         adminKey: PASSCODE_ADMIN,
         name: el("item-name").value.trim(),
         category: el("item-category").value.trim(),
-
-        // Single-item values (ignored when variants exist)
         mrp: Number(el("item-mrp").value || 0),
         price: Number(el("item-price").value || 0),
         stock: Number(el("item-stock").value || 0),
-
-        // ✅ Save as Array
-        variants: variants,
-
         image: el("item-image").value.trim(),
         description: el("item-desc").value.trim()
       };
+
+      // ✅ FIX 1: ONLY SAVE variants IF PRESENT
+      if (Array.isArray(variants) && variants.length) {
+        data.variants = variants;
+      }
 
       try {
         if (docId) {
@@ -245,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----------------------------------------------
-     LOAD ITEMS (WITH ✅ 3️⃣ VARIANT LOAD LOGIC)
+     ✅ FIX 2: LOAD ITEMS (DYNAMIC UI)
   ------------------------------------------------*/
   async function loadAllItems() {
     const list = el("items-list");
@@ -260,6 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const d = doc.data();
         const card = document.createElement("div");
         card.className = "item-admin";
+        
+        // ✅ FIX 2: Check for variants to avoid showing ₹0 or 0 Stock
+        const infoHtml = Array.isArray(d.variants) && d.variants.length > 0
+          ? `• ${d.variants.length} variants`
+          : `• ₹${d.price} • Stock: ${d.stock}`;
+
         card.innerHTML = `
           <div style="display:flex;gap:10px;">
             <div style="width:64px;height:64px;border-radius:8px;overflow:hidden;background:#f8fafc;">
@@ -267,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div style="flex:1;">
               <div style="font-weight:700">${d.name}</div>
-              <div class="muted">${d.category || ''} • ₹${d.price} • Stock: ${d.stock}</div>
+              <div class="muted">${d.category || ''} ${infoHtml}</div>
             </div>
           </div>
           <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
@@ -288,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
           el("item-image").value = d.image || "";
           el("item-desc").value = d.description || "";
 
-          // ✅ LOAD VARIANTS BACK WHEN EDITING
           if (el("item-variants")) {
             el("item-variants").value = d.variants
               ? JSON.stringify(d.variants, null, 2)
@@ -399,3 +402,4 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDashboardStats();
   }
 });
+                      
