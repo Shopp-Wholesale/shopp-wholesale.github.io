@@ -53,6 +53,16 @@ const db = firebase.firestore();
 </div>
 
 <div class="card">
+<h3>Dashboard</h3>
+<div class="grid">
+ <div><b>Items Sold</b><br><span id="d-items">0</span></div>
+ <div><b>Revenue</b><br>₹<span id="d-revenue">0</span></div>
+ <div><b>Inventory Qty</b><br><span id="inv-items">0</span></div>
+ <div><b>Inventory Value</b><br>₹<span id="inv-value">0</span></div>
+</div>
+</div>
+
+<div class="card">
 <h3>Add / Edit Item</h3>
 <form id="item-form">
 
@@ -73,12 +83,12 @@ const db = firebase.firestore();
 <label>Stock (single item)</label>
 <input id="item-stock" type="number">
 
-<label>Variants (optional JSON)</label>
+<label>Variants (OPTIONAL JSON)</label>
 <textarea id="item-variants" rows="5"
 placeholder='Leave empty for normal item.
 Example:
 [
-  {"label":"1 kg","mrp":75,"price":70,"stock":50},
+  {"label":"1 kg","mrp":75,"price":70,"stock":50,"deals":[{"qty":2,"price":68}]},
   {"label":"5 kg","mrp":360,"price":335,"stock":20}
 ]'></textarea>
 
@@ -121,13 +131,13 @@ function enableAdmin(){
  el("admin-badge").classList.remove("hidden");
  el("btn-login").classList.add("hidden");
  el("btn-logout").classList.remove("hidden");
- loadItems();
+ loadStats(); loadInventory(); loadItems();
 }
 
 /* IMAGE UPLOAD */
 el("imagePicker").addEventListener("change",()=>{
- const f=el("imagePicker").files[0]; if(!f) return;
- el("imagePreview").src=URL.createObjectURL(f);
+ const file=el("imagePicker").files[0]; if(!file) return;
+ el("imagePreview").src=URL.createObjectURL(file);
  el("imagePreview").style.display="block";
  el("item-image").value="Uploading...";
  const r=new FileReader();
@@ -137,7 +147,7 @@ el("imagePicker").addEventListener("change",()=>{
   const j=await res.json();
   el("item-image").value=j.data.display_url;
  };
- r.readAsDataURL(f);
+ r.readAsDataURL(file);
 });
 
 /* SAVE ITEM */
@@ -170,17 +180,17 @@ el("item-form").onsubmit=async e=>{
   await db.collection("items").add(data);
 
  alert("Item saved");
- clearForm(); loadItems();
+ clearForm(); loadItems(); loadInventory();
 };
 
-/* DELETE — FINAL FIX */
+/* DELETE — FIXED */
 el("btn-delete").onclick=async()=>{
  const id=el("item-id").value;
  if(!id) return;
  if(confirm("Delete item permanently?")){
-  await db.collection("items").doc(id).delete();
+  await db.collection("items").doc(id).delete(); // ✅ correct
   alert("Item deleted");
-  clearForm(); loadItems();
+  clearForm(); loadItems(); loadInventory();
  }
 };
 
@@ -218,6 +228,38 @@ async function loadItems(){
   };
   el("items-list").appendChild(d);
  });
+}
+
+/* DASHBOARD */
+async function loadStats(){
+ let sold=0,revenue=0;
+ const s=await db.collection("orders").get();
+ s.forEach(d=>{
+  const o=d.data();
+  (o.items||[]).forEach(i=>sold+=+i.qty||0);
+  revenue+=+o.total||0;
+ });
+ el("d-items").innerText=sold;
+ el("d-revenue").innerText=revenue;
+}
+
+async function loadInventory(){
+ let q=0,v=0;
+ const s=await db.collection("items").get();
+ s.forEach(d=>{
+  const i=d.data();
+  if(i.variants){
+   i.variants.forEach(vr=>{
+    q+=+vr.stock||0;
+    v+=+vr.stock*+vr.price||0;
+   });
+  } else {
+   q+=+i.stock||0;
+   v+=+i.stock*+i.price||0;
+  }
+ });
+ el("inv-items").innerText=q;
+ el("inv-value").innerText=v;
 }
 </script>
 
