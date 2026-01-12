@@ -115,11 +115,7 @@ body{
   font-weight:700;
   cursor: pointer;
 }
-.add-btn:disabled {
-  border-color: #ccc;
-  color: #999;
-  cursor: not-allowed;
-}
+.add-btn:disabled { border-color: #ccc; color: #999; cursor: not-allowed; }
 
 .qty-box{
   display:flex;
@@ -138,15 +134,8 @@ body{
   font-weight:700;
   cursor: pointer;
 }
-.qty-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.qty-count{
-  min-width:18px;
-  text-align:center;
-  font-weight: 600;
-}
+.qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.qty-count{ min-width:18px; text-align:center; font-weight: 600; }
 
 .cart-footer{
   position:fixed;
@@ -226,7 +215,7 @@ body{
 <div id="products"></div>
 
 <div class="cart-footer">
-  <div id="footerText">0 items • ₹0</div>
+  <div id="footerText">0 units • ₹0</div>
   <button class="footer-checkout-btn" onclick="openCart()">Checkout</button>
 </div>
 
@@ -285,9 +274,11 @@ function renderProducts(){
     const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
     const basePrice = hasVariants ? p.variants[0].price : p.price;
     
-    let qtyInCart = 0;
+    let displayQty = 0;
     Object.values(cart).forEach(c => {
-        if(c.pid === p.id || c.id === p.id) qtyInCart += c.count;
+        if(c.pid === p.id || c.id === p.id) {
+           displayQty += (c.dealQty ? c.count * c.dealQty : c.count);
+        }
     });
 
     box.innerHTML += `
@@ -301,12 +292,12 @@ function renderProducts(){
         ${hasVariants 
           ? (p.variants.every(v => v.stock <= 0) 
               ? `<button class="add-btn" disabled>Out of Stock</button>` 
-              : `<button class="add-btn" onclick="openVariant('${p.id}')">${qtyInCart > 0 ? 'Selected ('+qtyInCart+')' : 'Options'}</button>`)
+              : `<button class="add-btn" onclick="openVariant('${p.id}')">${displayQty > 0 ? 'Selected ('+displayQty+')' : 'Options'}</button>`)
           : (p.stock <= 0 
               ? `<button class="add-btn" disabled>Out of Stock</button>`
               : `<div class="qty-box">
                   <button class="qty-btn" onclick="updateSimpleQty('${p.id}',-1)">−</button>
-                  <div class="qty-count">${qtyInCart}</div>
+                  <div class="qty-count">${displayQty}</div>
                   <button class="qty-btn" onclick="updateSimpleQty('${p.id}',1)">+</button>
                 </div>`)
         }
@@ -351,11 +342,11 @@ function renderVariantList(){
   box.innerHTML = "";
 
   activeProduct.variants.forEach((v, vidx) => {
+    // Standard row + deals
     const rows = [{qty: 1, price: v.price}, ...(v.deals || [])];
 
     rows.forEach(d => {
       const key = `${activeProduct.id}_${vidx}_${d.qty}`;
-      const unitPrice = d.price / d.qty;
       const count = cart[key]?.count || 0;
 
       box.innerHTML += `
@@ -366,10 +357,10 @@ function renderVariantList(){
           </div>
           <div class="qty-box">
             <button class="qty-btn" ${count <= 0 ? "disabled" : ""} 
-              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${unitPrice},-${d.qty})">−</button>
+              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},-1)">−</button>
             <div class="qty-count">${count}</div>
-            <button class="qty-btn" ${v.stock <= 0 ? "disabled" : ""} 
-              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${unitPrice},${d.qty})">+</button>
+            <button class="qty-btn" ${v.stock < d.qty ? "disabled" : ""} 
+              onclick="updateVariantQty('${key}','${activeProduct.id}',${vidx},${d.qty},${d.price},1)">+</button>
           </div>
         </div>
       `;
@@ -377,31 +368,29 @@ function renderVariantList(){
   });
 }
 
-function updateVariantQty(key, pid, vidx, dealQty, price, delta){
+function updateVariantQty(key, pid, vidx, dealQty, packPrice, delta){
   const product = items.find(p => p.id === pid);
   const variant = product.variants[vidx];
 
-  cart[key] = cart[key] || { 
-    key,
+  cart[key] = cart[key] || {
     pid,
     vidx,
-    name: `${product.name} (${variant.label})`,
-    price: price,   
-    dealQty,
-    count: 0        
+    name: `${product.name} (${variant.label} – Pack of ${dealQty})`,
+    dealQty,          
+    price: packPrice, 
+    count: 0          
   };
 
-  const nextQty = cart[key].count + delta;
+  const next = cart[key].count + delta;
+  if(next < 0) return;
 
-  if(nextQty < 0) return;
-
-  if(delta > 0 && nextQty > variant.stock){
+  const totalRequiredUnits = next * dealQty;
+  if(delta > 0 && totalRequiredUnits > variant.stock){
     alert("Stock limit reached");
     return;
   }
 
-  cart[key].count = nextQty;
-
+  cart[key].count = next;
   if(cart[key].count === 0) delete cart[key];
 
   renderVariantList();
@@ -412,18 +401,23 @@ function updateVariantQty(key, pid, vidx, dealQty, price, delta){
    TOTALS & FOOTER
 ====================================================== */
 function updateFooter(){
-  let totalQty = 0;
-  let totalAmt = 0;
+  let totalUnits = 0;
+  let totalAmount = 0;
 
   Object.values(cart).forEach(c => {
-    totalQty += c.count;
-    totalAmt += (c.count * c.price);
+    if(c.dealQty){ 
+      totalUnits += (c.count * c.dealQty);
+      totalAmount += (c.count * c.price);
+    } else { 
+      totalUnits += c.count;
+      totalAmount += (c.count * c.price);
+    }
   });
 
   const cCount = document.getElementById("cartCount");
   const fText = document.getElementById("footerText");
-  if(cCount) cCount.innerText = totalQty;
-  if(fText) fText.innerText = `${totalQty} units • ₹${money(totalAmt)}`;
+  if(cCount) cCount.innerText = totalUnits;
+  if(fText) fText.innerText = `${totalUnits} units • ₹${money(totalAmount)}`;
 }
 
 /* ======================================================
@@ -478,24 +472,20 @@ async function placeWhatsAppOrder(){
   const batch = db.batch();
   
   Object.values(cart).forEach(c => {
-    const physicalQtyToReduce = c.count; 
-
-    if (c.pid) {
-      const ref = db.collection("items").doc(c.pid);
-      batch.update(ref, {
-        [`variants.${c.vidx}.stock`]:
-          firebase.firestore.FieldValue.increment(-physicalQtyToReduce)
-      });
+    if(c.dealQty){ 
+      batch.update(
+        db.collection("items").doc(c.pid),
+        { [`variants.${c.vidx}.stock`]: firebase.firestore.FieldValue.increment(-(c.count * c.dealQty)) }
+      );
     } else {
-      const ref = db.collection("items").doc(c.id);
-      batch.update(ref, {
-        stock: firebase.firestore.FieldValue.increment(-physicalQtyToReduce)
-      });
+      batch.update(
+        db.collection("items").doc(c.id),
+        { stock: firebase.firestore.FieldValue.increment(-c.count) }
+      );
     }
   });
 
   await batch.commit();
-  
   cart = {};
   closeCart();
   loadItems();
