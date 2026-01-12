@@ -104,6 +104,7 @@ body{
   font-weight:700;
   margin-bottom:6px;
 }
+.price small { font-size: 11px; color: var(--muted); font-weight: 400; }
 
 .add-btn{
   width: 100%;
@@ -195,6 +196,7 @@ body{
   border-bottom:1px solid #eee;
 }
 .variant-price{font-weight:700; color: var(--accent); margin-top:4px}
+.variant-price small { color: var(--muted); font-size: 11px; font-weight: 400; }
 </style>
 </head>
 
@@ -232,7 +234,7 @@ body{
 <div class="cart-modal" id="cartModal">
   <div class="cart-content">
     <h3 style="margin-bottom:15px">Review Order</h3>
-    <div id="cartItems" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px;"></div>
+    <div id="cartItems" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
     <input id="custName" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;" placeholder="Your Name">
     <input id="custPhone" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;" placeholder="Phone Number">
     <textarea id="custAddress" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; height:80px;" placeholder="Full Delivery Address"></textarea>
@@ -274,10 +276,11 @@ function renderProducts(){
     const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
     const basePrice = hasVariants ? p.variants[0].price : p.price;
     
+    // FIX 1 & 5: Calculate PACK COUNT for display and add "/ pack" label
     let totalInCart = 0;
     Object.values(cart).forEach(c => {
         if(c.pid === p.id || c.id === p.id) {
-           totalInCart += (c.dealQty ? c.count * c.dealQty : c.count);
+           totalInCart += c.count; // Fixed: Shows pack count, not units
         }
     });
 
@@ -287,7 +290,7 @@ function renderProducts(){
           <img class="product-img" src="${p.image || 'https://via.placeholder.com/150'}">
         </div>
         <div class="item-name">${p.name}</div>
-        <div class="price">₹${money(basePrice)}</div>
+        <div class="price">₹${money(basePrice)} <small>${hasVariants ? '/ pack' : ''}</small></div>
 
         ${hasVariants 
           ? (p.variants.every(v => v.stock <= 0) 
@@ -348,11 +351,12 @@ function renderVariantList(){
       const key = `${activeProduct.id}_${vidx}_${d.qty}`;
       const count = cart[key]?.count || 0;
 
+      // FIX 2: Added "/ pack" to variant pricing
       box.innerHTML += `
         <div class="variant-row">
           <div class="variant-info">
             <div><b>${v.label} ${d.qty > 1 ? '(Pack of '+d.qty+')' : ''}</b></div>
-            <div class="variant-price">₹${money(d.price)}</div>
+            <div class="variant-price">₹${money(d.price)} <small>/ pack</small></div>
           </div>
           <div class="qty-box">
             <button class="qty-btn" ${count <= 0 ? "disabled" : ""} 
@@ -374,7 +378,7 @@ function updateVariantQty(key, pid, vidx, packQty, packPrice, delta){
   cart[key] = cart[key] || {
     pid,
     vidx,
-    label: `${variant.label} (Pack of ${packQty})`,
+    label: `${variant.label}`,
     productName: product.name,
     dealQty: packQty,        
     price: packPrice,      
@@ -430,16 +434,21 @@ function openCart(){
   
   Object.values(cart).forEach(c => {
     const rowTotal = c.count * c.price;
-    const displayName = c.dealQty ? `${c.productName} - ${c.label}` : c.name;
-    box.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-      <span>${displayName} x ${c.count}</span>
-      <span>₹${money(rowTotal)}</span>
+    
+    // FIX 3: Detailed Cart Display (Packs + Units)
+    const displayName = c.dealQty 
+      ? `<span>${c.productName} (${c.label})<br><small>${c.count} pack(s) • ${c.count * c.dealQty} units</small></span>` 
+      : `<span>${c.name} x ${c.count}</span>`;
+
+    box.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:12px; align-items:center;">
+      ${displayName}
+      <span style="font-weight:600">₹${money(rowTotal)}</span>
     </div>`;
     total += rowTotal;
   });
   
   if(total === 0) box.innerHTML = "Your cart is empty";
-  else box.innerHTML += `<hr style="margin:10px 0"><div style="display:flex; justify-content:space-between; font-weight:700"><span>Total</span><span>₹${money(total)}</span></div>`;
+  else box.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px solid #eee;"><div style="display:flex; justify-content:space-between; font-weight:700; font-size:18px; margin-top:10px;"><span>Total</span><span>₹${money(total)}</span></div>`;
   
   document.getElementById("cartModal").classList.add("show");
 }
@@ -461,7 +470,9 @@ async function placeWhatsAppOrder(){
     if (c.dealQty) {
       const units = c.count * c.dealQty;
       const amount = c.count * c.price;
-      msg += `• ${c.productName} - ${c.label} × ${c.count} (${units} units) = ₹${money(amount)}\n`;
+      // FIX 4: WhatsApp Message Format
+      msg += `• ${c.productName} (${c.label})\n`;
+      msg += `  ${c.count} pack(s) • ${units} units = ₹${money(amount)}\n`;
       totalAmount += amount;
     } else {
       const amount = c.count * c.price;
@@ -477,6 +488,7 @@ async function placeWhatsAppOrder(){
 
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
 
+  // INVENTORY: Correctly reduces stock by (Packs * DealQty)
   const batch = db.batch();
   
   Object.values(cart).forEach(c => {
