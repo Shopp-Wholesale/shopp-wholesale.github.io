@@ -278,7 +278,6 @@ function renderProducts(){
     const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
     const basePrice = hasVariants ? p.variants[0].price : p.price;
 
-    // 🔧 FIX 1: PRODUCT CARD MRP (GLOBAL)
     const mrp = hasVariants ? p.variants[0].mrp : p.mrp;
     const sale = basePrice;
     
@@ -299,7 +298,7 @@ function renderProducts(){
         <div class="price">
           ${mrp && mrp > sale ? `<del>₹${money(mrp)}</del> ` : ``}
           ₹${money(sale)}
-          <small>${hasVariants ? ' / pack' : ''}</small>
+          <small>${hasVariants ? ' / unit' : ''}</small>
         </div>
 
         ${hasVariants 
@@ -351,7 +350,7 @@ function closeVariant(){
 }
 
 /* ======================================================
-   VARIANT LIST (FIX 2: MRP NO MULTIPLY)
+   VARIANT LIST
 ====================================================== */
 function renderVariantList(){
   const box = document.getElementById("variantList");
@@ -371,7 +370,7 @@ function renderVariantList(){
             <div class="variant-price">
               ${v.mrp ? `<del>₹${money(v.mrp)}</del>` : ''}
               ₹${money(d.price)}
-              <small>/ pack</small>
+              <small>/ unit</small>
             </div>
           </div>
           <div class="qty-box">
@@ -391,7 +390,6 @@ function updateVariantQty(key, pid, vidx, packQty, packPrice, delta){
   const product = items.find(p => p.id === pid);
   const variant = product.variants[vidx];
 
-  // 🔧 FIX 3: VARIANT LABEL UPDATED
   cart[key] = cart[key] || {
     pid,
     vidx,
@@ -419,12 +417,13 @@ function updateVariantQty(key, pid, vidx, packQty, packPrice, delta){
 }
 
 /* ======================================================
-   TOTALS & FOOTER (FIX 4: CLEAN TOTAL)
+   TOTALS & FOOTER
 ====================================================== */
 function updateFooter(){
   let totalAmount = 0;
   Object.values(cart).forEach(c => {
-    totalAmount += (c.count * c.price);
+    // FIX 3: CALCULATE TOTAL AS count * dealQty * unit price
+    totalAmount += (c.count * (c.dealQty || 1) * c.price);
   });
 
   const cCount = document.getElementById("cartCount");
@@ -432,7 +431,6 @@ function updateFooter(){
   
   if(cCount) cCount.innerText = Object.values(cart).reduce((sum, item) => sum + item.count, 0);
   
-  // 🔧 FIX 4: QTY CONFUSION REMOVED
   if(fText) {
       fText.innerText = `Total ₹${money(totalAmount)}`;
   }
@@ -447,7 +445,10 @@ function openCart(){
   let total = 0;
   
   Object.values(cart).forEach(c => {
-    const rowTotal = c.count * c.price;
+    // FIX 4: ROW TOTAL LOGIC
+    const rowTotal = c.dealQty 
+      ? (c.count * c.dealQty * c.price)
+      : (c.count * c.price);
     
     const displayName = c.dealQty 
       ? `<span>${c.productName}<br><small>${c.label} × ${c.count} pack(s)</small></span>` 
@@ -480,7 +481,11 @@ async function placeWhatsAppOrder(){
   let totalAmount = 0;
 
   Object.values(cart).forEach(c => {
-    const amount = c.count * c.price;
+    // FIX 5: WHATSAPP TOTAL LOGIC
+    const amount = c.dealQty
+      ? (c.count * c.dealQty * c.price)
+      : (c.count * c.price);
+
     if (c.dealQty) {
       msg += `• ${c.productName} - ${c.label}\n`;
       msg += `  ${c.count} pack(s) = ₹${money(amount)}\n`;
