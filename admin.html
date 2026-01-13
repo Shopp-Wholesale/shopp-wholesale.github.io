@@ -112,7 +112,7 @@ Paste JSON only when needed.'></textarea>
 const el = id => document.getElementById(id);
 
 const ADMIN_PIN = "Sreekanth@1";
-const ADMIN_KEY = "letmein123"; // 🔥 MUST MATCH FIRESTORE RULE
+const ADMIN_KEY = "letmein123";
 const IMGBB_KEY = "a70f2274f5053512d046cb5878c63041";
 
 /* LOGIN */
@@ -153,7 +153,7 @@ el("imagePicker").addEventListener("change",()=>{
  r.readAsDataURL(file);
 });
 
-/* SAVE ITEM — FINAL FIX */
+/* SAVE ITEM */
 el("item-form").onsubmit = async e => {
  e.preventDefault();
 
@@ -165,47 +165,38 @@ el("item-form").onsubmit = async e => {
    variants = JSON.parse(raw);
    if (!Array.isArray(variants)) throw 1;
   } catch {
-   alert("Variants must be valid JSON array.\nClear box for normal items.");
+   alert("Variants must be valid JSON array.");
    return;
   }
  }
 
  const data = {
-  adminKey: ADMIN_KEY, // 🔥 REQUIRED
+  adminKey: ADMIN_KEY,
   name: el("item-name").value.trim(),
   category: el("item-category").value.trim(),
   image: el("item-image").value.trim()
  };
 
- if (variants.length) {
-  data.variants = variants;
- } else {
+ if (variants.length) data.variants = variants;
+ else {
   data.mrp = +el("item-mrp").value || 0;
   data.price = +el("item-price").value || 0;
   data.stock = +el("item-stock").value || 0;
  }
 
- try {
-  if (el("item-id").value)
-   await db.collection("items").doc(el("item-id").value).update(data);
-  else
-   await db.collection("items").add(data);
+ if (el("item-id").value)
+  await db.collection("items").doc(el("item-id").value).update(data);
+ else
+  await db.collection("items").add(data);
 
-  alert("Item saved successfully");
-  clearForm(); loadItems(); loadInventory();
- } catch (err) {
-  console.error(err);
-  alert("Save failed. Check Firestore rules.");
- }
+ alert("Item saved");
+ clearForm(); loadItems(); loadInventory();
 };
 
 /* DELETE */
 el("btn-delete").onclick = async () => {
- const id = el("item-id").value;
- if (!id) return;
- if (confirm("Delete item permanently?")) {
-  await db.collection("items").doc(id).delete();
-  alert("Item deleted");
+ if(confirm("Delete item?")){
+  await db.collection("items").doc(el("item-id").value).delete();
   clearForm(); loadItems(); loadInventory();
  }
 };
@@ -244,7 +235,7 @@ async function loadItems(){
  });
 }
 
-/* DASHBOARD */
+/* DASHBOARD STATS */
 async function loadStats(){
  let sold=0,revenue=0;
  const s=await db.collection("orders").get();
@@ -257,23 +248,32 @@ async function loadStats(){
  el("d-revenue").innerText=revenue;
 }
 
+/* 🔥 INVENTORY — FINAL FIX */
 async function loadInventory(){
- let q=0,v=0;
- const s=await db.collection("items").get();
- s.forEach(d=>{
-  const i=d.data();
-  if(i.variants){
-   i.variants.forEach(vr=>{
-    q+=+vr.stock||0;
-    v+=+vr.stock*+vr.price||0;
-   });
+ let totalQty = 0;
+ let totalValue = 0;
+
+ const snap = await db.collection("items").get();
+ snap.forEach(doc=>{
+  const item = doc.data();
+
+  if (Array.isArray(item.variants) && item.variants.length) {
+    item.variants.forEach(v=>{
+      const s = Number(v.stock || 0);
+      const p = Number(v.price || 0);
+      totalQty += s;
+      totalValue += s * p;
+    });
   } else {
-   q+=+i.stock||0;
-   v+=+i.stock*+i.price||0;
+    const s = Number(item.stock || 0);
+    const p = Number(item.price || 0);
+    totalQty += s;
+    totalValue += s * p;
   }
  });
- el("inv-items").innerText=q;
- el("inv-value").innerText=v;
+
+ el("inv-items").innerText = totalQty;
+ el("inv-value").innerText = totalValue;
 }
 </script>
 
